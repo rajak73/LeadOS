@@ -8,5 +8,30 @@ export default defineConfig({
     // (tests/helpers/services.ts) so the suite is green with or without local infra; CI
     // runs docker-compose services so they execute there.
     testTimeout: 20000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json-summary', 'lcov'],
+      include: ['src/**/*.ts'],
+      // Excluded from coverage: process entrypoints + bootstrap that are exercised by
+      // integration/E2E rather than unit tests, guarded observability inits (no-op without
+      // a backend), type-only declarations, and barrels. These are covered behaviorally,
+      // not by unit assertions, so including them would distort the unit-coverage signal.
+      exclude: [
+        'src/**/*.test.ts',
+        'src/server.ts',
+        'src/worker.ts',
+        'src/core/observability/otel.ts',
+        'src/core/observability/sentry.ts',
+        'src/core/observability/logger.ts',
+        'src/core/middleware/index.ts',
+        'src/core/types/**',
+      ],
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        statements: 60,
+        branches: 60,
+      },
+    },
   },
 });

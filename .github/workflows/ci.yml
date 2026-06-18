@@ -52,11 +52,14 @@ jobs:
         run: pnpm typecheck
       - name: Lint (incl. module-boundary rules)
         run: pnpm lint
-      - name: Test (unit + integration)
-        run: pnpm test
+      - name: Test (unit + integration) with coverage thresholds
+        run: pnpm test:coverage
       - name: Build
         run: pnpm build
       - name: Audit (fail on high/critical)
+        # Gate fails on high/critical only. Residual moderate advisories (see
+        # SPRINT_1_REMEDIATION_REPORT.md) are tracked, below this gate, and not in the
+        # production runtime path.
         run: pnpm audit --audit-level=high
       - name: Enum parity (shared ↔ prisma)
         run: pnpm check:enum-parity

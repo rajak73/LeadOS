@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "workspaces": [
     "apps/*",
@@ -16,6 +16,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
     "db:migrate": "pnpm --filter @leados/api db:migrate",
@@ -42,7 +43,10 @@
   },
   "pnpm": {
     "overrides": {
-      "ioredis": "5.11.1"
+      "ioredis": "5.11.1",
+      "vite": "^6.4.3",
+      "esbuild": "^0.25.0",
+      "postcss": "^8.5.10"
     }
   }
 }
