@@ -1,0 +1,10 @@
+// Public surface of @leados/shared. Apps import only from here.
+
+export * from './constants/enums.js';
+export * from './constants/plan-limits.js';
+export * from './constants/permissions.js';
+export * from './constants/events.js';
+export * from './errors/error-codes.js';
+export * from './http/envelope.js';
+export * from './schemas/index.js';
+export * from './types/index.js';

@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: leados
+          POSTGRES_PASSWORD: leados
+          POSTGRES_DB: leados
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U leados"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://leados:leados@localhost:5432/leados
+      DATABASE_DIRECT_URL: postgresql://leados:leados@localhost:5432/leados
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations
+        run: pnpm db:migrate
+      - name: Build shared
+        run: pnpm --filter @leados/shared build
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint (incl. module-boundary rules)
+        run: pnpm lint
+      - name: Test (unit + integration)
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      - name: Audit (fail on high/critical)
+        run: pnpm audit --audit-level=high
+      - name: Enum parity (shared ↔ prisma)
+        run: pnpm check:enum-parity
+      - name: Client secret-leak guard
+        run: |
+          if grep -REn "process\.env\.(STRIPE_SECRET|JWT_|FIELD_ENCRYPTION|OPENAI_API_KEY|AWS_SECRET|SENDGRID_API)" apps/web/src; then
+            echo "::error::A server secret is referenced in client code (apps/web/src). Only NEXT_PUBLIC_* may reach the browser.";
+            exit 1;
+          fi
+          echo "client secret-leak guard: OK"

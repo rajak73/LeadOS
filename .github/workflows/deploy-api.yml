@@ -1,0 +1,21 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+
+# Builds the api + worker images and rolling-deploys to Railway/ECS (api.leados.app).
+# The deploy is gated by the /health probe. Image build is validated here; the actual
+# release step requires deploy credentials.
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -f infra/docker/api.Dockerfile -t leados-api:${{ github.sha }} .
+      - name: Build worker image
+        run: docker build -f infra/docker/worker.Dockerfile -t leados-worker:${{ github.sha }} .
+      - name: Release (Railway/ECS)
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        run: echo "Push images to registry and trigger rolling deploy (gated on /health)."

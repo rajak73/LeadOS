@@ -1,0 +1,39 @@
+name: Migration Check
+
+# Applies the migration on a shadow DB and (from S2, when destructive migrations appear)
+# asserts the rollback script applies cleanly — no prod migration without a tested rollback
+# (doc 21). In Sprint 1 the only migration enables extensions.
+on:
+  pull_request:
+    paths:
+      - 'prisma/**'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: leados
+          POSTGRES_PASSWORD: leados
+          POSTGRES_DB: leados_shadow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U leados"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://leados:leados@localhost:5432/leados_shadow
+      DATABASE_DIRECT_URL: postgresql://leados:leados@localhost:5432/leados_shadow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations on shadow DB
+        run: pnpm db:migrate

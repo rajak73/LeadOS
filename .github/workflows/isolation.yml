@@ -1,0 +1,17 @@
+name: Tenant Isolation Suite
+
+# SCAFFOLD — activates in Sprint 3 when the tenancy mechanism + cross-tenant isolation
+# suite (TEN-3.1) exist. It will run against an ephemeral Postgres with RLS and assert
+# org A cannot read/write/aggregate org B at both the app and RLS layers, and that RLS
+# denies a query whose tenant GUC is unset. Required-to-merge gate from S3 onward.
+on:
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'prisma/**'
+
+jobs:
+  isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Tenant isolation suite is introduced in Sprint 3 (TEN-3.1)."

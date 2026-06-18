@@ -1,0 +1,14 @@
+name: Security
+
+# SCAFFOLD — OWASP ZAP scan on staging, secret scanning (trufflehog), and SBOM generation
+# activate in Sprint 8 (SEC-4.2). `npm/pnpm audit` already runs in ci.yml every PR.
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "ZAP / secret-scan / SBOM are introduced in Sprint 8 (SEC-4.2)."

@@ -1,0 +1,35 @@
+/* LeadOS design tokens (doc 17 §17.2–17.4). Dark-first. */
+:root {
+  /* Background scale */
+  --color-bg-base: #0a0a0f;
+  --color-bg-elevated: #111118;
+  --color-bg-overlay: #16161e;
+  --color-bg-subtle: #1c1c26;
+  --color-bg-muted: #22222f;
+
+  /* Border scale */
+  --color-border-subtle: #1e1e2a;
+  --color-border-default: #27273a;
+  --color-border-strong: #353545;
+
+  /* Text scale */
+  --color-text-primary: #f0f0fa;
+  --color-text-secondary: #9898b8;
+  --color-text-tertiary: #6262a0;
+
+  /* Brand primary (indigo-violet) */
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+
+  /* Semantic */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Radius */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}

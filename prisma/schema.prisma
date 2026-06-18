@@ -1,0 +1,29 @@
+// LeadOS Prisma schema.
+// Source of truth for structure: docs/blueprint/09-PRISMA-SCHEMA.md (corrected per P0_FIXES).
+//
+// SPRINT 1 SCOPE: generator + datasource + required PostgreSQL extensions ONLY.
+// No domain models or enums are declared yet — Identity/Tenancy models land in Sprint 2,
+// and tenancy uses the corrected per-unit-of-work transaction + RLS mechanism
+// (FINAL_ARCHITECTURE.md §2). Adding models now would be implementing a future sprint.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DATABASE_DIRECT_URL")
+  extensions = [uuidOssp(map: "uuid-ossp"), pgcrypto, pgTrgm(map: "pg_trgm")]
+}
+
+// Infrastructure-only table (NOT a domain model). It exists so the Prisma Client
+// generates in Sprint 1 (Prisma refuses to generate with zero models) and gives the deep
+// health check a real table to read/write against. Domain models land in Sprint 2.
+model HealthCheck {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  checkedAt DateTime @default(now())
+
+  @@map("health_check")
+}

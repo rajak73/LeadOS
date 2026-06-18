@@ -1,0 +1,17 @@
+# Default
+*                                   @leados/eng
+
+# Security-sensitive areas require a security-aware reviewer (2 approvals).
+/apps/api/src/core/prisma/          @leados/eng @leados/security
+/apps/api/src/core/middleware/      @leados/eng @leados/security
+/apps/api/src/core/crypto/          @leados/eng @leados/security
+
+# Shared contract changes require both a FE and BE reviewer.
+/packages/shared/                   @leados/eng-backend @leados/eng-frontend
+
+# Infra / CI / deploy
+/.github/                           @leados/eng @leados/devex
+/infra/                             @leados/eng @leados/devex
+
+# Architecture source of truth
+/docs/planning/FINAL_ARCHITECTURE.md @leados/eng @leados/architecture

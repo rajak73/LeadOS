@@ -1,0 +1,26 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+
+# Spins a Vercel preview for apps/web and (where configured) an ephemeral API preview, so
+# the browser → BFF → API path can be validated per PR (SPRINT_1_EXECUTION_PLAN §5.2).
+jobs:
+  preview-web:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy Vercel preview
+        run: npx vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
