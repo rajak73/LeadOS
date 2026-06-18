@@ -1,6 +1,7 @@
-// Express Request augmentation. In Sprint 1, `context` carries only the requestId.
-// Auth/tenant fields (userId, organizationId, role, permissions, scoped db client) are
-// added by their middleware in Sprints 2–3.
+// Express Request augmentation.
+// - `context` (Sprint 1): requestId.
+// - `auth` (Sprint 2): set by authMiddleware when a valid access token is present.
+// Tenant scoping fields (scoped db client, permissions) are added in Sprint 3.
 
 import 'express';
 
@@ -9,6 +10,12 @@ declare global {
     interface Request {
       context?: {
         requestId: string;
+      };
+      auth?: {
+        userId: string;
+        organizationId: string;
+        role: string;
+        isSuperAdmin: boolean;
       };
     }
   }

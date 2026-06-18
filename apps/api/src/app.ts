@@ -7,6 +7,7 @@
 // (auth/tenant/rbac stubs) and returns the standard envelope.
 
 import express, { type Express, Router } from 'express';
+import cookieParser from 'cookie-parser';
 import {
   corsMiddleware,
   securityHeaders,
@@ -21,6 +22,7 @@ import { healthRouter } from './core/health/health.routes.js';
 import { webhookRouter } from './core/webhooks/webhook.routes.js';
 import { notFoundHandler, errorHandler } from './core/errors/error-handler.js';
 import { sendSuccess } from './core/http/envelope.js';
+import { authRouter } from './modules/auth/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -41,8 +43,14 @@ export function buildApp(): Express {
 
   // Global JSON parser for the rest of the API.
   app.use(express.json({ limit: '1mb' }));
+  app.use(cookieParser()); // refresh-token cookie parsing for /auth/refresh + /auth/logout
 
-  // Versioned API surface. Sprint 1: diagnostic ping only.
+  // PUBLIC auth routes (register/verify/etc.) — no auth/tenant middleware. Mounted before
+  // the authenticated chain so it terminates auth requests (each route carries its own
+  // rate limit).
+  app.use('/api/v1/auth', authRouter);
+
+  // Versioned API surface (authenticated). Sprint 1: diagnostic ping only.
   const v1 = Router();
   v1.get('/ping', requirePermission('org.read'), (req, res) => {
     sendSuccess(res, { pong: true, requestId: req.context?.requestId ?? null });

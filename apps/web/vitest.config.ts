@@ -14,7 +14,12 @@ export default defineConfig({
       // Only the node-testable lib + route handlers are measured. Client-runtime modules
       // ('use client': Zustand store, Socket.io client) and React components/shell are
       // validated at build time and (in later sprints) via E2E, not node unit tests.
-      include: ['src/lib/api-client.ts', 'src/lib/auth/**/*.ts', 'src/app/api/**/*.ts'],
+      include: [
+        'src/lib/api-client.ts',
+        'src/lib/auth/**/*.ts',
+        'src/lib/server/**/*.ts',
+        'src/app/api/**/*.ts',
+      ],
       exclude: ['src/**/*.test.ts'],
       thresholds: {
         lines: 60,

@@ -7,4 +7,5 @@ export * from './constants/events.js';
 export * from './errors/error-codes.js';
 export * from './http/envelope.js';
 export * from './schemas/index.js';
+export * from './schemas/auth.js';
 export * from './types/index.js';

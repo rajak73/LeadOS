@@ -22,6 +22,15 @@ const envSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   OTEL_SERVICE_NAME: z.string().default('leados-api'),
   GIT_SHA: z.string().default('local'),
+
+  // Auth (Sprint 2). Dev/test defaults provided; production MUST override (enforced below).
+  JWT_ACCESS_SECRET: z.string().min(1).default('dev-access-secret-change-me'),
+  JWT_REFRESH_PEPPER: z.string().min(1).default('dev-refresh-pepper-change-me'),
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900), // 15 min
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
+  REFRESH_TOKEN_REMEMBER_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
+  SESSION_COOKIE_DOMAIN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -44,3 +53,13 @@ export function loadEnv(source: NodeJS.ProcessEnv): Env {
 export const env: Env = loadEnv(process.env);
 export const isProduction = (): boolean => env.NODE_ENV === 'production';
 export const isTest = (): boolean => env.NODE_ENV === 'test';
+
+// In production, the auth secrets must be explicitly set (never the dev defaults).
+if (env.NODE_ENV === 'production') {
+  const insecure: string[] = [];
+  if (env.JWT_ACCESS_SECRET === 'dev-access-secret-change-me') insecure.push('JWT_ACCESS_SECRET');
+  if (env.JWT_REFRESH_PEPPER === 'dev-refresh-pepper-change-me') insecure.push('JWT_REFRESH_PEPPER');
+  if (insecure.length > 0) {
+    throw new Error(`Refusing to start in production with default auth secrets: ${insecure.join(', ')}`);
+  }
+}

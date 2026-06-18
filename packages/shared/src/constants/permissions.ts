@@ -83,3 +83,51 @@ export const SALES_EXECUTIVE_PERMISSIONS: PermissionKey[] = [
   'analytics.read_own',
   'org.read',
 ];
+
+// Full permission catalog (doc 11 §11.2). Some keys (e.g. team.invite, org.connect_social,
+// analytics.read_all) do not fit the generic `${Resource}.${Action}` shape, so the catalog
+// is typed as plain strings. This is the single source of truth for role SEEDING (S2) and
+// RBAC ENFORCEMENT (S3). Seeding splits "resource.action" into the permissions table's
+// resource + action columns.
+export const PERMISSION_CATALOG: readonly string[] = [
+  // leads
+  'leads.create', 'leads.read', 'leads.read_own', 'leads.update', 'leads.update_own',
+  'leads.delete', 'leads.assign', 'leads.import', 'leads.export',
+  // contacts
+  'contacts.create', 'contacts.read', 'contacts.read_own', 'contacts.update',
+  'contacts.update_own', 'contacts.delete',
+  // deals
+  'deals.create', 'deals.read', 'deals.read_own', 'deals.update', 'deals.update_own',
+  'deals.delete', 'deals.assign',
+  // pipelines
+  'pipelines.create', 'pipelines.read', 'pipelines.update', 'pipelines.delete',
+  // tasks
+  'tasks.create', 'tasks.read', 'tasks.update', 'tasks.update_own',
+  // inbox
+  'inbox.read', 'inbox.read_own', 'inbox.reply', 'inbox.reply_own', 'inbox.assign',
+  'inbox.close', 'inbox.close_own',
+  // workflows
+  'workflows.create', 'workflows.read', 'workflows.update', 'workflows.delete',
+  // analytics
+  'analytics.read_own', 'analytics.read_all', 'analytics.export',
+  // team
+  'team.invite', 'team.read', 'team.update_role', 'team.remove', 'team.suspend',
+  // billing
+  'billing.read', 'billing.manage',
+  // org
+  'org.read', 'org.update', 'org.delete', 'org.connect_social',
+  // files
+  'files.create', 'files.read', 'files.delete',
+] as const;
+
+// ADMIN = everything except billing and org deletion (doc 11 §11.5).
+const ADMIN_PERMISSIONS: readonly string[] = PERMISSION_CATALOG.filter(
+  (p) => !p.startsWith('billing.') && p !== 'org.delete',
+);
+
+export const ROLE_PERMISSIONS: Record<SystemRole, readonly string[]> = {
+  OWNER: PERMISSION_CATALOG, // all
+  ADMIN: ADMIN_PERMISSIONS,
+  MANAGER: MANAGER_PERMISSIONS,
+  SALES_EXECUTIVE: SALES_EXECUTIVE_PERMISSIONS,
+};

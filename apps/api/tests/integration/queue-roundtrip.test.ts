@@ -34,7 +34,7 @@ describe.skipIf(!redisUp)('queue round-trip (API → queue → worker)', () => {
         },
         { connection },
       );
-      worker.on('completed', (job, result) => {
+      worker.on('completed', (_job, result) => {
         if ((result as { nonce?: string })?.nonce === nonce) {
           void worker.close().then(() => resolve(nonce));
         }

@@ -1,10 +1,11 @@
 // LeadOS Prisma schema.
 // Source of truth for structure: docs/blueprint/09-PRISMA-SCHEMA.md (corrected per P0_FIXES).
 //
-// SPRINT 1 SCOPE: generator + datasource + required PostgreSQL extensions ONLY.
-// No domain models or enums are declared yet — Identity/Tenancy models land in Sprint 2,
-// and tenancy uses the corrected per-unit-of-work transaction + RLS mechanism
-// (FINAL_ARCHITECTURE.md §2). Adding models now would be implementing a future sprint.
+// SPRINT 2 SCOPE: Identity & Organization models (users, organizations,
+// organization_members, roles, permissions, refresh_tokens, verification_tokens,
+// subscriptions). Enums here MUST match packages/shared/src/constants/enums.ts (enum-parity
+// CI gate). NOT in Sprint 2 (deferred): the tenant Prisma extension / RLS / RBAC enforcement
+// (S3), Stripe billing fields beyond a trial row (S8), default pipeline (S5).
 
 generator client {
   provider        = "prisma-client-js"
@@ -18,12 +19,215 @@ datasource db {
   extensions = [uuidOssp(map: "uuid-ossp"), pgcrypto, pgTrgm(map: "pg_trgm")]
 }
 
-// Infrastructure-only table (NOT a domain model). It exists so the Prisma Client
-// generates in Sprint 1 (Prisma refuses to generate with zero models) and gives the deep
-// health check a real table to read/write against. Domain models land in Sprint 2.
+// Infrastructure-only table (NOT a domain model). Retained from Sprint 1 for the deep
+// health check's read/write probe.
 model HealthCheck {
   id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   checkedAt DateTime @default(now())
 
   @@map("health_check")
+}
+
+// ============================================================================
+// ENUMS — must match packages/shared/src/constants/enums.ts (enum-parity gate)
+// ============================================================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum MemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum SubscriptionPlan {
+  TRIAL
+  STARTER
+  GROWTH
+  SCALE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+}
+
+// Prisma-only enum (not in shared; used by verification_tokens). Not parity-checked.
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// ============================================================================
+// IDENTITY & ORGANIZATION MODELS (Sprint 2)
+// ============================================================================
+
+model User {
+  id              String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email           String     @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  avatarUrl       String?
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  failedLoginCount Int       @default(0)
+  lockedUntil     DateTime?
+  isSuperAdmin    Boolean    @default(false)
+  status          UserStatus @default(ACTIVE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  memberships        OrganizationMember[]
+  refreshTokens      RefreshToken[]
+  verificationTokens VerificationToken[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model Organization {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name          String
+  slug          String    @unique
+  industry      String?
+  logoUrl       String?
+  timezone      String    @default("Asia/Kolkata")
+  currency      String    @default("INR")
+  language      String    @default("en")
+  businessHours Json?
+  status        OrgStatus @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  members      OrganizationMember[]
+  roles        Role[]
+  subscription Subscription?
+
+  @@index([status])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String       @db.Uuid
+  roleId         String       @db.Uuid
+  status         MemberStatus @default(ACTIVE)
+  invitedById    String?      @db.Uuid
+  invitedAt      DateTime?
+  joinedAt       DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+  @@map("organization_members")
+}
+
+model Role {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  isSystem       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  permissions  Permission[]
+  members      OrganizationMember[]
+
+  @@unique([organizationId, name])
+  @@map("roles")
+}
+
+model Permission {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  roleId    String   @db.Uuid
+  resource  String
+  action    String
+  createdAt DateTime @default(now())
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, resource, action])
+  @@map("permissions")
+}
+
+model RefreshToken {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId         String    @db.Uuid
+  organizationId String    @db.Uuid
+  tokenHash      String    @unique
+  family         String    @db.Uuid
+  deviceInfo     String?
+  ipAddress      String?
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, family])
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model VerificationToken {
+  id        String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String                @db.Uuid
+  type      VerificationTokenType
+  tokenHash String                @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, type])
+  @@map("verification_tokens")
+}
+
+// Sprint 2 creates only the TRIAL row at org bootstrap. Stripe fields + reconciliation
+// columns (lastStripeEventAt/lastSyncedAt) are exercised by the Billing module (S8).
+model Subscription {
+  id                String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId    String             @unique @db.Uuid
+  plan              SubscriptionPlan   @default(TRIAL)
+  status            SubscriptionStatus @default(TRIALING)
+  trialEndsAt       DateTime?
+  seatCount         Int                @default(1)
+  stripeCustomerId  String?
+  stripeSubscriptionId String?
+  lastStripeEventAt DateTime?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("subscriptions")
 }
