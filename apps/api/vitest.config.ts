@@ -7,7 +7,9 @@ export default defineConfig({
     // Integration tests that need Postgres/Redis self-gate at runtime via a service probe
     // (tests/helpers/services.ts) so the suite is green with or without local infra; CI
     // runs docker-compose services so they execute there.
-    testTimeout: 20000,
+    // Headroom for pure-JS bcryptjs (TD-S2-1) cost-factor ops running under parallel test
+    // load; CI additionally lowers BCRYPT_COST so the suite stays well under this ceiling.
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json-summary', 'lcov'],

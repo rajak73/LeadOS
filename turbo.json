@@ -19,11 +19,29 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "DATABASE_DIRECT_URL",
+        "DATABASE_REPLICA_URL",
+        "REDIS_URL",
+        "NODE_ENV",
+        "BCRYPT_COST",
+        "CI"
+      ]
     },
     "test:coverage": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "DATABASE_DIRECT_URL",
+        "DATABASE_REPLICA_URL",
+        "REDIS_URL",
+        "NODE_ENV",
+        "BCRYPT_COST",
+        "CI"
+      ]
     }
   }
 }

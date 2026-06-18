@@ -9,6 +9,7 @@ import type { Request, RequestHandler } from 'express';
 import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
 import { ErrorCode } from '@leados/shared';
 import { cacheRedis } from '../redis/client.js';
+import { isTest } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 
 interface LimiterOptions {
@@ -33,6 +34,15 @@ function clientKey(req: Request): string {
 }
 
 export function createRateLimit(opts: LimiterOptions): RequestHandler {
+  // In the test environment the per-IP limiter is a pass-through: integration tests drive
+  // many auth requests from a single loopback IP (supertest → 127.0.0.1), which would trip
+  // the strict 5/15min auth limit and mask the behavior under test. Production and dev keep
+  // the real limiter — only NODE_ENV=test bypasses it. (DEF-3: gated auth integration tests
+  // must execute against real Postgres without the limiter starving the register happy-path.)
+  if (isTest()) {
+    return (_req, _res, next) => next();
+  }
+
   const limiter = buildLimiter(opts);
   return (req, res, next) => {
     limiter

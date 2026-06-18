@@ -34,6 +34,11 @@ jobs:
       DATABASE_DIRECT_URL: postgresql://leados:leados@localhost:5432/leados
       REDIS_URL: redis://localhost:6379
       NODE_ENV: test
+      # Tests only assert the bcrypt hash prefix ($2x$), never the cost factor. Pure-JS
+      # bcryptjs (TD-S2-1) at the prod cost (12) is ~seconds/op and flakes under the runner's
+      # parallel test load; cost 4 keeps the suite fast + deterministic. Production cost is
+      # unchanged (env default 12). Passed through turbo via turbo.json passThroughEnv.
+      BCRYPT_COST: 4
     steps:
       - uses: actions/checkout@v4
       # pnpm version comes from `packageManager` in package.json (single source of truth).
