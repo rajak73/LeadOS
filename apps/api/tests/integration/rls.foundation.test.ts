@@ -114,9 +114,18 @@ describe.skipIf(!pgUp)('RLS foundation — structure (TEN-3.1.2)', () => {
   });
 
   it('RLS coverage == registry: every organizationId-bearing table is registered (TEN-3.1.3)', async () => {
+    // Exclude partition child tables (relispartition = true): partition children inherit the
+    // organizationId column from the parent table AND inherit the parent's RLS policies in
+    // PG 12+. Only the parent partition table ("activities") is in the registry.
     const rows = await prisma.$queryRawUnsafe<{ table_name: string }[]>(
-      `SELECT table_name FROM information_schema.columns
-        WHERE table_schema = 'public' AND column_name = $1`,
+      `SELECT col.table_name
+         FROM information_schema.columns col
+         JOIN pg_class c ON c.relname = col.table_name AND c.relnamespace = (
+           SELECT oid FROM pg_namespace WHERE nspname = 'public'
+         )
+        WHERE col.table_schema = 'public'
+          AND col.column_name = $1
+          AND c.relispartition = false`,
       TENANT_COLUMN,
     );
     const withTenantColumn = rows.map((r) => r.table_name).sort();

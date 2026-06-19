@@ -25,35 +25,47 @@ ORGANIZATIONS
     │         │
     │         └── ROLES >──── PERMISSIONS
     │
+    ├──< TEAM_INVITES                          [Sprint 4 — new]
+    │
+    ├──< CUSTOM_FIELD_DEFINITIONS              [Sprint 4 — new; objectType: LEAD|CONTACT|DEAL]
+    │
+    ├──< SAVED_REPLIES                         [Sprint 4 shell — routes in Sprint 6]
+    │
     ├──< LEADS
-    │         ├── AI_SCORES
-    │         └── ACTIVITIES
+    │         ├──< AI_SCORES                   [Sprint 4 — new]
+    │         ├──< ACTIVITIES (partitioned)    [Sprint 4 — PARTITION BY RANGE(createdAt)]
+    │         ├──< TASKS
+    │         ├──< NOTES
+    │         ├──< FILES
+    │         ├── convertedToContactId ──> CONTACTS  [FK enforced]
+    │         ├── pipelineStageId (UUID NULL)          [deferred FK → Sprint 5]
+    │         └── instagramAccountId (UUID NULL)        [deferred FK → Sprint 6]
     │
     ├──< CONTACTS
-    │         └── ACTIVITIES
+    │         ├──< ACTIVITIES
+    │         ├──< TASKS
+    │         ├──< NOTES
+    │         └──< FILES
     │
-    ├──< PIPELINES
+    ├──< PIPELINES                             [Sprint 5]
     │         └──< PIPELINE_STAGES
     │                   └──< DEALS >── CONTACTS | LEADS
     │                         └── ACTIVITIES
     │
-    ├──< INSTAGRAM_ACCOUNTS
+    ├──< INSTAGRAM_ACCOUNTS                    [Sprint 6]
     │         └──< INSTAGRAM_CONVERSATIONS
     │                   └──< MESSAGES
     │
-    ├──< WHATSAPP_ACCOUNTS
+    ├──< WHATSAPP_ACCOUNTS                     [Sprint 9]
     │         └──< WHATSAPP_CONVERSATIONS
     │                   └──< MESSAGES
     │
-    ├──< TASKS
-    ├──< NOTES
-    ├──< FILES
-    ├──< WORKFLOWS
+    ├──< WORKFLOWS                             [Sprint 7]
     │         └──< WORKFLOW_EXECUTIONS
     │
     ├──< NOTIFICATIONS
     ├──< WEBHOOK_EVENTS
-    ├──< AUDIT_LOGS
+    ├──< AUDIT_LOGS (partitioned)              [Sprint 3 — PARTITION BY RANGE(createdAt)]
     │
     ├── SUBSCRIPTIONS
     │         └──< INVOICES
@@ -155,52 +167,65 @@ ORGANIZATIONS
 ---
 
 ### leads
+
+> **⚠ UPDATED per `SPRINT_4_SCHEMA_REMEDIATION_PLAN.md`.** Columns `notes` (quick-note field) removed; `pipelineStageId` FK constraint deferred to Sprint 5; `instagramAccountId`, `mergedIntoLeadId`, `lastActivityAt` added. WON status only reachable via `convert()` — not via direct PATCH. Source is immutable after creation (enforced by DB trigger). See remediation plan for rationale.
+
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| id | UUID | PK | |
-| organizationId | UUID | FK, NOT NULL | Tenant key |
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | Tenant key |
 | firstName | VARCHAR(100) | NOT NULL | |
 | lastName | VARCHAR(100) | NULL | |
-| email | VARCHAR(255) | NULL | |
-| phone | VARCHAR(20) | NULL | |
-| source | ENUM | NOT NULL | INSTAGRAM_DM, WHATSAPP, MANUAL, IMPORT, REFERRAL, WEB_FORM, OTHER |
-| status | ENUM | NOT NULL | NEW, CONTACTED, QUALIFIED, PROPOSAL, NEGOTIATION, WON, LOST |
+| email | VARCHAR(255) | NULL | Plaintext, indexed (P0-7) |
+| phone | VARCHAR(20) | NULL | Plaintext, indexed (P0-7) |
+| source | ENUM LeadSource | NOT NULL | **Immutable after creation** — enforced by `leads_source_immutable` DB trigger |
+| status | ENUM LeadStatus | NOT NULL DEFAULT 'NEW' | `WON` only reachable via `convert()` — rejected on direct PATCH |
 | assignedToId | UUID | FK → users.id, NULL | |
-| aiScore | SMALLINT | NULL | 0–100 |
-| aiScoreUpdatedAt | TIMESTAMP | NULL | |
+| aiScore | SMALLINT | NULL | 0–100; denormalized cache of latest ai_scores row |
+| aiScoreUpdatedAt | TIMESTAMP | NULL | Timestamp of the latest ai_scores row for this lead |
 | instagramHandle | VARCHAR(100) | NULL | |
-| instagramUserId | VARCHAR(50) | NULL | For linking to IG account |
-| tags | TEXT[] | DEFAULT '{}' | Array of tag strings |
-| customFields | JSONB | DEFAULT '{}' | `{ fieldKey: value }` |
-| notes | TEXT | NULL | Quick notes (not rich-text) |
-| lostReason | TEXT | NULL | Populated when status = LOST |
-| convertedToContactId | UUID | FK → contacts.id, NULL | Set when won |
-| pipelineStageId | UUID | FK → pipeline_stages.id, NULL | |
+| instagramUserId | VARCHAR(50) | NULL | Meta IGSID — for webhook→lead lookup |
+| instagramAccountId | UUID | NULL | ⚠ No FK in Sprint 4 — deferred to Sprint 6 (instagram_accounts table not yet created) |
+| tags | TEXT[] | DEFAULT '{}' | Tag strings |
+| customFields | JSONB | DEFAULT '{}' | Keys must match custom_field_definitions.fieldKey for this org |
+| lostReason | TEXT | NULL | Required when status transitions to LOST |
+| convertedToContactId | UUID | FK → contacts.id, NULL | Set by convert() only |
+| pipelineStageId | UUID | NULL | ⚠ No FK in Sprint 4 — deferred to Sprint 5 (pipeline_stages table not yet created) |
+| mergedIntoLeadId | UUID | NULL | Set on merge (loser lead points to winner); no FK in Sprint 4 |
+| lastActivityAt | TIMESTAMP | NULL | Write-through from ActivityService.append(); enables O(1) sort on lead list |
 | createdById | UUID | FK → users.id, NOT NULL | |
 | createdAt | TIMESTAMP | NOT NULL | |
 | updatedAt | TIMESTAMP | NOT NULL | |
 | deletedAt | TIMESTAMP | NULL | |
 
-**Indexes:**
-- `organizationId` (non-unique, partitioning key)
+**Removed vs prior schema:** `notes TEXT NULL` — conflicts with the notes table; use notes table for all note content.
+
+**DB trigger:** `leads_source_immutable` (BEFORE UPDATE) — raises exception if `source` column is changed after creation.
+
+**Indexes (migration 0007_crm_indexes):**
+- `(organizationId)` non-unique
 - `(organizationId, status)`
 - `(organizationId, assignedToId)`
 - `(organizationId, source)`
-- `(organizationId, aiScore)`
+- `(organizationId, aiScore DESC)`
+- `(organizationId, lastActivityAt DESC NULLS LAST)` ← new; enables O(1) list sort
 - `email` (for dedup)
 - `phone` (for dedup)
 - `instagramUserId` (for webhook lookup)
-- Full-text: `to_tsvector('english', firstName || ' ' || lastName || ' ' || coalesce(email,''))`
+- GIN full-text: `to_tsvector('english', coalesce(firstName,'') || ' ' || coalesce(lastName,'') || ' ' || coalesce(email,'') || ' ' || coalesce(phone,'')) WHERE deletedAt IS NULL` ← partial index; excludes soft-deleted rows; phone added
 
 > **P0-7:** `email`/`phone` are stored as **plaintext, indexable columns** (these dedup and full-text indexes depend on it) and are protected by storage-layer encryption (Neon AES-256), NOT application-level field encryption. They are masked in logs and in audit before/after snapshots (§8.6).
 
 ---
 
 ### contacts
+
+> **⚠ UPDATED per `SPRINT_4_SCHEMA_REMEDIATION_PLAN.md`.** `lastActivityAt` added (write-through from ActivityService; same pattern as leads).
+
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| id | UUID | PK | |
-| organizationId | UUID | FK, NOT NULL | |
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | |
 | firstName | VARCHAR(100) | NOT NULL | |
 | lastName | VARCHAR(100) | NULL | |
 | email | VARCHAR(255) | NULL | |
@@ -210,16 +235,17 @@ ORGANIZATIONS
 | avatarUrl | TEXT | NULL | |
 | address | JSONB | NULL | `{ street, city, state, country, zip }` |
 | tags | TEXT[] | DEFAULT '{}' | |
-| customFields | JSONB | DEFAULT '{}' | |
-| lifeTimeValue | DECIMAL(15,2) | DEFAULT 0 | Calculated field |
+| customFields | JSONB | DEFAULT '{}' | Keys must match custom_field_definitions.fieldKey for this org |
+| lifeTimeValue | DECIMAL(15,2) | DEFAULT 0 | Calculated from deals |
 | assignedToId | UUID | FK → users.id, NULL | |
-| createdFromLeadId | UUID | FK → leads.id, NULL | |
+| lastActivityAt | TIMESTAMP | NULL | Write-through from ActivityService.append() |
+| createdFromLeadId | UUID | FK → leads.id, NULL | Set by convert() |
 | createdById | UUID | FK → users.id, NOT NULL | |
 | createdAt | TIMESTAMP | NOT NULL | |
 | updatedAt | TIMESTAMP | NOT NULL | |
 | deletedAt | TIMESTAMP | NULL | |
 
-**Indexes:** Similar to leads; `(organizationId, email)`, `(organizationId, phone)`
+**Indexes (migration 0007_crm_indexes):** `(organizationId, email)`, `(organizationId, phone)`, `(organizationId, assignedToId)`, `(organizationId, createdFromLeadId)` ← required for `POST /leads/:id/convert` idempotency check, `(organizationId, lastActivityAt DESC NULLS LAST)`, `deletedAt`
 
 ---
 
@@ -312,32 +338,54 @@ ORGANIZATIONS
 ---
 
 ### activities
+
+> **⚠ UPDATED per `SPRINT_4_SCHEMA_REMEDIATION_PLAN.md`.** Table is created as `PARTITION BY RANGE ("createdAt")` from day one (SC-1/DB-2). ActivityType enum canonicalized to 19 values. CHECK constraint enforces at least one entity FK is non-null. Immutability enforced by DB triggers (not just convention). `metadata` shape is governed by the `ActivityMetadata` discriminated union in `packages/shared/src/types/activity-metadata.ts`.
+
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| id | UUID | PK | |
-| organizationId | UUID | FK, NOT NULL | |
-| type | ENUM | NOT NULL | LEAD_CREATED, STATUS_CHANGED, DEAL_MOVED, MESSAGE_SENT, MESSAGE_RECEIVED, TASK_CREATED, TASK_COMPLETED, NOTE_ADDED, FILE_UPLOADED, CALL_LOGGED, DEAL_WON, DEAL_LOST |
+| id | UUID | NOT NULL DEFAULT uuid_generate_v4() | Part of partition key |
+| organizationId | UUID | FK → organizations.id, NOT NULL | Tenant key |
+| type | ENUM ActivityType | NOT NULL | See canonical 19-value enum below |
 | description | TEXT | NOT NULL | Human-readable description |
-| metadata | JSONB | DEFAULT '{}' | Type-specific extra data |
-| performedById | UUID | FK → users.id, NULL | NULL = system action |
-| relatedLeadId | UUID | FK → leads.id, NULL | |
-| relatedDealId | UUID | FK → deals.id, NULL | |
-| relatedContactId | UUID | FK → contacts.id, NULL | |
-| createdAt | TIMESTAMP | NOT NULL | Immutable — no updatedAt |
+| metadata | JSONB | NOT NULL DEFAULT '{}' | Shape governed by ActivityMetadata discriminated union |
+| performedById | UUID | FK → users.id, NULL | NULL = system-generated action |
+| relatedLeadId | UUID | NULL | At least one of these three must be non-null (CHECK) |
+| relatedDealId | UUID | NULL | |
+| relatedContactId | UUID | NULL | |
+| createdAt | TIMESTAMP | NOT NULL DEFAULT now() | Partition key — no updatedAt |
 
-**Constraint:** Activities are IMMUTABLE — no UPDATE, no soft delete
-**Index:** `(organizationId, relatedLeadId)`, `(organizationId, relatedDealId)`, `(organizationId, relatedContactId)`, `(organizationId, createdAt DESC)`
+**Canonical ActivityType values (19):**
+`LEAD_CREATED, LEAD_STATUS_CHANGED, LEAD_ASSIGNED, LEAD_WON, LEAD_LOST, CONTACT_CREATED, CONTACT_UPDATED, TASK_CREATED, TASK_COMPLETED, TASK_CANCELLED, NOTE_ADDED, NOTE_UPDATED, NOTE_DELETED, FILE_UPLOADED, FILE_DELETED, DEAL_CREATED, DEAL_STAGE_MOVED, DEAL_WON, DEAL_LOST`
+
+**Table DDL:** `PARTITION BY RANGE ("createdAt")`. Initial partitions: `activities_2026` (2026-01-01 → 2027-01-01) + `activities_default` (DEFAULT). Annual partitions added by ops runbook each December.
+
+**Constraints:**
+- `CHECK ("relatedLeadId" IS NOT NULL OR "relatedDealId" IS NOT NULL OR "relatedContactId" IS NOT NULL)` — orphaned activities are impossible
+- No `updatedAt`. No `deletedAt`. Rows are immutable and never removed.
+
+**DB triggers (in migration 0006, after table creation):**
+- `activities_no_update` (BEFORE UPDATE) — raises exception unconditionally
+- `activities_no_delete` (BEFORE DELETE) — raises exception unconditionally
+
+**Indexes (migration 0007_crm_indexes):**
+- `(organizationId, relatedLeadId, createdAt DESC)`
+- `(organizationId, relatedDealId, createdAt DESC)`
+- `(organizationId, relatedContactId, createdAt DESC)`
+- `(organizationId, createdAt DESC)`
 
 ---
 
 ### notes
+
+> **⚠ UPDATED per `SPRINT_4_SCHEMA_REMEDIATION_PLAN.md`.** `content` type changed from `TEXT` to `JSONB` (ProseMirror/Tiptap document format). Raw HTML storage was an XSS risk; structured JSON is rendered by the Tiptap editor and serialized to plain text for workflow interpolation.
+
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| id | UUID | PK | |
-| organizationId | UUID | FK, NOT NULL | |
-| content | TEXT | NOT NULL | Rich text (HTML/JSON) |
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | |
+| content | JSONB | NOT NULL DEFAULT '{}' | ProseMirror/Tiptap document. Rendered by Tiptap in read mode; `toPlainText(doc)` for workflow interpolation |
 | relatedLeadId | UUID | FK → leads.id, NULL | |
-| relatedDealId | UUID | FK → deals.id, NULL | |
+| relatedDealId | UUID | NULL | ⚠ No FK in Sprint 4 — deals table is Sprint 5 |
 | relatedContactId | UUID | FK → contacts.id, NULL | |
 | createdById | UUID | FK → users.id, NOT NULL | |
 | createdAt | TIMESTAMP | NOT NULL | |
@@ -363,6 +411,99 @@ ORGANIZATIONS
 | uploadedById | UUID | FK → users.id, NOT NULL | |
 | createdAt | TIMESTAMP | NOT NULL | |
 | deletedAt | TIMESTAMP | NULL | |
+
+---
+
+### ai_scores *(NEW — Sprint 4)*
+
+> Stores structured AI scoring output for leads. `leads.aiScore` and `leads.aiScoreUpdatedAt` are a denormalized read cache; this table holds full history, confidence, factors breakdown, and recommendation text. Sprint 7 writes here; Sprint 4 creates the table (empty).
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | Tenant key |
+| leadId | UUID | FK → leads.id, NOT NULL | |
+| score | SMALLINT | NOT NULL | 0–100 |
+| confidence | DECIMAL(3,2) | NULL | 0.00–1.00 |
+| factors | JSONB | NULL | `Array<{factor: string, impact: "positive"\|"negative"\|"neutral", weight: "high"\|"medium"\|"low"}>` |
+| recommendation | TEXT | NULL | AI-generated next-action text |
+| triggeredBy | VARCHAR(50) | NULL | `LEAD_CREATED \| STATUS_CHANGED \| MESSAGE_RECEIVED \| WEEKLY_REFRESH` |
+| modelVersion | VARCHAR(50) | NULL | e.g. `gpt-4o-mini-2025-03` |
+| createdAt | TIMESTAMP | NOT NULL DEFAULT now() | Immutable — no updatedAt |
+
+**Immutability:** No `updatedAt`. No `deletedAt`. Records are append-only (same pattern as activities).
+**Indexes (migration 0007):** `(organizationId, leadId, createdAt DESC)`, `(organizationId, score)`
+
+---
+
+### custom_field_definitions *(NEW — Sprint 4)*
+
+> Schema table for org-defined custom fields on LEAD, CONTACT, and DEAL objects. Required for FR-LEAD-009: typed definitions (text, number, date, select, multi-select, boolean, URL). Without this table the UI cannot render the "Custom Fields" section and select/multi-select options have nowhere to live.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | Tenant key |
+| objectType | ENUM CustomFieldObjectType | NOT NULL | `LEAD \| CONTACT \| DEAL` |
+| fieldKey | VARCHAR(100) | NOT NULL | snake_case machine key used in customFields JSONB |
+| displayLabel | VARCHAR(100) | NOT NULL | Human-readable UI label |
+| fieldType | ENUM CustomFieldType | NOT NULL | `TEXT \| NUMBER \| DATE \| SELECT \| MULTI_SELECT \| BOOLEAN \| URL` |
+| options | JSONB | NULL | `Array<string>` — required for SELECT and MULTI_SELECT; null otherwise |
+| isRequired | BOOLEAN | NOT NULL DEFAULT false | |
+| position | SMALLINT | NOT NULL | Display order within objectType (1-indexed) |
+| createdById | UUID | FK → users.id, NOT NULL | |
+| createdAt | TIMESTAMP | NOT NULL | |
+| updatedAt | TIMESTAMP | NOT NULL | |
+| deletedAt | TIMESTAMP | NULL | |
+
+**Constraints:**
+- `UNIQUE (organizationId, objectType, fieldKey) WHERE deletedAt IS NULL` (partial unique index)
+- `CHECK (fieldType NOT IN ('SELECT', 'MULTI_SELECT') OR options IS NOT NULL)` — options required for select types
+
+**Plan limit enforcement:** On create, count `WHERE organizationId = $1 AND objectType = $2 AND deletedAt IS NULL`; if ≥ `PLAN_LIMITS[plan].customFieldsPerObject` → 429.
+**Indexes:** `(organizationId, objectType, deletedAt)`
+
+---
+
+### team_invites *(NEW — Sprint 4)*
+
+> Token store for email invite links. Required for "invite team member" user flow (magic link, 7-day expiry). Token validation uses the admin `prisma` client (same D-M3-2 boundary as other auth-path reads). After acceptance, `organization_members` INSERT uses `withTenant`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | Tenant key |
+| email | VARCHAR(255) | NOT NULL | Invitee email address |
+| roleId | UUID | FK → roles.id, NOT NULL | Role to assign on acceptance |
+| tokenHash | VARCHAR(255) | NOT NULL UNIQUE | SHA-256(rawToken) — raw token only in the email link |
+| invitedById | UUID | FK → users.id, NOT NULL | |
+| expiresAt | TIMESTAMP | NOT NULL | `createdAt + 7 days` |
+| acceptedAt | TIMESTAMP | NULL | NULL = pending; set on link click |
+| revokedAt | TIMESTAMP | NULL | NULL = active |
+| createdAt | TIMESTAMP | NOT NULL | |
+
+**Indexes:** `tokenHash` (unique — used for lookup on link click); partial unique `(organizationId, email) WHERE acceptedAt IS NULL AND revokedAt IS NULL` — prevents duplicate pending invites to the same address.
+
+---
+
+### saved_replies *(NEW shell — Sprint 4; routes in Sprint 6)*
+
+> Template library for inbox replies (FR-INBOX-006). Shell table created in Sprint 4 to establish RLS and TENANT_TABLES registration before Inbox lands. No routes or service code in Sprint 4.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| id | UUID | PK, default uuid_generate_v4() | |
+| organizationId | UUID | FK → organizations.id, NOT NULL | Tenant key |
+| title | VARCHAR(255) | NOT NULL | Display name |
+| content | TEXT | NOT NULL | Reply body (plain text V1; rich text V2) |
+| shortcut | VARCHAR(50) | NULL | e.g. `/thanks` |
+| isGlobal | BOOLEAN | NOT NULL DEFAULT true | true = org-level; false = personal (createdById only) |
+| createdById | UUID | FK → users.id, NOT NULL | |
+| createdAt | TIMESTAMP | NOT NULL | |
+| updatedAt | TIMESTAMP | NOT NULL | |
+| deletedAt | TIMESTAMP | NULL | |
+
+**Indexes:** `(organizationId, createdById, deletedAt)`
 
 ---
 
@@ -681,8 +822,12 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
 -- Webhook idempotency
 CREATE UNIQUE INDEX idx_webhook_events_dedup ON webhook_events(source, external_event_id);
 
--- Full text search on leads
+-- Full text search on leads (partial — excludes soft-deleted rows; includes phone per FR-LEAD-005)
 CREATE INDEX idx_leads_search ON leads USING gin(
-  to_tsvector('english', first_name || ' ' || coalesce(last_name, '') || ' ' || coalesce(email, ''))
-);
+  to_tsvector('english',
+    coalesce(first_name, '') || ' ' ||
+    coalesce(last_name, '') || ' ' ||
+    coalesce(email, '') || ' ' ||
+    coalesce(phone, ''))
+) WHERE deleted_at IS NULL;
 ```

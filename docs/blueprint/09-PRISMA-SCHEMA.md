@@ -102,22 +102,49 @@ enum TaskStatus {
   CANCELLED
 }
 
+// ActivityType — canonical 19 values for Sprint 4.
+// Shape of each type's metadata field is defined by the ActivityMetadata discriminated
+// union in packages/shared/src/types/activity-metadata.ts. All eventBus.emit() call
+// sites must use constants imported from packages/shared/src/constants/events.ts —
+// no inline string literals.
+// MESSAGE_SENT / MESSAGE_RECEIVED added in Sprint 6 (Inbox module).
 enum ActivityType {
   LEAD_CREATED
   LEAD_STATUS_CHANGED
   LEAD_ASSIGNED
-  DEAL_CREATED
-  DEAL_STAGE_CHANGED
-  DEAL_WON
-  DEAL_LOST
-  MESSAGE_SENT
-  MESSAGE_RECEIVED
+  LEAD_WON
+  LEAD_LOST
+  CONTACT_CREATED
+  CONTACT_UPDATED
   TASK_CREATED
   TASK_COMPLETED
+  TASK_CANCELLED
   NOTE_ADDED
+  NOTE_UPDATED
+  NOTE_DELETED
   FILE_UPLOADED
-  CALL_LOGGED
-  CONTACT_CREATED
+  FILE_DELETED
+  DEAL_CREATED
+  DEAL_STAGE_MOVED
+  DEAL_WON
+  DEAL_LOST
+}
+
+// Sprint 4 — new enums for custom field definitions (FR-LEAD-009)
+enum CustomFieldObjectType {
+  LEAD
+  CONTACT
+  DEAL
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  BOOLEAN
+  URL
 }
 
 enum MessageDirection {
@@ -256,17 +283,23 @@ model User {
   // Relations
   organizationMemberships OrganizationMember[]
   refreshTokens           RefreshToken[]
-  assignedLeads           Lead[]               @relation("LeadAssignee")
-  createdLeads            Lead[]               @relation("LeadCreator")
-  assignedDeals           Deal[]               @relation("DealAssignee")
-  createdDeals            Deal[]               @relation("DealCreator")
-  assignedTasks           Task[]               @relation("TaskAssignee")
-  createdTasks            Task[]               @relation("TaskCreator")
-  notes                   Note[]
-  files                   File[]
+  assignedLeads           Lead[]                  @relation("LeadAssignee")
+  createdLeads            Lead[]                  @relation("LeadCreator")
+  assignedContacts        Contact[]               @relation("ContactAssignee")
+  createdContacts         Contact[]               @relation("ContactCreator")
+  assignedDeals           Deal[]                  @relation("DealAssignee")
+  createdDeals            Deal[]                  @relation("DealCreator")
+  assignedTasks           Task[]                  @relation("TaskAssignee")
+  createdTasks            Task[]                  @relation("TaskCreator")
+  createdNotes            Note[]                  @relation("NoteCreator")
+  uploadedFiles           File[]                  @relation("FileUploader")
   notifications           Notification[]
-  activities              Activity[]           @relation("ActivityPerformer")
+  activities              Activity[]              @relation("ActivityPerformer")
   assignedConversations   InstagramConversation[] @relation("ConversationAssignee")
+  // Sprint 4 — new
+  teamInvitesSent         TeamInvite[]            @relation("InviteSender")
+  customFieldDefinitions  CustomFieldDefinition[] @relation("CustomFieldCreator")
+  savedReplies            SavedReply[]            @relation("SavedReplyCreator")
 
   @@map("users")
   @@index([status])
@@ -313,23 +346,28 @@ model Organization {
   deletedAt     DateTime?
 
   // Relations
-  members              OrganizationMember[]
-  roles                Role[]
-  leads                Lead[]
-  contacts             Contact[]
-  pipelines            Pipeline[]
-  deals                Deal[]
-  tasks                Task[]
-  activities           Activity[]
-  notes                Note[]
-  files                File[]
-  instagramAccounts    InstagramAccount[]
-  whatsappAccounts     WhatsAppAccount[]
-  workflows            Workflow[]
-  subscription         Subscription?
-  notifications        Notification[]
-  auditLogs            AuditLog[]
-  webhookEvents        WebhookEvent[]
+  members                  OrganizationMember[]
+  roles                    Role[]
+  leads                    Lead[]
+  contacts                 Contact[]
+  pipelines                Pipeline[]
+  deals                    Deal[]
+  tasks                    Task[]
+  activities               Activity[]
+  notes                    Note[]
+  files                    File[]
+  instagramAccounts        InstagramAccount[]
+  whatsappAccounts         WhatsAppAccount[]
+  workflows                Workflow[]
+  subscription             Subscription?
+  notifications            Notification[]
+  auditLogs                AuditLog[]
+  webhookEvents            WebhookEvent[]
+  // Sprint 4 — new
+  aiScores                 AiScore[]
+  customFieldDefinitions   CustomFieldDefinition[]
+  teamInvites              TeamInvite[]
+  savedReplies             SavedReply[]
 
   @@map("organizations")
   @@index([status])
@@ -369,6 +407,7 @@ model Role {
   organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   permissions    Permission[]
   members        OrganizationMember[]
+  teamInvites    TeamInvite[]
 
   @@unique([organizationId, name])
   @@map("roles")
@@ -391,6 +430,14 @@ model Permission {
 // CRM — LEADS & CONTACTS
 // ============================================================
 
+// Lead — highest fan-in model in the system (Pipeline, Inbox, AI, Workflow all reference it).
+// IMPORTANT INVARIANTS enforced in migration 0006:
+//   • leads_source_immutable trigger: source cannot change after creation
+//   • WON status only reachable via convert() — rejected on direct PATCH
+//   • pipelineStageId: plain UUID (no FK in Sprint 4 — FK added in Sprint 5)
+//   • instagramAccountId: plain UUID (no FK in Sprint 4 — FK added in Sprint 6)
+//   • mergedIntoLeadId: plain UUID (no FK in Sprint 4 — FK added in merge milestone)
+//   • notes TEXT column removed — use the Note model for all note content
 model Lead {
   id                    String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId        String     @db.Uuid
@@ -405,12 +452,14 @@ model Lead {
   aiScoreUpdatedAt      DateTime?
   instagramHandle       String?    @db.VarChar(100)
   instagramUserId       String?    @db.VarChar(50)
+  instagramAccountId    String?    @db.Uuid   // deferred FK → instagram_accounts (Sprint 6)
   tags                  String[]   @default([])
   customFields          Json       @default("{}")
-  notes                 String?    @db.Text
   lostReason            String?    @db.Text
   convertedToContactId  String?    @db.Uuid
-  pipelineStageId       String?    @db.Uuid
+  pipelineStageId       String?    @db.Uuid   // deferred FK → pipeline_stages (Sprint 5)
+  mergedIntoLeadId      String?    @db.Uuid   // deferred self-ref FK (merge milestone)
+  lastActivityAt        DateTime?
   createdById           String     @db.Uuid
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
@@ -420,12 +469,12 @@ model Lead {
   assignedTo            User?               @relation("LeadAssignee", fields: [assignedToId], references: [id])
   createdBy             User                @relation("LeadCreator", fields: [createdById], references: [id])
   convertedToContact    Contact?            @relation("LeadConversion", fields: [convertedToContactId], references: [id])
-  pipelineStage         PipelineStage?      @relation(fields: [pipelineStageId], references: [id])
   activities            Activity[]
   tasks                 Task[]
   notesList             Note[]
   files                 File[]
   deals                 Deal[]
+  aiScores              AiScore[]
   instagramConversations InstagramConversation[]
 
   @@map("leads")
@@ -433,6 +482,7 @@ model Lead {
   @@index([organizationId, assignedToId])
   @@index([organizationId, source])
   @@index([organizationId, aiScore(sort: Desc)])
+  @@index([organizationId, lastActivityAt(sort: Desc)])
   @@index([email])
   @@index([phone])
   @@index([instagramUserId])
@@ -454,25 +504,31 @@ model Contact {
   customFields     Json     @default("{}")
   lifeTimeValue    Decimal  @default(0) @db.Decimal(15, 2)
   assignedToId     String?  @db.Uuid
+  lastActivityAt   DateTime?
   createdFromLeadId String? @db.Uuid
   createdById      String   @db.Uuid
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   deletedAt        DateTime?
 
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  assignedTo       User?        @relation(fields: [assignedToId], references: [id])
-  createdFromLead  Lead?        @relation("LeadConversion", fields: [createdFromLeadId], references: [id])
-  leads            Lead[]
-  deals            Deal[]
-  activities       Activity[]
-  tasks            Task[]
-  notesList        Note[]
-  files            File[]
+  organization            Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo              User?                   @relation("ContactAssignee", fields: [assignedToId], references: [id])
+  createdBy               User                    @relation("ContactCreator", fields: [createdById], references: [id])
+  createdFromLead         Lead?                   @relation("LeadConversion", fields: [createdFromLeadId], references: [id])
+  deals                   Deal[]
+  activities              Activity[]
+  tasks                   Task[]
+  notesList               Note[]
+  files                   File[]
+  // Sprint 6: reverse relation to InstagramConversation (relatedContactId side)
+  instagramConversations  InstagramConversation[]
 
   @@map("contacts")
   @@index([organizationId, email])
   @@index([organizationId, phone])
+  @@index([organizationId, assignedToId])
+  @@index([organizationId, createdFromLeadId])
+  @@index([organizationId, lastActivityAt(sort: Desc)])
   @@index([deletedAt])
 }
 
@@ -515,7 +571,7 @@ model PipelineStage {
 
   pipeline       Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   deals          Deal[]
-  leads          Lead[]
+  // Note: Lead.pipelineStageId FK is deferred to Sprint 5. No leads relation here until Sprint 5.
 
   @@map("pipeline_stages")
   @@index([pipelineId, position])
@@ -553,7 +609,7 @@ model Deal {
   assignedTo         User?         @relation("DealAssignee", fields: [assignedToId], references: [id])
   createdBy          User          @relation("DealCreator", fields: [createdById], references: [id])
   activities         Activity[]
-  tasks              Task[]
+  // tasks Task[] relation deferred to Sprint 5 — tasks.relatedDealId FK is added in Sprint 5 migration
   notesList          Note[]
   files              File[]
 
@@ -580,7 +636,7 @@ model Task {
   completedAt      DateTime?
   assignedToId     String?      @db.Uuid
   relatedLeadId    String?      @db.Uuid
-  relatedDealId    String?      @db.Uuid
+  relatedDealId    String?      @db.Uuid   // no FK in Sprint 4 — deals table is Sprint 5; FK added in Sprint 5 migration
   relatedContactId String?      @db.Uuid
   createdById      String       @db.Uuid
   createdAt        DateTime     @default(now())
@@ -591,7 +647,9 @@ model Task {
   assignedTo       User?        @relation("TaskAssignee", fields: [assignedToId], references: [id])
   createdBy        User         @relation("TaskCreator", fields: [createdById], references: [id])
   relatedLead      Lead?        @relation(fields: [relatedLeadId], references: [id])
-  relatedDeal      Deal?        @relation(fields: [relatedDealId], references: [id])
+  // relatedDeal FK deferred to Sprint 5 — deals table does not exist in Sprint 4.
+  // Sprint 5 migration action: ALTER TABLE tasks ADD CONSTRAINT tasks_relatedDealId_fkey
+  //   FOREIGN KEY ("relatedDealId") REFERENCES deals(id) ON DELETE SET NULL;
   relatedContact   Contact?     @relation(fields: [relatedContactId], references: [id])
 
   @@map("tasks")
@@ -599,6 +657,13 @@ model Task {
   @@index([organizationId, dueDate, status])
 }
 
+// Activity — append-only immutable log. PARTITIONED BY RANGE(createdAt).
+// ⚠ PARTITION PK NOTE: Postgres requires the partition key to be part of the primary key.
+// The `@id` on `id` alone is NOT valid for this table. The custom migration (0006_crm_tables)
+// must use PRIMARY KEY (id, "createdAt") — NOT PRIMARY KEY (id). Prisma's @id generates
+// PRIMARY KEY (id), which Postgres will reject with "insufficient columns in PRIMARY KEY for
+// partitioned table". This table's DDL is hand-authored; do not rely on prisma migrate dev
+// to generate the CREATE TABLE statement.
 model Activity {
   id               String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId   String       @db.Uuid
@@ -617,19 +682,23 @@ model Activity {
   relatedDeal      Deal?        @relation(fields: [relatedDealId], references: [id])
   relatedContact   Contact?     @relation(fields: [relatedContactId], references: [id])
 
-  // NO updatedAt - activities are immutable
+  // NO updatedAt - activities are immutable. DB triggers enforce: activities_no_update, activities_no_delete.
   @@map("activities")
+  @@index([organizationId, createdAt(sort: Desc)])
   @@index([organizationId, relatedLeadId, createdAt(sort: Desc)])
   @@index([organizationId, relatedDealId, createdAt(sort: Desc)])
   @@index([organizationId, relatedContactId, createdAt(sort: Desc)])
 }
 
+// Note — content stored as ProseMirror/Tiptap JSON (not raw TEXT or HTML).
+// Rendered by Tiptap editor in read mode. For workflow/email interpolation,
+// call toPlainText(content) before embedding. Never render content as raw HTML.
 model Note {
   id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId   String   @db.Uuid
-  content          String   @db.Text
+  content          Json     @default("{}")
   relatedLeadId    String?  @db.Uuid
-  relatedDealId    String?  @db.Uuid
+  relatedDealId    String?  @db.Uuid  // no FK in Sprint 4 (deals table is Sprint 5)
   relatedContactId String?  @db.Uuid
   createdById      String   @db.Uuid
   createdAt        DateTime @default(now())
@@ -637,13 +706,13 @@ model Note {
   deletedAt        DateTime?
 
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy        User         @relation(fields: [createdById], references: [id])
+  createdBy        User         @relation("NoteCreator", fields: [createdById], references: [id])
   relatedLead      Lead?        @relation(fields: [relatedLeadId], references: [id])
-  relatedDeal      Deal?        @relation(fields: [relatedDealId], references: [id])
   relatedContact   Contact?     @relation(fields: [relatedContactId], references: [id])
 
   @@map("notes")
   @@index([organizationId, relatedLeadId])
+  @@index([organizationId, relatedContactId])
 }
 
 model File {
@@ -656,19 +725,129 @@ model File {
   sizeBytes        BigInt
   url              String          @db.Text
   relatedLeadId    String?         @db.Uuid
-  relatedDealId    String?         @db.Uuid
+  relatedDealId    String?         @db.Uuid  // no FK in Sprint 4 (deals table is Sprint 5)
   relatedContactId String?         @db.Uuid
   uploadedById     String          @db.Uuid
   createdAt        DateTime        @default(now())
   deletedAt        DateTime?
 
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  uploadedBy       User         @relation(fields: [uploadedById], references: [id])
+  uploadedBy       User         @relation("FileUploader", fields: [uploadedById], references: [id])
   relatedLead      Lead?        @relation(fields: [relatedLeadId], references: [id])
-  relatedDeal      Deal?        @relation(fields: [relatedDealId], references: [id])
   relatedContact   Contact?     @relation(fields: [relatedContactId], references: [id])
 
   @@map("files")
+  @@index([organizationId, relatedLeadId])
+  @@index([organizationId, relatedContactId])
+}
+
+// ============================================================
+// SPRINT 4 — NEW MODELS
+// ============================================================
+
+// Structured AI scoring output. leads.aiScore / leads.aiScoreUpdatedAt are a
+// denormalized read cache. This table holds full history, confidence, factors
+// breakdown, and recommendation text. Sprint 7 writes here; table is empty in Sprint 4.
+// Immutable: no updatedAt, no deletedAt.
+model AiScore {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @db.Uuid
+  leadId         String   @db.Uuid
+  score          Int      @db.SmallInt
+  confidence     Decimal? @db.Decimal(3, 2)
+  factors        Json?
+  recommendation String?  @db.Text
+  triggeredBy    String?  @db.VarChar(50)
+  modelVersion   String?  @db.VarChar(50)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("ai_scores")
+  @@index([organizationId, leadId, createdAt(sort: Desc)])
+  @@index([organizationId, score])
+}
+
+// Schema table for org-defined custom fields (FR-LEAD-009).
+// Without this table, the UI cannot render the "Custom Fields" settings section,
+// select/multi-select options have nowhere to live, and PLAN_LIMITS enforcement
+// (customFieldsPerObject: 10/10/30/50 for TRIAL/STARTER/GROWTH/SCALE tiers) cannot be checked.
+// PLAN_LIMITS.customFieldsPerObject is tier-specific — see packages/shared/src/constants/plan-limits.ts.
+//
+// ⚠ UNIQUENESS: (organizationId, objectType, fieldKey) uniqueness is enforced via a PARTIAL unique index
+// (WHERE deletedAt IS NULL) authored in migration 0006_crm_tables — NOT via Prisma @@unique.
+// A Prisma @@unique block would generate a non-partial unique constraint that prevents re-using a
+// field key after soft-delete. The partial index allows re-creation of a deleted field key.
+// Custom migration SQL: CREATE UNIQUE INDEX custom_field_definitions_org_type_key_key
+//   ON custom_field_definitions ("organizationId", "objectType", "fieldKey") WHERE "deletedAt" IS NULL;
+model CustomFieldDefinition {
+  id             String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String                @db.Uuid
+  objectType     CustomFieldObjectType
+  fieldKey       String                @db.VarChar(100)
+  displayLabel   String                @db.VarChar(100)
+  fieldType      CustomFieldType
+  options        Json?                 // Array<string> — required for SELECT/MULTI_SELECT
+  isRequired     Boolean               @default(false)
+  position       Int                   @db.SmallInt
+  createdById    String                @db.Uuid
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation("CustomFieldCreator", fields: [createdById], references: [id])
+
+  // @@unique intentionally absent — partial unique index is hand-authored in migration 0006_crm_tables
+  // see comment block above this model
+  @@map("custom_field_definitions")
+  @@index([organizationId, objectType, deletedAt])
+}
+
+// Token store for email invite links (magic link, 7-day expiry).
+// Token validation (on link click) uses the admin prisma client — same D-M3-2 boundary
+// as other auth-path reads. Organization member INSERT after acceptance uses withTenant.
+model TeamInvite {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String    @db.Uuid
+  email          String    @db.VarChar(255)
+  roleId         String    @db.Uuid
+  tokenHash      String    @unique @db.VarChar(255)
+  invitedById    String    @db.Uuid
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           Role         @relation(fields: [roleId], references: [id])
+  invitedBy      User         @relation("InviteSender", fields: [invitedById], references: [id])
+
+  @@map("team_invites")
+  @@index([organizationId, email])
+}
+
+// Saved reply templates for the inbox (FR-INBOX-006).
+// Shell table only in Sprint 4 — no routes or service code.
+// Routes and CRUD added in Sprint 6 (Inbox module).
+model SavedReply {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @db.Uuid
+  title          String   @db.VarChar(255)
+  content        String   @db.Text
+  shortcut       String?  @db.VarChar(50)
+  isGlobal       Boolean  @default(true)
+  createdById    String   @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation("SavedReplyCreator", fields: [createdById], references: [id])
+
+  @@map("saved_replies")
+  @@index([organizationId, createdById, deletedAt])
 }
 
 // ============================================================
@@ -717,6 +896,7 @@ model InstagramConversation {
   instagramAccount         InstagramAccount  @relation(fields: [instagramAccountId], references: [id])
   assignedTo               User?             @relation("ConversationAssignee", fields: [assignedToId], references: [id])
   relatedLead              Lead?             @relation(fields: [relatedLeadId], references: [id])
+  relatedContact           Contact?          @relation(fields: [relatedContactId], references: [id])
   messages                 Message[]
 
   @@unique([organizationId, instagramAccountId, instagramScopedUserId])
@@ -865,6 +1045,9 @@ model Subscription {
   cancelAtPeriodEnd      Boolean            @default(false)
   trialEndsAt            DateTime?
   seatCount              Int                @default(1) @db.SmallInt
+  // P0-6: required for Stripe webhook idempotency and reconciliation (FINAL_ARCHITECTURE.md §4.4)
+  lastStripeEventAt      DateTime?
+  lastSyncedAt           DateTime?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 

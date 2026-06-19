@@ -103,3 +103,52 @@ export const SubscriptionStatus = {
   PAUSED: 'PAUSED',
 } as const;
 export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
+
+// Sprint 4 — CRM domain enums (parity-checked against prisma/schema.prisma)
+
+export const ActivityType = {
+  LEAD_CREATED: 'LEAD_CREATED',
+  LEAD_STATUS_CHANGED: 'LEAD_STATUS_CHANGED',
+  LEAD_ASSIGNED: 'LEAD_ASSIGNED',
+  LEAD_WON: 'LEAD_WON',
+  LEAD_LOST: 'LEAD_LOST',
+  CONTACT_CREATED: 'CONTACT_CREATED',
+  CONTACT_UPDATED: 'CONTACT_UPDATED',
+  TASK_CREATED: 'TASK_CREATED',
+  TASK_COMPLETED: 'TASK_COMPLETED',
+  TASK_CANCELLED: 'TASK_CANCELLED',
+  NOTE_ADDED: 'NOTE_ADDED',
+  NOTE_UPDATED: 'NOTE_UPDATED',
+  NOTE_DELETED: 'NOTE_DELETED',
+  FILE_UPLOADED: 'FILE_UPLOADED',
+  FILE_DELETED: 'FILE_DELETED',
+  DEAL_CREATED: 'DEAL_CREATED',
+  DEAL_STAGE_MOVED: 'DEAL_STAGE_MOVED',
+  DEAL_WON: 'DEAL_WON',
+  DEAL_LOST: 'DEAL_LOST',
+} as const;
+export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
+
+export const CustomFieldObjectType = {
+  LEAD: 'LEAD',
+  CONTACT: 'CONTACT',
+  DEAL: 'DEAL',
+} as const;
+export type CustomFieldObjectType = (typeof CustomFieldObjectType)[keyof typeof CustomFieldObjectType];
+
+export const CustomFieldType = {
+  TEXT: 'TEXT',
+  NUMBER: 'NUMBER',
+  DATE: 'DATE',
+  SELECT: 'SELECT',
+  MULTI_SELECT: 'MULTI_SELECT',
+  BOOLEAN: 'BOOLEAN',
+  URL: 'URL',
+} as const;
+export type CustomFieldType = (typeof CustomFieldType)[keyof typeof CustomFieldType];
+
+export const StorageProvider = {
+  S3: 'S3',
+  CLOUDINARY: 'CLOUDINARY',
+} as const;
+export type StorageProvider = (typeof StorageProvider)[keyof typeof StorageProvider];

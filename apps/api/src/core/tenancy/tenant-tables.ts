@@ -1,14 +1,16 @@
 // Tenant-table registry (TEN-3.1.3) — the single source of truth for which tables are
-// organization-scoped. It drives (a) the RLS policies (migration 0003), (b) the RLS-coverage
-// check (scripts/check-rls-coverage.ts), and later (Sprint 3 M2) the tenant Prisma extension.
+// organization-scoped. It drives (a) the RLS policies (migrations 0003 + 0009), (b) the
+// RLS-coverage check (scripts/check-rls-coverage.ts), and (c) the tenant Prisma extension.
 //
 // INVARIANT enforced in CI: this registry MUST equal the set of tables that physically carry
 // the tenant column. A new org-scoped table that is added to the schema but not here (or
 // vice-versa) fails the coverage check — so no tenant table can silently ship without RLS.
 //
-// NOTE on the column name: the architecture (FINAL_ARCHITECTURE §2) writes the tenant key as
-// `organization_id` illustratively; the actual Prisma-generated column is camelCase
-// `"organizationId"`. Policies + checks use the real column name below.
+// Sprint 4 M1 expanded from 5 tables (Sprint 3) to 15 (5 existing + 10 new CRM tables).
+// check:rls expected output: OK — 15 tenant tables enabled + forced + policied.
+//
+// NOTE on the column name: the actual Prisma-generated column is camelCase `"organizationId"`.
+// Policies + checks use the real column name below.
 
 /** The physical column carrying the owning organization id on every tenant table. */
 export const TENANT_COLUMN = 'organizationId' as const;
@@ -30,11 +32,23 @@ export const TENANT_GUC = 'app.current_organization_id' as const;
  * `health_check`) are intentionally NOT tenant-scoped and carry no `organizationId`.
  */
 export const TENANT_TABLES = [
+  // Sprint 3 — identity & tenancy
   'organization_members',
   'roles',
   'subscriptions',
   'refresh_tokens',
   'audit_logs',
+  // Sprint 4 M1 — CRM foundation
+  'leads',
+  'contacts',
+  'tasks',
+  'activities',
+  'notes',
+  'files',
+  'ai_scores',
+  'custom_field_definitions',
+  'team_invites',
+  'saved_replies',
 ] as const;
 
 export type TenantTable = (typeof TENANT_TABLES)[number];
@@ -45,11 +59,23 @@ export type TenantTable = (typeof TENANT_TABLES)[number];
  * the registry unit test asserts the two stay the same length.
  */
 export const TENANT_MODELS = [
+  // Sprint 3
   'OrganizationMember',
   'Role',
   'Subscription',
   'RefreshToken',
   'AuditLog',
+  // Sprint 4 M1 — CRM
+  'Lead',
+  'Contact',
+  'Task',
+  'Activity',
+  'Note',
+  'File',
+  'AiScore',
+  'CustomFieldDefinition',
+  'TeamInvite',
+  'SavedReply',
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];

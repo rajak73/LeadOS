@@ -2,6 +2,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Loads workspace-root .env into process.env before any test module is evaluated.
+    // Required so top-level `await isPostgresUp()` calls see DATABASE_URL / DATABASE_APP_URL
+    // even when running via `pnpm test` without manually exporting the vars first.
+    globalSetup: ['./tests/global-setup.ts'],
     environment: 'node',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     // Integration tests that need Postgres/Redis self-gate at runtime via a service probe
