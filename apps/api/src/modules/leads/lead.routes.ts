@@ -1,10 +1,11 @@
-// CRM-2.4 — Lead routes.
+// CRM-2.4 + CRM-3.2 — Lead routes.
 //
-// Permission model (execution plan §E2 CRM-2.4):
-//   POST   /leads           → leads.create
-//   GET    /leads/:id       → leads.read  OR  leads.read_own  (ownOnly → 404 if not assigned)
-//   PATCH  /leads/:id       → leads.update OR leads.update_own
-//   DELETE /leads/:id       → leads.delete
+// Permission model (execution plan §E2 CRM-2.4 / §E3 CRM-3.3):
+//   POST   /leads               → leads.create
+//   GET    /leads/:id           → leads.read  OR  leads.read_own  (ownOnly → 404 if not assigned)
+//   PATCH  /leads/:id           → leads.update OR leads.update_own
+//   DELETE /leads/:id           → leads.delete
+//   POST   /leads/:id/convert   → leads.update (atomic lead→contact; sets status=WON)
 
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
@@ -46,6 +47,15 @@ export function buildLeadRouter(
     requirePermission('leads.delete'),
     validate(leadIdParamSchema, 'params'),
     asyncHandler(controller.softDelete),
+  );
+
+  // CRM-3.2: atomic lead→contact conversion. Uses leads.update permission (resolves _own).
+  // No request body — all data comes from the lead row. Responds 201 { lead, contact }.
+  router.post(
+    '/:id/convert',
+    requirePermission('leads.update'),
+    validate(leadIdParamSchema, 'params'),
+    asyncHandler(controller.convert),
   );
 
   return router;

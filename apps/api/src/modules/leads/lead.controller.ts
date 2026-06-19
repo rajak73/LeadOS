@@ -12,6 +12,7 @@ export interface LeadController {
   getById(req: Request, res: Response): Promise<void>;
   update(req: Request, res: Response): Promise<void>;
   softDelete(req: Request, res: Response): Promise<void>;
+  convert(req: Request, res: Response): Promise<void>;
 }
 
 export function createLeadController(service: LeadService): LeadController {
@@ -34,6 +35,11 @@ export function createLeadController(service: LeadService): LeadController {
     async softDelete(req, res) {
       await service.softDelete(req.params['id']!);
       sendSuccess(res, null, 204);
+    },
+
+    async convert(req, res) {
+      const result = await service.convert(req.params['id']!);
+      sendSuccess(res, result, 201);
     },
   };
 }

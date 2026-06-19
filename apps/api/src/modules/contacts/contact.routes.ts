@@ -1,0 +1,52 @@
+// CRM-3.3 — Contact routes.
+//
+// Permission model (execution plan §E3 CRM-3.3):
+//   POST   /contacts           → contacts.create
+//   GET    /contacts/:id       → contacts.read  OR  contacts.read_own  (ownOnly → 404 if not assigned)
+//   PATCH  /contacts/:id       → contacts.update OR contacts.update_own
+//   DELETE /contacts/:id       → contacts.delete
+
+import { Router } from 'express';
+import type { RequestHandler } from 'express';
+import { asyncHandler } from '../../core/http/async-handler.js';
+import { validate } from '../../core/middleware/validate.js';
+import { createContactSchema, patchContactSchema, contactIdParamSchema } from '@leados/shared';
+import type { ContactController } from './contact.controller.js';
+
+export function buildContactRouter(
+  controller: ContactController,
+  requirePermission: (permission: string) => RequestHandler,
+): Router {
+  const router = Router();
+
+  router.post(
+    '/',
+    requirePermission('contacts.create'),
+    validate(createContactSchema),
+    asyncHandler(controller.create),
+  );
+
+  router.get(
+    '/:id',
+    requirePermission('contacts.read'),
+    validate(contactIdParamSchema, 'params'),
+    asyncHandler(controller.getById),
+  );
+
+  router.patch(
+    '/:id',
+    requirePermission('contacts.update'),
+    validate(contactIdParamSchema, 'params'),
+    validate(patchContactSchema),
+    asyncHandler(controller.update),
+  );
+
+  router.delete(
+    '/:id',
+    requirePermission('contacts.delete'),
+    validate(contactIdParamSchema, 'params'),
+    asyncHandler(controller.softDelete),
+  );
+
+  return router;
+}

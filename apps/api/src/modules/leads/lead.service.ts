@@ -1,11 +1,18 @@
 // CRM-2.2 + CRM-2.3 — Lead service (CRUD + status machine).
+// CRM-3.2 — Lead→Contact conversion (atomic).
 //
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // The ActivityService.append() is called within the SAME transaction (atomicity) so an
 // activity row is never orphaned if the parent mutation fails.
 // The AuditRecorder runs AFTER the transaction (best-effort separate write — existing pattern).
+//
+// convert() is placed here (not in contact.service.ts) per the execution plan: the lead is
+// the entity transitioning state (NEW/CONTACTED/... → WON). The contact creation is a side
+// effect of that transition. PrismaContactRepository is imported here as a sanctioned
+// cross-module repository reference; both repos share the same TenantTransactionClient (db)
+// so the entire operation is atomic.
 
-import type { Lead } from '@prisma/client';
+import type { Lead, Contact } from '@prisma/client';
 import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext, type TenantContext } from '../../core/tenancy/context.js';
 import { AppError } from '../../core/errors/app-error.js';
@@ -14,6 +21,8 @@ import type { CreateLeadInput, PatchLeadInput } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
 import { ActivityService } from '../../core/activities/activity.service.js';
 import { PrismaLeadRepository } from './lead.repository.js';
+import { PrismaContactRepository } from '../contacts/contact.repository.js';
+import { sanitizeContact } from '../contacts/contact.service.js';
 
 // ─── Status machine ─────────────────────────────────────────────────────────
 
@@ -198,6 +207,108 @@ export class LeadService {
       resource: 'lead',
       resourceId: id,
     });
+  }
+
+  // ── CRM-3.2: convert (lead → contact, atomic) ──────────────────────────────
+  //
+  // All 8 steps run inside a single withTenant transaction. If any step throws,
+  // Prisma rolls back the entire transaction — no orphaned contacts, no leads
+  // stuck in WON status. Both activity rows are also rolled back on failure.
+  //
+  // Cross-module note: PrismaContactRepository is imported here (not in contact.service.ts)
+  // because the execution plan places convert() in the leads module and the operation
+  // must share the same TenantTransactionClient as the lead mutation.
+
+  async convert(leadId: string): Promise<{ lead: Lead; contact: Contact }> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    const result = await withTenant(ctx.organizationId, async (db) => {
+      const leadRepo = new PrismaLeadRepository(db);
+      const contactRepo = new PrismaContactRepository(db);
+
+      // Step 1: Load lead (ownOnly respected — SALES_EXECUTIVE can only convert assigned leads)
+      const lead = await leadRepo.findByIdOrThrow(leadId, ownedByUserId);
+
+      // Step 2: Guard — already converted
+      if (lead.status === 'WON' || lead.convertedToContactId !== null) {
+        throw new AppError(ErrorCode.CONFLICT, 'Lead has already been converted', {
+          leadId,
+          convertedToContactId: lead.convertedToContactId,
+        });
+      }
+
+      // Step 3: Contact plan limit check
+      const sub = await db.subscription.findFirst({ select: { plan: true } });
+      const plan = (sub?.plan ?? 'TRIAL') as keyof typeof PLAN_LIMITS;
+      const contactLimit = PLAN_LIMITS[plan].contacts;
+      const contactCount = await contactRepo.count();
+      if (contactCount >= contactLimit) {
+        throw new AppError(
+          ErrorCode.PLAN_LIMIT_EXCEEDED,
+          `Contact limit of ${contactLimit} reached for ${plan} plan`,
+          { plan, limit: contactLimit, current: contactCount },
+        );
+      }
+
+      // Step 4: Create contact from lead fields
+      const contact = await contactRepo.create({
+        firstName: lead.firstName,
+        lastName: lead.lastName ?? undefined,
+        email: lead.email ?? undefined,
+        phone: lead.phone ?? undefined,
+        tags: lead.tags,
+        customFields: (lead.customFields as Record<string, unknown>) ?? undefined,
+        assignedToId: lead.assignedToId ?? undefined,
+        createdFromLeadId: lead.id,
+        createdById: ctx.userId,
+      });
+
+      // Step 5: Update lead — status=WON, convertedToContactId set
+      // Uses db.lead.update() directly (bypassing PatchLeadInput's WON exclusion, which is
+      // an HTTP-boundary concern). This is the ONLY code path that may set status=WON.
+      const updatedLead = await db.lead.update({
+        where: { id: leadId },
+        data: {
+          status: 'WON',
+          convertedToContactId: contact.id,
+        },
+      });
+
+      // Step 6: Emit LEAD_WON activity (relatedLeadId — also updates lead.lastActivityAt)
+      await this.activityService.append(db, ctx, {
+        type: ActivityType.LEAD_WON,
+        description: `Lead converted to contact: ${contact.firstName}${contact.lastName ? ` ${contact.lastName}` : ''}`,
+        metadata: { type: ActivityType.LEAD_WON, convertedToContactId: contact.id },
+        relatedLeadId: lead.id,
+      });
+
+      // Step 7: Emit CONTACT_CREATED activity (relatedContactId — also updates contact.lastActivityAt)
+      await this.activityService.append(db, ctx, {
+        type: ActivityType.CONTACT_CREATED,
+        description: `Contact created from lead conversion`,
+        metadata: { type: ActivityType.CONTACT_CREATED, createdFromLeadId: lead.id },
+        relatedContactId: contact.id,
+      });
+
+      return { lead: updatedLead, contact };
+    });
+
+    // Post-transaction audit (best-effort, separate transactions)
+    await this.audit.record({
+      action: 'converted',
+      resource: 'lead',
+      resourceId: leadId,
+      after: sanitizeLead(result.lead),
+    });
+    await this.audit.record({
+      action: 'created',
+      resource: 'contact',
+      resourceId: result.contact.id,
+      after: sanitizeContact(result.contact),
+    });
+
+    return result;
   }
 }
 

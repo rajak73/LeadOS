@@ -24,6 +24,7 @@ import { sendSuccess } from './core/http/envelope.js';
 import { authRouter } from './modules/auth/index.js';
 import { buildRbacModule } from './modules/rbac/index.js';
 import { buildLeadsModule } from './modules/leads/index.js';
+import { buildContactsModule } from './modules/contacts/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -60,6 +61,7 @@ export function buildApp(): Express {
   });
   v1.use(rbac.router); // /roles, /members/:userId/role, /members/:userId/suspend
   v1.use('/leads', buildLeadsModule(rbac.requirePermission));
+  v1.use('/contacts', buildContactsModule(rbac.requirePermission));
   app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, v1);
 
   // Terminal handlers.
