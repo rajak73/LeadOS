@@ -32,6 +32,11 @@ jobs:
     env:
       DATABASE_URL: postgresql://leados:leados@localhost:5432/leados
       DATABASE_DIRECT_URL: postgresql://leados:leados@localhost:5432/leados
+      # Sprint 3 M1: the RLS-enforced application role (created by migration 0002). The RLS
+      # foundation suite connects as this NOBYPASSRLS role so RLS is genuinely exercised
+      # (a superuser connection would bypass RLS → false green). Migrations still run as the
+      # admin DATABASE_URL above.
+      DATABASE_APP_URL: postgresql://leados_app:leados_app@localhost:5432/leados
       REDIS_URL: redis://localhost:6379
       NODE_ENV: test
       # Tests only assert the bcrypt hash prefix ($2x$), never the cost factor. Pure-JS

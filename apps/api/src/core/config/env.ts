@@ -15,6 +15,13 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1).default('postgresql://leados:leados@localhost:5432/leados'),
   DATABASE_DIRECT_URL: z.string().optional(),
   DATABASE_REPLICA_URL: z.string().optional(),
+  // Sprint 3 (TEN-3.1.1): the RLS-enforced application role (`leados_app`, NOBYPASSRLS).
+  // Optional in S3 M1 — used by the RLS verification suite + coverage check to connect as a
+  // non-bypass role (RLS is inert for a superuser, so it must be proven as leados_app). The
+  // app runtime switches to this connection in M2/M3 once the tenant GUC mechanism exists.
+  DATABASE_APP_URL: z.string().optional(),
+  // The BYPASSRLS platform/support role (`leados_platform_admin`) — platform paths only (M5).
+  DATABASE_PLATFORM_URL: z.string().optional(),
 
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
 

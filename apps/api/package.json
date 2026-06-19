@@ -17,7 +17,9 @@
     "db:migrate": "prisma migrate deploy --schema=../../prisma/schema.prisma",
     "db:migrate:create": "prisma migrate dev --schema=../../prisma/schema.prisma",
     "db:seed": "tsx ../../prisma/seed/index.ts",
-    "db:studio": "prisma studio --schema=../../prisma/schema.prisma"
+    "db:studio": "prisma studio --schema=../../prisma/schema.prisma",
+    "check:rls": "tsx scripts/check-rls-coverage.ts",
+    "bench:tenancy": "tsx scripts/tenancy-bench.ts"
   },
   "dependencies": {
     "@leados/shared": "workspace:*",
