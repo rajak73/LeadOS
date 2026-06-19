@@ -13,6 +13,14 @@
 /** The physical column carrying the owning organization id on every tenant table. */
 export const TENANT_COLUMN = 'organizationId' as const;
 
+/**
+ * The Prisma relation field that ALSO sets the tenant FK (`organization { connect/set/... }`).
+ * Write paths must neutralize this in addition to {@link TENANT_COLUMN}, otherwise a row could
+ * be reassigned to another org via the relation instead of the scalar (DEF-M2-1). Uniform
+ * across tenant models that expose the relation; a no-op for those that only carry the scalar.
+ */
+export const TENANT_RELATION = 'organization' as const;
+
 /** The Postgres GUC that pins the active organization for a unit of work (set via SET LOCAL). */
 export const TENANT_GUC = 'app.current_organization_id' as const;
 
@@ -29,6 +37,24 @@ export const TENANT_TABLES = [
 ] as const;
 
 export type TenantTable = (typeof TENANT_TABLES)[number];
+
+/**
+ * The same set expressed as Prisma MODEL names (PascalCase) — the identifier the client
+ * extension receives in `$allOperations({ model })`. Kept in lock-step with TENANT_TABLES;
+ * the registry unit test asserts the two stay the same length.
+ */
+export const TENANT_MODELS = [
+  'OrganizationMember',
+  'Role',
+  'Subscription',
+  'RefreshToken',
+] as const;
+
+export type TenantModel = (typeof TENANT_MODELS)[number];
+
+export function isTenantModel(model: string | undefined): model is TenantModel {
+  return model !== undefined && (TENANT_MODELS as readonly string[]).includes(model);
+}
 
 /** Tables that intentionally have no tenant column (documented exclusions). */
 export const NON_TENANT_TABLES = [
