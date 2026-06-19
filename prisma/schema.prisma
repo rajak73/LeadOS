@@ -231,3 +231,42 @@ model Subscription {
 
   @@map("subscriptions")
 }
+
+// Sprint 3 M5 (AUD-1) — tenant-scoped, append-only audit trail. RLS-enabled like any tenant
+// table (registry: core/tenancy/tenant-tables.ts). organizationId is a scalar (no Prisma
+// relation) so the tenant extension scopes it without a back-reference on Organization; the FK
+// is created in the migration. before/after hold PII-masked snapshots. Indexed on (org,
+// createdAt) — partition-ready for a future RANGE-by-createdAt split (SC-1/DB-2).
+model AuditLog {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @db.Uuid
+  actorUserId    String?  @db.Uuid
+  action         String
+  resource       String
+  resourceId     String?
+  before         Json?
+  after          Json?
+  ipAddress      String?  @db.VarChar(64)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([resource, resourceId])
+  @@map("audit_logs")
+}
+
+// Sprint 3 M5 (AUD-3) — platform/super-admin audit trail SCAFFOLD. NOT tenant-scoped (no
+// organizationId, no RLS); written only on the leados_platform_admin (BYPASSRLS) path. Full
+// super-admin runtime is a later milestone (FINAL_ARCHITECTURE §2.3).
+model PlatformAuditLog {
+  id                   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  actorUserId          String?  @db.Uuid
+  action               String
+  targetOrganizationId String?  @db.Uuid
+  targetResource       String?
+  detail               Json?
+  ipAddress            String?  @db.VarChar(64)
+  createdAt            DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("platform_audit_logs")
+}

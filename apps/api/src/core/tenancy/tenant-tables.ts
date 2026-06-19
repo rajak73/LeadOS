@@ -34,6 +34,7 @@ export const TENANT_TABLES = [
   'roles',
   'subscriptions',
   'refresh_tokens',
+  'audit_logs',
 ] as const;
 
 export type TenantTable = (typeof TENANT_TABLES)[number];
@@ -48,6 +49,7 @@ export const TENANT_MODELS = [
   'Role',
   'Subscription',
   'RefreshToken',
+  'AuditLog',
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];
@@ -63,6 +65,7 @@ export const NON_TENANT_TABLES = [
   'verification_tokens',
   'permissions',
   'health_check',
+  'platform_audit_logs', // AUD-3 scaffold — intentionally NOT tenant-scoped (no organizationId)
 ] as const;
 
 export function isTenantTable(table: string): table is TenantTable {

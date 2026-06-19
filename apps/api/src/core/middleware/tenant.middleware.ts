@@ -37,6 +37,7 @@ export function createTenantMiddleware(validator: MembershipValidator): RequestH
           userId: auth.userId,
           role: auth.role,
           isSuperAdmin: auth.isSuperAdmin,
+          ...(req.ip !== undefined ? { ipAddress: req.ip } : {}),
         };
         // als.run wraps next() so the whole downstream handler chain (and its awaited
         // continuations, captured at schedule time) sees this tenant context.

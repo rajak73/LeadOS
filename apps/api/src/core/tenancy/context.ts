@@ -11,6 +11,8 @@ export interface TenantContext {
   userId: string;
   role: string;
   isSuperAdmin: boolean;
+  /** Caller IP, captured by tenantMiddleware for audit snapshots (AUD-2). */
+  ipAddress?: string;
   /** Effective permission keys — populated by RBAC in Milestone 4. */
   permissions?: readonly string[];
   /** True when the caller holds only `*_own` permissions — populated in Milestone 4. */

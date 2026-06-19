@@ -11,9 +11,9 @@ import {
 } from './tenant-tables.js';
 
 describe('tenant-table registry', () => {
-  it('lists exactly the four Sprint-2 org-scoped tables', () => {
+  it('lists exactly the org-scoped tables (S2 identity + S3 audit)', () => {
     expect([...TENANT_TABLES].sort()).toEqual(
-      ['organization_members', 'refresh_tokens', 'roles', 'subscriptions'].sort(),
+      ['audit_logs', 'organization_members', 'refresh_tokens', 'roles', 'subscriptions'].sort(),
     );
   });
 

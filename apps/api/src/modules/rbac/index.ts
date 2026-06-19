@@ -7,6 +7,7 @@ import { Router, type RequestHandler } from 'express';
 import { cacheRedis } from '../../core/redis/client.js';
 import { createRequirePermission } from '../../core/middleware/rbac.middleware.js';
 import { membershipCacheKey } from '../../core/tenancy/membership.js';
+import { PrismaAuditRecorder } from '../../core/audit/audit-recorder.js';
 import type { PermissionResolver } from '../../core/authz/permission-check.js';
 import {
   CachedPermissionResolver,
@@ -55,7 +56,7 @@ export function buildRbacModule(): RbacModule {
   const resolver = new CachedPermissionResolver(redisRbacCache, prismaPermissionLookup);
   const requirePermission = createRequirePermission(resolver);
   const invalidator = createMemberInvalidator(resolver, redisRbacCache);
-  const service = new RbacService(new PrismaRbacRepository(), invalidator);
+  const service = new RbacService(new PrismaRbacRepository(), invalidator, new PrismaAuditRecorder());
   const controller = createRbacController(service);
   const router = buildRbacRouter(controller, requirePermission);
   return { router, requirePermission, resolver };

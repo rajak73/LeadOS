@@ -9,9 +9,15 @@ export interface RoleSummary {
   isSystem: boolean;
 }
 
+export interface MemberSnapshot {
+  roleId: string;
+  status: string;
+}
+
 export interface RbacRepository {
   listRoles(organizationId: string): Promise<RoleSummary[]>;
   roleExists(organizationId: string, roleId: string): Promise<boolean>;
+  getMemberSnapshot(organizationId: string, userId: string): Promise<MemberSnapshot | null>;
   assignRole(organizationId: string, userId: string, roleId: string): Promise<boolean>;
   suspendMember(organizationId: string, userId: string): Promise<boolean>;
 }
@@ -28,6 +34,12 @@ export class PrismaRbacRepository implements RbacRepository {
       const role = await db.role.findFirst({ where: { id: roleId }, select: { id: true } });
       return role !== null;
     });
+  }
+
+  getMemberSnapshot(organizationId: string, userId: string): Promise<MemberSnapshot | null> {
+    return withTenant(organizationId, (db) =>
+      db.organizationMember.findFirst({ where: { userId }, select: { roleId: true, status: true } }),
+    );
   }
 
   assignRole(organizationId: string, userId: string, roleId: string): Promise<boolean> {
