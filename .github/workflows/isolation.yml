@@ -1,17 +1,72 @@
 name: Tenant Isolation Suite
 
-# SCAFFOLD — activates in Sprint 3 when the tenancy mechanism + cross-tenant isolation
-# suite (TEN-3.1) exist. It will run against an ephemeral Postgres with RLS and assert
-# org A cannot read/write/aggregate org B at both the app and RLS layers, and that RLS
-# denies a query whose tenant GUC is unset. Required-to-merge gate from S3 onward.
+# Sprint 3 M6 (ISO-4) — activated as a real required merge gate.
+#
+# Runs the three-part cross-tenant isolation suite (ISO-1/2/3) against ephemeral Postgres +
+# Redis with the two-role setup (admin migration account + leados_app NOBYPASSRLS app role).
+# The DEF-3 guard (tests/helpers/services.ts) turns any CI skip into a hard failure, so the
+# suite MUST execute — it cannot silently pass by skipping all DB-gated tests.
+#
+# Make this a required status check in GitHub branch protection to gate merges to main.
 on:
   pull_request:
     paths:
       - 'apps/api/**'
       - 'prisma/**'
+  push:
+    branches: [main]
+
+concurrency:
+  group: isolation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   isolation:
+    name: Isolation Suite (ISO-1 / ISO-2 / ISO-3)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: leados
+          POSTGRES_PASSWORD: leados
+          POSTGRES_DB: leados
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U leados"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Admin/migration connection — used by Prisma migrations and direct-admin seeding in tests.
+      DATABASE_URL: postgresql://leados:leados@localhost:5432/leados
+      DATABASE_DIRECT_URL: postgresql://leados:leados@localhost:5432/leados
+      # The RLS-enforced application role (NOBYPASSRLS). Created by migration 0002.
+      # ISO-2 connects as this role so RLS is actually exercised (a superuser would bypass it).
+      DATABASE_APP_URL: postgresql://leados_app:leados_app@localhost:5432/leados
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+      BCRYPT_COST: 4
     steps:
-      - run: echo "Tenant isolation suite is introduced in Sprint 3 (TEN-3.1)."
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package
+        run: pnpm --filter @leados/shared build
+      - name: Apply migrations (creates leados_app + leados_platform_admin roles + RLS policies)
+        run: pnpm db:migrate
+      - name: Run isolation suite (ISO-1 / ISO-2 / ISO-3)
+        # DEF-3 guard: CI=true (set automatically by GitHub Actions) causes isPostgresUp() to
+        # throw rather than return false if the probe fails — preventing a silent all-skip pass.
+        run: pnpm --filter @leados/api test:isolation
+      - name: Verify RLS coverage matches registry
+        run: pnpm --filter @leados/api check:rls

@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:isolation": "vitest run tests/integration/isolation.app.test.ts tests/integration/isolation.rls.test.ts tests/integration/isolation.rbac.test.ts",
     "postinstall": "prisma generate --schema=../../prisma/schema.prisma",
     "db:migrate": "prisma migrate deploy --schema=../../prisma/schema.prisma",
     "db:migrate:create": "prisma migrate dev --schema=../../prisma/schema.prisma",
