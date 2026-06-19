@@ -1,16 +1,22 @@
-// CRM-3.3 — Contact routes.
+// CRM-3.3 + CRM-4.1 — Contact routes.
 //
-// Permission model (execution plan §E3 CRM-3.3):
-//   POST   /contacts           → contacts.create
-//   GET    /contacts/:id       → contacts.read  OR  contacts.read_own  (ownOnly → 404 if not assigned)
-//   PATCH  /contacts/:id       → contacts.update OR contacts.update_own
-//   DELETE /contacts/:id       → contacts.delete
+// Permission model:
+//   POST   /contacts              → contacts.create
+//   GET    /contacts/:id          → contacts.read  OR  contacts.read_own  (ownOnly → 404 if not assigned)
+//   PATCH  /contacts/:id          → contacts.update OR contacts.update_own
+//   DELETE /contacts/:id          → contacts.delete
+//   GET    /contacts/:id/activities → contacts.read OR contacts.read_own (paginated activity feed)
 
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { validate } from '../../core/middleware/validate.js';
-import { createContactSchema, patchContactSchema, contactIdParamSchema } from '@leados/shared';
+import {
+  createContactSchema,
+  patchContactSchema,
+  contactIdParamSchema,
+  paginationQuerySchema,
+} from '@leados/shared';
 import type { ContactController } from './contact.controller.js';
 
 export function buildContactRouter(
@@ -46,6 +52,15 @@ export function buildContactRouter(
     requirePermission('contacts.delete'),
     validate(contactIdParamSchema, 'params'),
     asyncHandler(controller.softDelete),
+  );
+
+  // CRM-4.1: paginated activity feed for a contact.
+  router.get(
+    '/:id/activities',
+    requirePermission('contacts.read'),
+    validate(contactIdParamSchema, 'params'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listActivities),
   );
 
   return router;

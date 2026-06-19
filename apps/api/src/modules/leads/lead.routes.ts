@@ -11,7 +11,7 @@ import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { validate } from '../../core/middleware/validate.js';
-import { createLeadSchema, patchLeadSchema, leadIdParamSchema } from '@leados/shared';
+import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema } from '@leados/shared';
 import type { LeadController } from './lead.controller.js';
 
 export function buildLeadRouter(
@@ -56,6 +56,15 @@ export function buildLeadRouter(
     requirePermission('leads.update'),
     validate(leadIdParamSchema, 'params'),
     asyncHandler(controller.convert),
+  );
+
+  // CRM-4.1: paginated activity feed for a lead.
+  router.get(
+    '/:id/activities',
+    requirePermission('leads.read'),
+    validate(leadIdParamSchema, 'params'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listActivities),
   );
 
   return router;

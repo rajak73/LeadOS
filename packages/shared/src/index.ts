@@ -10,5 +10,6 @@ export * from './schemas/index.js';
 export * from './schemas/auth.js';
 export * from './schemas/lead.js';
 export * from './schemas/contact.js';
+export * from './schemas/task.js';
 export * from './types/index.js';
 export * from './types/activity-metadata.js';

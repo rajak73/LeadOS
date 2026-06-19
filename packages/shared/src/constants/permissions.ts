@@ -102,7 +102,7 @@ export const PERMISSION_CATALOG: readonly string[] = [
   // pipelines
   'pipelines.create', 'pipelines.read', 'pipelines.update', 'pipelines.delete',
   // tasks
-  'tasks.create', 'tasks.read', 'tasks.update', 'tasks.update_own',
+  'tasks.create', 'tasks.read', 'tasks.update', 'tasks.update_own', 'tasks.delete',
   // inbox
   'inbox.read', 'inbox.read_own', 'inbox.reply', 'inbox.reply_own', 'inbox.assign',
   'inbox.close', 'inbox.close_own',

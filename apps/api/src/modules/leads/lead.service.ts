@@ -1,5 +1,6 @@
 // CRM-2.2 + CRM-2.3 — Lead service (CRUD + status machine).
 // CRM-3.2 — Lead→Contact conversion (atomic).
+// CRM-4.1 — Lead activity feed.
 //
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // The ActivityService.append() is called within the SAME transaction (atomicity) so an
@@ -19,7 +20,7 @@ import { AppError } from '../../core/errors/app-error.js';
 import { ErrorCode, PLAN_LIMITS, ActivityType } from '@leados/shared';
 import type { CreateLeadInput, PatchLeadInput } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
-import { ActivityService } from '../../core/activities/activity.service.js';
+import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { PrismaLeadRepository } from './lead.repository.js';
 import { PrismaContactRepository } from '../contacts/contact.repository.js';
 import { sanitizeContact } from '../contacts/contact.service.js';
@@ -309,6 +310,22 @@ export class LeadService {
     });
 
     return result;
+  }
+
+  // ── CRM-4.1: listActivities ───────────────────────────────────────────────
+  //
+  // ownOnly: SALES_EXECUTIVE with leads.read_own may only see activities for leads
+  // assigned to them. findByIdOrThrow with ownedByUserId enforces this before the fetch.
+
+  async listActivities(leadId: string, page: number, limit: number): Promise<ActivityPage> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaLeadRepository(db);
+      await repo.findByIdOrThrow(leadId, ownedByUserId); // 404 guard + ownOnly
+      return this.activityService.listForLead(db, leadId, page, limit);
+    });
   }
 }
 

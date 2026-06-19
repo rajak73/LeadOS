@@ -1,4 +1,5 @@
 // CRM-4.1 (partial, M2 prerequisite) — append-only activity write path.
+// CRM-4.1 (M4 complete) — activity read path (listForLead, listForContact).
 //
 // ActivityService.append() is a cross-cutting concern used by Lead, Contact, Task, Note,
 // and File services. It is built here (before those modules) per the execution plan's
@@ -8,15 +9,20 @@
 // immutable by design, enforced by DB triggers (activities_no_update, activities_no_delete)
 // AND the absence of those methods here (belt + suspenders per R-S4-6).
 //
-// The caller passes the already-scoped TenantTransactionClient from their own withTenant
-// call so the activity row and the lastActivityAt denormalization happen atomically in the
-// same transaction as the domain mutation. Never call this outside a withTenant scope.
+// Read methods (listForLead, listForContact) take the caller's TenantTransactionClient so
+// they can run in the same transaction scope as the surrounding withTenant callback.
+// Ordering: createdAt DESC (newest activity first).
 
-import type { Prisma } from '@prisma/client';
+import type { Prisma, Activity } from '@prisma/client';
 import type { TenantTransactionClient } from '../tenancy/with-tenant.js';
 import type { TenantContext } from '../tenancy/context.js';
 import { asTenantCreate } from '../tenancy/tenant-repository.js';
 import type { ActivityAppendInput } from '@leados/shared';
+
+export interface ActivityPage {
+  items: Activity[];
+  total: number;
+}
 
 export class ActivityService {
   async append(
@@ -50,5 +56,46 @@ export class ActivityService {
         data: { lastActivityAt: new Date() },
       });
     }
+  }
+
+  // ── CRM-4.1: activity read path ────────────────────────────────────────────
+  //
+  // Both list methods receive the caller's TenantTransactionClient (already inside a
+  // withTenant callback) so they are automatically scoped to the current tenant.
+  // The caller is responsible for verifying the entity exists (and enforcing ownOnly)
+  // before calling these methods.
+
+  async listForLead(
+    db: TenantTransactionClient,
+    leadId: string,
+    page: number,
+    limit: number,
+  ): Promise<ActivityPage> {
+    const where = { relatedLeadId: leadId };
+    const total = await db.activity.count({ where });
+    const items = await db.activity.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { items, total };
+  }
+
+  async listForContact(
+    db: TenantTransactionClient,
+    contactId: string,
+    page: number,
+    limit: number,
+  ): Promise<ActivityPage> {
+    const where = { relatedContactId: contactId };
+    const total = await db.activity.count({ where });
+    const items = await db.activity.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { items, total };
   }
 }

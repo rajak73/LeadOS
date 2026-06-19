@@ -1,4 +1,5 @@
 // CRM-3.1 — Contact service (CRUD).
+// CRM-4.1 — Contact activity feed.
 //
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // ActivityService.append() is called within the SAME transaction for atomicity.
@@ -12,7 +13,7 @@ import { AppError } from '../../core/errors/app-error.js';
 import { ErrorCode, PLAN_LIMITS, ActivityType } from '@leados/shared';
 import type { CreateContactInput, PatchContactInput } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
-import { ActivityService } from '../../core/activities/activity.service.js';
+import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { PrismaContactRepository } from './contact.repository.js';
 
 export class ContactService {
@@ -149,6 +150,22 @@ export class ContactService {
       action: 'deleted',
       resource: 'contact',
       resourceId: id,
+    });
+  }
+
+  // ── CRM-4.1: listActivities ───────────────────────────────────────────────
+  //
+  // ownOnly: SALES_EXECUTIVE with contacts.read_own may only see activities for contacts
+  // assigned to them. findByIdOrThrow with ownedByUserId enforces this before the fetch.
+
+  async listActivities(contactId: string, page: number, limit: number): Promise<ActivityPage> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaContactRepository(db);
+      await repo.findByIdOrThrow(contactId, ownedByUserId); // 404 guard + ownOnly
+      return this.activityService.listForContact(db, contactId, page, limit);
     });
   }
 }
