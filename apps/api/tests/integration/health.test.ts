@@ -31,11 +31,13 @@ describe('health + request lifecycle', () => {
     expect(res.text).toContain('http_requests_total');
   });
 
-  it('GET /api/v1/ping returns the success envelope through the full chain', async () => {
+  it('GET /api/v1/ping is now permission-gated: unauthenticated → 401 (Sprint 3 M4 RBAC)', async () => {
+    // Sprint 1 returned 200 here through the stub chain. With real RBAC (requirePermission),
+    // the authenticated /api/v1 surface rejects an unauthenticated request. The full success
+    // path (member token → 200) is covered in tenant.middleware.e2e + rbac.enforcement.
     const res = await request(app).get('/api/v1/ping');
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ success: true, data: { pong: true } });
-    expect(res.body.data.requestId).toBeTruthy();
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
   });
 
   it('POST /api/webhooks/_echo receives the RAW body (carve-out before JSON parser)', async () => {

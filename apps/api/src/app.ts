@@ -16,13 +16,13 @@ import {
   apiRateLimit,
   authMiddleware,
   tenantMiddleware,
-  requirePermission,
 } from './core/middleware/index.js';
 import { healthRouter } from './core/health/health.routes.js';
 import { webhookRouter } from './core/webhooks/webhook.routes.js';
 import { notFoundHandler, errorHandler } from './core/errors/error-handler.js';
 import { sendSuccess } from './core/http/envelope.js';
 import { authRouter } from './modules/auth/index.js';
+import { buildRbacModule } from './modules/rbac/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -50,11 +50,14 @@ export function buildApp(): Express {
   // rate limit).
   app.use('/api/v1/auth', authRouter);
 
-  // Versioned API surface (authenticated). Sprint 1: diagnostic ping only.
+  // Versioned API surface (authenticated). RBAC (real requirePermission + role admin) is wired
+  // here via the rbac module composition.
+  const rbac = buildRbacModule();
   const v1 = Router();
-  v1.get('/ping', requirePermission('org.read'), (req, res) => {
+  v1.get('/ping', rbac.requirePermission('org.read'), (req, res) => {
     sendSuccess(res, { pong: true, requestId: req.context?.requestId ?? null });
   });
+  v1.use(rbac.router); // /roles, /members/:userId/role, /members/:userId/suspend
   app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, v1);
 
   // Terminal handlers.
