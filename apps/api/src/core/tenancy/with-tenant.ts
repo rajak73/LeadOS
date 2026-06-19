@@ -14,6 +14,7 @@
 import { prisma } from '../prisma/client.js';
 import { TENANT_GUC } from './tenant-tables.js';
 import { tenantExtension } from './tenant-extension.js';
+import { runInTenantScope } from './scope.js';
 
 function buildTenantClient(organizationId: string) {
   return prisma.$extends(tenantExtension(organizationId));
@@ -34,6 +35,8 @@ export async function withTenant<T>(
   const client = buildTenantClient(organizationId);
   return client.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(`SELECT set_config('${TENANT_GUC}', $1, true)`, organizationId);
-    return fn(tx);
+    // Mark the tenant scope so the data layer's guard (assertTenantScope) passes inside the
+    // unit of work and rejects tenant-repository use anywhere else.
+    return runInTenantScope(organizationId, () => fn(tx));
   });
 }

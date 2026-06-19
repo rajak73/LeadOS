@@ -2,12 +2,24 @@
 // in-memory fake); production wires the Prisma implementation. This module is the SOLE DB
 // accessor for identity/org tables (module-boundary rule).
 //
-// NOTE on tenancy: the atomic org bootstrap uses a plain Prisma interactive transaction for
-// ATOMICITY (FINAL_ARCHITECTURE §2.1 unit-of-work). The tenant GUC / RLS scoping is Sprint 3
-// and is intentionally NOT applied here.
+// NOTE on tenancy (Sprint 3 M3 / E3):
+//   - Org-scoped operations with a KNOWN org (getMembershipRole, createRefreshToken) run through
+//     withTenant + the tenant extension (TEN-3.2.2), via OrgScopedAuthRepository.
+//   - PRE-TENANT / CROSS-TENANT IDENTITY operations stay on the raw client by design — they
+//     either CREATE the tenant or DISCOVER it before any tenant context exists, so a single-org
+//     scope does not apply. These are the documented exceptions (FINAL_ARCHITECTURE §2.4):
+//       * bootstrapOrganization        — creates the org + its first rows (atomic, one tx)
+//       * getActiveMemberships         — login membership discovery (across the user's orgs)
+//       * findRefreshTokenByHash       — opaque-token lookup (org unknown until the row is read)
+//       * markRefreshTokenUsed / revokeRefreshTokenFamily — keyed by the just-looked-up token
+//       * listSessions / revokeSession / revokeAllUserSessions — per-USER across orgs
+//   The runtime connection is still the admin role (D2); RLS turns on once it switches to
+//   leados_app, after every tenant write is wrapped.
 
 import { type PrismaClient, type VerificationTokenType } from '@prisma/client';
 import { ROLE_PERMISSIONS, type SystemRole } from '@leados/shared';
+import { withTenant } from '../../core/tenancy/with-tenant.js';
+import { OrgScopedAuthRepository } from './org-scoped-auth.repository.js';
 
 export interface UserRecord {
   id: string;
@@ -260,18 +272,19 @@ export class PrismaAuthRepository implements AuthRepository {
     });
   }
 
+  // TEN-3.2.2 — org-scoped WRITE: the org is known, so this runs through withTenant + the
+  // tenant extension (organizationId is injected — note the org-free create input).
   async createRefreshToken(params: CreateRefreshTokenParams): Promise<void> {
-    await this.prisma.refreshToken.create({
-      data: {
+    await withTenant(params.organizationId, (db) =>
+      new OrgScopedAuthRepository(db).createRefreshToken({
         userId: params.userId,
-        organizationId: params.organizationId,
         tokenHash: params.tokenHash,
         family: params.family,
         deviceInfo: params.deviceInfo ?? null,
         ipAddress: params.ipAddress ?? null,
         expiresAt: params.expiresAt,
-      },
-    });
+      }),
+    );
   }
 
   async findRefreshTokenByHash(tokenHash: string): Promise<RefreshTokenRecord | null> {
@@ -300,12 +313,10 @@ export class PrismaAuthRepository implements AuthRepository {
     });
   }
 
+  // TEN-3.2.2 — org-scoped READ: the org is known, so this runs through withTenant + the
+  // tenant extension (the organizationId filter is injected automatically).
   async getMembershipRole(userId: string, organizationId: string): Promise<string | null> {
-    const m = await this.prisma.organizationMember.findFirst({
-      where: { userId, organizationId, status: 'ACTIVE' },
-      select: { role: { select: { name: true } } },
-    });
-    return m?.role.name ?? null;
+    return withTenant(organizationId, (db) => new OrgScopedAuthRepository(db).getMembershipRole(userId));
   }
 
   async listSessions(userId: string): Promise<SessionRecord[]> {
