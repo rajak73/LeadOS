@@ -4,10 +4,10 @@
 // organizationId is injected automatically by the tenant extension — callers never supply it.
 // All queries are soft-delete aware (deletedAt IS NULL) unless explicitly noted.
 
-import type { Prisma, Lead } from '@prisma/client';
+import type { Prisma, Lead, LeadStatus, LeadSource } from '@prisma/client';
 import { TenantRepository, asTenantCreate } from '../../core/tenancy/tenant-repository.js';
 import type { TenantTransactionClient } from '../../core/tenancy/with-tenant.js';
-import type { CreateLeadInput, PatchLeadInput } from '@leados/shared';
+import type { CreateLeadInput, PatchLeadInput, LeadListQuery } from '@leados/shared';
 
 export type { Lead };
 
@@ -102,5 +102,76 @@ export class PrismaLeadRepository extends TenantRepository {
       where: { phone, deletedAt: null },
       select: { id: true },
     });
+  }
+
+  /** Paginated, filtered, sorted lead list for CRM-6.1. */
+  async findManyWithFilter(
+    query: LeadListQuery,
+    ownedByUserId?: string,
+  ): Promise<{ items: Lead[]; total: number }> {
+    // Build the WHERE clause incrementally to avoid exactOptionalPropertyTypes issues.
+    const where: Prisma.LeadWhereInput = { deletedAt: null };
+
+    // ownOnly takes precedence over any assignedToId filter from the query.
+    if (ownedByUserId !== undefined) {
+      where.assignedToId = ownedByUserId;
+    } else if (query.assignedToId !== undefined) {
+      where.assignedToId = query.assignedToId;
+    }
+
+    if (query.status?.length) {
+      // Cast to LeadStatus[] (not LeadStatus[] | undefined) to satisfy exactOptionalPropertyTypes.
+      // The ?.length guard above already proves the array is non-empty and non-undefined.
+      where.status = { in: query.status as LeadStatus[] };
+    }
+
+    if (query.source?.length) {
+      where.source = { in: query.source as LeadSource[] };
+    }
+
+    if (query.tags?.length) {
+      where.tags = { hasSome: query.tags };
+    }
+
+    if (query.aiScoreMin !== undefined || query.aiScoreMax !== undefined) {
+      // Use the inferred field type to avoid depending on the internal Prisma filter type name.
+      const scoreFilter: NonNullable<Prisma.LeadWhereInput['aiScore']> = {};
+      if (query.aiScoreMin !== undefined) scoreFilter.gte = query.aiScoreMin;
+      if (query.aiScoreMax !== undefined) scoreFilter.lte = query.aiScoreMax;
+      where.aiScore = scoreFilter;
+    }
+
+    if (query.createdFrom !== undefined || query.createdTo !== undefined) {
+      const dateFilter: Prisma.DateTimeFilter<'Lead'> = {};
+      if (query.createdFrom !== undefined) dateFilter.gte = query.createdFrom;
+      if (query.createdTo !== undefined) dateFilter.lte = query.createdTo;
+      where.createdAt = dateFilter;
+    }
+
+    if (query.search !== undefined && query.search.trim().length > 0) {
+      const term = query.search.trim();
+      where.OR = [
+        { firstName: { contains: term, mode: 'insensitive' } },
+        { lastName: { contains: term, mode: 'insensitive' } },
+        { email: { contains: term, mode: 'insensitive' } },
+        { phone: { contains: term, mode: 'insensitive' } },
+      ];
+    }
+
+    // Nullable sort fields (lastActivityAt, aiScore) use NULLS LAST to keep
+    // leads without a value at the bottom of the result regardless of direction.
+    const nullableSortFields = new Set<string>(['lastActivityAt', 'aiScore']);
+    const orderBy: Prisma.LeadOrderByWithRelationInput = nullableSortFields.has(query.sortBy)
+      ? ({ [query.sortBy]: { sort: query.sortOrder, nulls: 'last' } } as Prisma.LeadOrderByWithRelationInput)
+      : ({ [query.sortBy]: query.sortOrder } as Prisma.LeadOrderByWithRelationInput);
+
+    const skip = (query.page - 1) * query.limit;
+
+    const [total, items] = await Promise.all([
+      this.db.lead.count({ where }),
+      this.db.lead.findMany({ where, orderBy, skip, take: query.limit }),
+    ]);
+
+    return { items, total };
   }
 }

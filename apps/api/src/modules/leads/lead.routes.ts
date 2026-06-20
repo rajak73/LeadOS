@@ -17,7 +17,7 @@ import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { validate } from '../../core/middleware/validate.js';
-import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema } from '@leados/shared';
+import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema } from '@leados/shared';
 import type { LeadController } from './lead.controller.js';
 
 export function buildLeadRouter(
@@ -25,6 +25,15 @@ export function buildLeadRouter(
   requirePermission: (permission: string) => RequestHandler,
 ): Router {
   const router = Router();
+
+  // CRM-6.1: Lead list — must be first so Express does not match literal path segments
+  // (e.g. '/import' added in M6B) as the /:id wildcard.
+  router.get(
+    '/',
+    requirePermission('leads.read'),
+    validate(leadListQuerySchema, 'query'),
+    asyncHandler(controller.list),
+  );
 
   router.post(
     '/',

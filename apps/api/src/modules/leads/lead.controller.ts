@@ -8,9 +8,10 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, buildPaginationMeta } from '../../core/http/envelope.js';
 import type { LeadService } from './lead.service.js';
-import type { CreateLeadInput, PatchLeadInput, PaginationQuery } from '@leados/shared';
+import type { CreateLeadInput, PatchLeadInput, PaginationQuery, LeadListQuery } from '@leados/shared';
 
 export interface LeadController {
+  list(req: Request, res: Response): Promise<void>;
   create(req: Request, res: Response): Promise<void>;
   getById(req: Request, res: Response): Promise<void>;
   update(req: Request, res: Response): Promise<void>;
@@ -23,6 +24,12 @@ export interface LeadController {
 
 export function createLeadController(service: LeadService): LeadController {
   return {
+    async list(req, res) {
+      const query = req.query as unknown as LeadListQuery;
+      const { items, total } = await service.list(query);
+      sendSuccess(res, items, 200, buildPaginationMeta(query.page, query.limit, total));
+    },
+
     async create(req, res) {
       const lead = await service.create(req.body as CreateLeadInput);
       sendSuccess(res, lead, 201);

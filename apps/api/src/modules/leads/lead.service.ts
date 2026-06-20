@@ -20,7 +20,7 @@ import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext, type TenantContext } from '../../core/tenancy/context.js';
 import { AppError } from '../../core/errors/app-error.js';
 import { ErrorCode, PLAN_LIMITS, ActivityType } from '@leados/shared';
-import type { CreateLeadInput, PatchLeadInput } from '@leados/shared';
+import type { CreateLeadInput, PatchLeadInput, LeadListQuery } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
 import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { PrismaLeadRepository } from './lead.repository.js';
@@ -346,6 +346,18 @@ export class LeadService {
     });
 
     return this.noteService.listForLead(leadId, page, limit);
+  }
+
+  // ── CRM-6.1: list ────────────────────────────────────────────────────────
+
+  async list(query: LeadListQuery): Promise<{ items: Lead[]; total: number }> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaLeadRepository(db);
+      return repo.findManyWithFilter(query, ownedByUserId);
+    });
   }
 
   // ── CRM-5.2: listFiles ───────────────────────────────────────────────────
