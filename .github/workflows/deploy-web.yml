@@ -20,7 +20,6 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-        if: ${{ env.VERCEL_TOKEN != '' }}
       - name: Deploy to Vercel production
         if: ${{ env.VERCEL_TOKEN != '' }}
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
