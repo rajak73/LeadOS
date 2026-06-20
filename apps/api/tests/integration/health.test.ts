@@ -40,14 +40,18 @@ describe('health + request lifecycle', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('POST /api/webhooks/_echo receives the RAW body (carve-out before JSON parser)', async () => {
+  it('POST /api/webhooks/instagram rejects missing HMAC (proves raw-body middleware is wired before JSON parser)', async () => {
+    // /_echo (Sprint 1 proof) was retired in M4 when the real webhook receiver replaced the stub.
+    // The same raw-body carve-out guarantee is now exercised by the live Instagram receiver:
+    // a request with no X-Hub-Signature-256 header returns 400 from the controller — which can
+    // only happen if express.raw() ran (giving req.body as Buffer) before express.json().
+    // No DB access, no HMAC computation needed — the header check fires first.
     const res = await request(app)
-      .post('/api/webhooks/_echo')
+      .post('/api/webhooks/instagram')
       .set('Content-Type', 'application/json')
       .send('{"hello":"world"}');
-    expect(res.status).toBe(200);
-    expect(res.body.received).toBe(true);
-    expect(res.body.rawBytes).toBe(Buffer.byteLength('{"hello":"world"}'));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Missing X-Hub-Signature-256');
   });
 
   it('unknown route returns a 404 error envelope', async () => {

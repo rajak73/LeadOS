@@ -67,6 +67,32 @@ Blocker B-M4-1 (test isolation failure) is resolved. All verification commands p
 
 ---
 
+## Post-Approval Fix — CI Failure: `POST /api/webhooks/_echo` → 404
+
+**Date:** 2026-06-20 (after initial approval)
+
+**Root cause:** `health.test.ts` contained a Sprint 1 test asserting that `POST /api/webhooks/_echo` returns 200. M4 intentionally retired the `/_echo` stub (replaced `core/webhooks/webhook.routes.ts` with a comment-only placeholder, wired the real webhook module via `buildWebhooksModule()`). The `/_echo` route no longer exists, causing a 404 and a CI failure.
+
+**Decision: B — update the test, not the production code.**
+
+Restoring `/_echo` would add an unauthenticated public debug endpoint with no production purpose. M4's retirement of the stub was correct. The raw-body carve-out guarantee that `/_echo` was proving is now demonstrated by the live Instagram receiver on every test run.
+
+**Fix applied** (`health.test.ts`): Replaced the `/_echo` assertion with an equivalent test against `POST /api/webhooks/instagram`. Sending a request with no `X-Hub-Signature-256` header returns 400 from the controller — which can only happen if `express.raw()` ran before `express.json()`. No DB access, no HMAC computation required; the header check fires first.
+
+**Verification after fix:**
+
+| Command | Result |
+|---|---|
+| `npm run -w apps/api test:coverage` | PASS — 54 files, 468 pass / 1 skipped, 87.47% statements |
+| `npm run -w apps/api typecheck` | PASS |
+| `npm run -w apps/api lint` | PASS |
+| `npm run -w apps/api build` | PASS (ESM 58ms) |
+| `npm run -w apps/api check:rls` | PASS — 19 tables |
+
+No production source files modified. Only `tests/integration/health.test.ts` changed.
+
+---
+
 ## Non-Blocking Observations Carried Forward
 
 These were documented in the original signoff and remain unresolved. None blocks approval.
