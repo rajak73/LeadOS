@@ -1,6 +1,6 @@
 # API process image. The worker image (worker.Dockerfile) is the same build with a
 # different entrypoint — one codebase, two processes (FINAL_ARCHITECTURE §1).
-FROM node:20-alpine AS base
+FROM node:20-bookworm AS base
 RUN corepack enable
 WORKDIR /app
 
