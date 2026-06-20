@@ -9,7 +9,9 @@
 //   Task events       → relatedLeadId or relatedContactId required (at least one)
 //   Note events       → relatedLeadId or relatedContactId required
 //   File events       → relatedLeadId or relatedContactId required
-//   Deal events       → Sprint 5 — relatedDealId will be added when deals ship
+//   Deal events       → relatedDealId required
+//   Pipeline events   → relatedPipelineId required
+//   Stage events      → relatedPipelineId + relatedPipelineStageId required
 
 import type { ActivityType } from '../constants/enums.js';
 
@@ -152,6 +154,39 @@ export interface PipelineUpdatedMetadata {
   fields: string[];
 }
 
+export interface PipelineDeletedMetadata {
+  type: typeof ActivityType.PIPELINE_DELETED;
+  pipelineId: string;
+  name: string;
+}
+
+export interface PipelineStageCreatedMetadata {
+  type: typeof ActivityType.PIPELINE_STAGE_CREATED;
+  pipelineId: string;
+  stageId: string;
+  name: string;
+}
+
+export interface PipelineStageUpdatedMetadata {
+  type: typeof ActivityType.PIPELINE_STAGE_UPDATED;
+  pipelineId: string;
+  stageId: string;
+  fields: string[];
+}
+
+export interface PipelineStageDeletedMetadata {
+  type: typeof ActivityType.PIPELINE_STAGE_DELETED;
+  pipelineId: string;
+  stageId: string;
+  name: string;
+}
+
+export interface PipelineStageReorderedMetadata {
+  type: typeof ActivityType.PIPELINE_STAGE_REORDERED;
+  pipelineId: string;
+  stageIds: string[];
+}
+
 // ─── Union ────────────────────────────────────────────────────────────────────
 
 export type ActivityMetadata =
@@ -176,7 +211,12 @@ export type ActivityMetadata =
   | DealLostMetadata
   | DealUpdatedMetadata
   | PipelineCreatedMetadata
-  | PipelineUpdatedMetadata;
+  | PipelineUpdatedMetadata
+  | PipelineDeletedMetadata
+  | PipelineStageCreatedMetadata
+  | PipelineStageUpdatedMetadata
+  | PipelineStageDeletedMetadata
+  | PipelineStageReorderedMetadata;
 
 // ─── Input type for ActivityService.append() ─────────────────────────────────
 
@@ -189,4 +229,6 @@ export interface ActivityAppendInput {
   relatedLeadId?: string;
   relatedContactId?: string;
   relatedDealId?: string;
+  relatedPipelineId?: string;
+  relatedPipelineStageId?: string;
 }

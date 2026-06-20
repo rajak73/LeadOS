@@ -40,6 +40,8 @@ export class ActivityService {
         relatedLeadId: input.relatedLeadId ?? null,
         relatedContactId: input.relatedContactId ?? null,
         relatedDealId: input.relatedDealId ?? null,
+        relatedPipelineId: input.relatedPipelineId ?? null,
+        relatedPipelineStageId: input.relatedPipelineStageId ?? null,
       }),
     });
 
@@ -89,6 +91,23 @@ export class ActivityService {
     limit: number,
   ): Promise<ActivityPage> {
     const where = { relatedContactId: contactId };
+    const total = await db.activity.count({ where });
+    const items = await db.activity.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { items, total };
+  }
+
+  async listForDeal(
+    db: TenantTransactionClient,
+    dealId: string,
+    page: number,
+    limit: number,
+  ): Promise<ActivityPage> {
+    const where = { relatedDealId: dealId };
     const total = await db.activity.count({ where });
     const items = await db.activity.findMany({
       where,
