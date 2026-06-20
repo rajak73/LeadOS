@@ -45,6 +45,12 @@ const envSchema = z.object({
   S3_REGION: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
+
+  // Webhooks (Sprint 5 M4). Dev/test defaults allow integration tests to compute matching
+  // HMAC signatures without real secrets. Production MUST override with real values.
+  INSTAGRAM_APP_SECRET: z.string().min(1).default('test-ig-secret'),
+  INSTAGRAM_WEBHOOK_VERIFY_TOKEN: z.string().min(1).default('test-verify-token'),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).default('test-stripe-secret'),
 });
 
 export type Env = z.infer<typeof envSchema>;

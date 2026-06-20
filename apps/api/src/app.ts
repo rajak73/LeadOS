@@ -18,7 +18,6 @@ import {
   tenantMiddleware,
 } from './core/middleware/index.js';
 import { healthRouter } from './core/health/health.routes.js';
-import { webhookRouter } from './core/webhooks/webhook.routes.js';
 import { notFoundHandler, errorHandler } from './core/errors/error-handler.js';
 import { sendSuccess } from './core/http/envelope.js';
 import { authRouter } from './modules/auth/index.js';
@@ -30,6 +29,7 @@ import { buildNotesModule } from './modules/notes/index.js';
 import { buildFilesModule } from './modules/files/index.js';
 import { buildPipelinesModule } from './modules/pipelines/index.js';
 import { buildDealsModule } from './modules/deals/index.js';
+import { buildWebhooksModule } from './modules/webhooks/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -46,7 +46,7 @@ export function buildApp(): Express {
   app.use(healthRouter);
 
   // Webhooks: RAW body BEFORE the JSON parser (HMAC verification needs raw bytes).
-  app.use('/api/webhooks', express.raw({ type: '*/*', limit: '1mb' }), webhookRouter);
+  app.use('/api/webhooks', express.raw({ type: '*/*', limit: '1mb' }), buildWebhooksModule());
 
   // Global JSON parser for the rest of the API.
   app.use(express.json({ limit: '1mb' }));

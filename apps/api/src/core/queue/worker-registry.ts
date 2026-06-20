@@ -11,6 +11,11 @@ import { QUEUE_CONCURRENCY, type QueueName } from './names.js';
 import { HEALTH_ECHO_JOB, processHealthEcho, type HealthEchoPayload } from './jobs/health-echo.js';
 import { LEAD_IMPORT_JOB, processLeadImportJob } from './workers/lead-import.worker.js';
 import { LEAD_EXPORT_JOB, processLeadExportJob } from './workers/lead-export.worker.js';
+import {
+  WEBHOOK_JOB,
+  processWebhookJob,
+  reEnqueueStalePendingWebhooks,
+} from './workers/webhook.worker.js';
 
 const workers: Worker[] = [];
 
@@ -44,7 +49,7 @@ export function registerWorker(name: QueueName, processor: Processor): Worker {
   return worker;
 }
 
-/** Starts the Sprint-1 system worker plus Sprint-4 M6B domain workers. */
+/** Starts all domain workers. Sprint-5 M4 adds the webhook-processing worker. */
 export function startWorkers(): Worker[] {
   registerWorker('system', async (job) => {
     if (job.name === HEALTH_ECHO_JOB) {
@@ -65,6 +70,18 @@ export function startWorkers(): Worker[] {
       return processLeadExportJob(job);
     }
     return undefined;
+  });
+
+  registerWorker('webhook-processing', async (job) => {
+    if (job.name === WEBHOOK_JOB) {
+      return processWebhookJob(job);
+    }
+    return undefined;
+  });
+
+  // Re-enqueue PENDING webhook events orphaned by a crash between DB write and Redis enqueue.
+  void reEnqueueStalePendingWebhooks().catch((err: Error) => {
+    logger.warn({ message: 'Stale webhook re-enqueue failed on startup', error: err.message });
   });
 
   logger.info({ message: 'Workers started', queues: workers.length });
