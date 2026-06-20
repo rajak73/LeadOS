@@ -108,7 +108,7 @@ export interface FileDeletedMetadata {
   fileName: string;
 }
 
-// Deal events — Sprint 5. Stubs declared as forward contract for Workflow Engine.
+// Deal events — Sprint 5.
 export interface DealCreatedMetadata {
   type: typeof ActivityType.DEAL_CREATED;
   dealId: string;
@@ -133,6 +133,25 @@ export interface DealLostMetadata {
   lostReason?: string;
 }
 
+export interface DealUpdatedMetadata {
+  type: typeof ActivityType.DEAL_UPDATED;
+  dealId: string;
+  fields: string[];
+}
+
+// Pipeline events — Sprint 5.
+export interface PipelineCreatedMetadata {
+  type: typeof ActivityType.PIPELINE_CREATED;
+  pipelineId: string;
+  name: string;
+}
+
+export interface PipelineUpdatedMetadata {
+  type: typeof ActivityType.PIPELINE_UPDATED;
+  pipelineId: string;
+  fields: string[];
+}
+
 // ─── Union ────────────────────────────────────────────────────────────────────
 
 export type ActivityMetadata =
@@ -154,7 +173,10 @@ export type ActivityMetadata =
   | DealCreatedMetadata
   | DealStageMovedMetadata
   | DealWonMetadata
-  | DealLostMetadata;
+  | DealLostMetadata
+  | DealUpdatedMetadata
+  | PipelineCreatedMetadata
+  | PipelineUpdatedMetadata;
 
 // ─── Input type for ActivityService.append() ─────────────────────────────────
 

@@ -13,5 +13,7 @@ export * from './schemas/contact.js';
 export * from './schemas/task.js';
 export * from './schemas/note.js';
 export * from './schemas/file.js';
+export * from './schemas/pipeline.js';
+export * from './schemas/deal.js';
 export * from './types/index.js';
 export * from './types/activity-metadata.js';

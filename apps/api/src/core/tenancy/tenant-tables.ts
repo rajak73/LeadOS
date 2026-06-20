@@ -1,5 +1,5 @@
 // Tenant-table registry (TEN-3.1.3) — the single source of truth for which tables are
-// organization-scoped. It drives (a) the RLS policies (migrations 0003 + 0009), (b) the
+// organization-scoped. It drives (a) the RLS policies (migrations 0003 + 0009 + 0011 + 0012), (b) the
 // RLS-coverage check (scripts/check-rls-coverage.ts), and (c) the tenant Prisma extension.
 //
 // INVARIANT enforced in CI: this registry MUST equal the set of tables that physically carry
@@ -7,7 +7,8 @@
 // vice-versa) fails the coverage check — so no tenant table can silently ship without RLS.
 //
 // Sprint 4 M1 expanded from 5 tables (Sprint 3) to 15 (5 existing + 10 new CRM tables).
-// check:rls expected output: OK — 15 tenant tables enabled + forced + policied.
+// Sprint 5 M1 expanded from 15 tables (Sprint 4) to 19 (4 new Pipeline/Deal/Webhook tables).
+// check:rls expected output: OK — 19 tenant tables enabled + forced + policied.
 //
 // NOTE on the column name: the actual Prisma-generated column is camelCase `"organizationId"`.
 // Policies + checks use the real column name below.
@@ -49,6 +50,11 @@ export const TENANT_TABLES = [
   'custom_field_definitions',
   'team_invites',
   'saved_replies',
+  // Sprint 5 M1 — Pipeline, Deals & Webhook foundation
+  'pipelines',
+  'pipeline_stages',
+  'deals',
+  'webhook_events',
 ] as const;
 
 export type TenantTable = (typeof TENANT_TABLES)[number];
@@ -76,6 +82,11 @@ export const TENANT_MODELS = [
   'CustomFieldDefinition',
   'TeamInvite',
   'SavedReply',
+  // Sprint 5 M1 — Pipeline, Deals & Webhook
+  'Pipeline',
+  'PipelineStage',
+  'Deal',
+  'WebhookEvent',
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];

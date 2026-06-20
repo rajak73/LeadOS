@@ -11,6 +11,7 @@ export interface PlanLimits {
   leads: number;
   contacts: number;
   pipelines: number;
+  deals: number;
   activeWorkflows: number;
   customFieldsPerObject: number;
   instagramAccounts: number;
@@ -29,6 +30,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     leads: 500,
     contacts: 500,
     pipelines: 1,
+    deals: 250,
     activeWorkflows: 5,
     customFieldsPerObject: 10,
     instagramAccounts: 1,
@@ -43,6 +45,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     leads: 500,
     contacts: 500,
     pipelines: 1,
+    deals: 1000,
     activeWorkflows: 5,
     customFieldsPerObject: 10,
     instagramAccounts: 1,
@@ -57,6 +60,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     leads: 5000,
     contacts: 10000,
     pipelines: 5,
+    deals: Number.POSITIVE_INFINITY,
     activeWorkflows: 25,
     customFieldsPerObject: 30,
     instagramAccounts: 3,
@@ -71,6 +75,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     leads: Number.POSITIVE_INFINITY,
     contacts: Number.POSITIVE_INFINITY,
     pipelines: Number.POSITIVE_INFINITY,
+    deals: Number.POSITIVE_INFINITY,
     activeWorkflows: Number.POSITIVE_INFINITY,
     customFieldsPerObject: 50,
     instagramAccounts: 10,

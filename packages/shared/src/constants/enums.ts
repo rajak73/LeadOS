@@ -55,6 +55,24 @@ export const DealStatus = {
 } as const;
 export type DealStatus = (typeof DealStatus)[keyof typeof DealStatus];
 
+// Sprint 5 M1 — Webhook subsystem enums (parity-checked against prisma/schema.prisma)
+export const WebhookSource = {
+  STRIPE: 'STRIPE',
+  INSTAGRAM: 'INSTAGRAM',
+  WHATSAPP: 'WHATSAPP',
+  SYSTEM: 'SYSTEM',
+} as const;
+export type WebhookSource = (typeof WebhookSource)[keyof typeof WebhookSource];
+
+export const WebhookEventStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  DONE: 'DONE',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED',
+} as const;
+export type WebhookEventStatus = (typeof WebhookEventStatus)[keyof typeof WebhookEventStatus];
+
 export const TaskType = {
   CALL: 'CALL',
   EMAIL: 'EMAIL',
@@ -126,6 +144,10 @@ export const ActivityType = {
   DEAL_STAGE_MOVED: 'DEAL_STAGE_MOVED',
   DEAL_WON: 'DEAL_WON',
   DEAL_LOST: 'DEAL_LOST',
+  // Sprint 5 M1 additions
+  DEAL_UPDATED: 'DEAL_UPDATED',
+  PIPELINE_CREATED: 'PIPELINE_CREATED',
+  PIPELINE_UPDATED: 'PIPELINE_UPDATED',
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 

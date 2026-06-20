@@ -329,3 +329,207 @@ describe.skipIf(!pgUp)('ISO-2 — positive control: orgA writes to its own rows 
     expect(updated.count).toBe(1);
   });
 });
+
+// ─── ISO-2f: Sprint 5 M1 — pipelines RLS ────────────────────────────────────
+// Verifies that the tenant_isolation policy on pipelines enforces the GUC correctly.
+// RLS on pipeline_stages and deals is also verified here (3 tables × 2 assertions each = 6 tests).
+
+describe.skipIf(!pgUp)('ISO-2 Sprint 5 — pipelines RLS', () => {
+  let pipelineA = '';
+  let pipelineB = '';
+
+  beforeAll(async () => {
+    if (!pgUp) return;
+    const n = process.hrtime.bigint().toString();
+    const [a] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipelines ("organizationId", name, "isDefault", "updatedAt")
+         VALUES ($1::uuid, $2, true, now()) RETURNING id`,
+      orgA, `ISO2-Pipeline-A-${n}`,
+    );
+    const [b] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipelines ("organizationId", name, "isDefault", "updatedAt")
+         VALUES ($1::uuid, $2, true, now()) RETURNING id`,
+      orgB, `ISO2-Pipeline-B-${n}`,
+    );
+    pipelineA = a!.id;
+    pipelineB = b!.id;
+  });
+
+  afterAll(async () => {
+    if (!pgUp || !pipelineA) return;
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM pipelines WHERE id IN ($1::uuid, $2::uuid)`, pipelineA, pipelineB,
+    );
+  });
+
+  it('GUC=orgA → sees only orgA pipeline, orgB invisible', async () => {
+    const rows = await asTenant(orgA, (tx) =>
+      tx.$queryRawUnsafe<{ id: string }[]>(`SELECT id FROM pipelines`),
+    );
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(pipelineA);
+    expect(ids).not.toContain(pipelineB);
+  });
+
+  it('GUC=orgB → sees only orgB pipeline, orgA invisible', async () => {
+    const rows = await asTenant(orgB, (tx) =>
+      tx.$queryRawUnsafe<{ id: string }[]>(`SELECT id FROM pipelines`),
+    );
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(pipelineB);
+    expect(ids).not.toContain(pipelineA);
+  });
+});
+
+// ─── ISO-2g: Sprint 5 M1 — pipeline_stages RLS ───────────────────────────────
+
+describe.skipIf(!pgUp)('ISO-2 Sprint 5 — pipeline_stages RLS', () => {
+  let stageA = '';
+  let stageB = '';
+  let pipelineForStageA = '';
+  let pipelineForStageB = '';
+
+  beforeAll(async () => {
+    if (!pgUp) return;
+    const n = process.hrtime.bigint().toString();
+    const [pa] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipelines ("organizationId", name, "isDefault", "updatedAt")
+         VALUES ($1::uuid, $2, false, now()) RETURNING id`,
+      orgA, `ISO2-StageParent-A-${n}`,
+    );
+    const [pb] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipelines ("organizationId", name, "isDefault", "updatedAt")
+         VALUES ($1::uuid, $2, false, now()) RETURNING id`,
+      orgB, `ISO2-StageParent-B-${n}`,
+    );
+    pipelineForStageA = pa!.id;
+    pipelineForStageB = pb!.id;
+
+    const [sa] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipeline_stages ("organizationId", "pipelineId", name, "order", "updatedAt")
+         VALUES ($1::uuid, $2::uuid, 'Stage A', 0, now()) RETURNING id`,
+      orgA, pipelineForStageA,
+    );
+    const [sb] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipeline_stages ("organizationId", "pipelineId", name, "order", "updatedAt")
+         VALUES ($1::uuid, $2::uuid, 'Stage B', 0, now()) RETURNING id`,
+      orgB, pipelineForStageB,
+    );
+    stageA = sa!.id;
+    stageB = sb!.id;
+  });
+
+  afterAll(async () => {
+    if (!pgUp || !stageA) return;
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM pipeline_stages WHERE id IN ($1::uuid, $2::uuid)`, stageA, stageB,
+    );
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM pipelines WHERE id IN ($1::uuid, $2::uuid)`, pipelineForStageA, pipelineForStageB,
+    );
+  });
+
+  it('GUC=orgA → sees only orgA stage, orgB stage invisible', async () => {
+    const rows = await asTenant(orgA, (tx) =>
+      tx.$queryRawUnsafe<{ id: string }[]>(`SELECT id FROM pipeline_stages`),
+    );
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(stageA);
+    expect(ids).not.toContain(stageB);
+  });
+
+  it('GUC=orgB → sees only orgB stage, orgA stage invisible', async () => {
+    const rows = await asTenant(orgB, (tx) =>
+      tx.$queryRawUnsafe<{ id: string }[]>(`SELECT id FROM pipeline_stages`),
+    );
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(stageB);
+    expect(ids).not.toContain(stageA);
+  });
+});
+
+// ─── ISO-2h: Sprint 5 M1 — deals RLS ────────────────────────────────────────
+
+describe.skipIf(!pgUp)('ISO-2 Sprint 5 — deals RLS', () => {
+  let dealA = '';
+  let dealB = '';
+  let pipelineForDealA = '';
+  let pipelineForDealB = '';
+  let stageForDealA = '';
+  let stageForDealB = '';
+
+  beforeAll(async () => {
+    if (!pgUp) return;
+    const n = process.hrtime.bigint().toString();
+
+    const [pa] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipelines ("organizationId", name, "isDefault", "updatedAt")
+         VALUES ($1::uuid, $2, false, now()) RETURNING id`,
+      orgA, `ISO2-DealParent-A-${n}`,
+    );
+    const [pb] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipelines ("organizationId", name, "isDefault", "updatedAt")
+         VALUES ($1::uuid, $2, false, now()) RETURNING id`,
+      orgB, `ISO2-DealParent-B-${n}`,
+    );
+    pipelineForDealA = pa!.id;
+    pipelineForDealB = pb!.id;
+
+    const [sa] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipeline_stages ("organizationId", "pipelineId", name, "order", "updatedAt")
+         VALUES ($1::uuid, $2::uuid, 'Open', 0, now()) RETURNING id`,
+      orgA, pipelineForDealA,
+    );
+    const [sb] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO pipeline_stages ("organizationId", "pipelineId", name, "order", "updatedAt")
+         VALUES ($1::uuid, $2::uuid, 'Open', 0, now()) RETURNING id`,
+      orgB, pipelineForDealB,
+    );
+    stageForDealA = sa!.id;
+    stageForDealB = sb!.id;
+
+    const [da] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO deals ("organizationId", title, "pipelineId", "stageId", "createdById", "updatedAt")
+         VALUES ($1::uuid, 'Deal A', $2::uuid, $3::uuid, $4::uuid, now()) RETURNING id`,
+      orgA, pipelineForDealA, stageForDealA, userA,
+    );
+    const [db] = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO deals ("organizationId", title, "pipelineId", "stageId", "createdById", "updatedAt")
+         VALUES ($1::uuid, 'Deal B', $2::uuid, $3::uuid, $4::uuid, now()) RETURNING id`,
+      orgB, pipelineForDealB, stageForDealB, userB,
+    );
+    dealA = da!.id;
+    dealB = db!.id;
+  });
+
+  afterAll(async () => {
+    if (!pgUp || !dealA) return;
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM deals WHERE id IN ($1::uuid, $2::uuid)`, dealA, dealB,
+    );
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM pipeline_stages WHERE id IN ($1::uuid, $2::uuid)`, stageForDealA, stageForDealB,
+    );
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM pipelines WHERE id IN ($1::uuid, $2::uuid)`, pipelineForDealA, pipelineForDealB,
+    );
+  });
+
+  it('GUC=orgA → sees only orgA deal, orgB deal invisible', async () => {
+    const rows = await asTenant(orgA, (tx) =>
+      tx.$queryRawUnsafe<{ id: string }[]>(`SELECT id FROM deals`),
+    );
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(dealA);
+    expect(ids).not.toContain(dealB);
+  });
+
+  it('GUC=orgB → sees only orgB deal, orgA deal invisible', async () => {
+    const rows = await asTenant(orgB, (tx) =>
+      tx.$queryRawUnsafe<{ id: string }[]>(`SELECT id FROM deals`),
+    );
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(dealB);
+    expect(ids).not.toContain(dealA);
+  });
+});

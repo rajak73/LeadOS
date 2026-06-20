@@ -1,5 +1,6 @@
-// LeadOS Prisma schema — Sprint 4 M1 (CRM Foundation).
+// LeadOS Prisma schema — Sprint 5 M1 (Pipeline & Deals + Webhook Foundation).
 // Source of truth: docs/blueprint/09-PRISMA-SCHEMA.md (approved per SPRINT_4_SCHEMA_APPROVAL.md).
+// Sprint 5 adds: Pipeline, PipelineStage, Deal, WebhookEvent models + 2 new enums.
 // Enums mirror packages/shared/src/constants/enums.ts; check:enum-parity gate enforces parity.
 
 generator client {
@@ -89,6 +90,22 @@ enum DealStatus {
   LOST
 }
 
+// Sprint 5 M1 — Webhook subsystem enums
+enum WebhookSource {
+  STRIPE
+  INSTAGRAM
+  WHATSAPP
+  SYSTEM
+}
+
+enum WebhookEventStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+  SKIPPED
+}
+
 enum TaskType {
   CALL
   EMAIL
@@ -112,7 +129,7 @@ enum TaskStatus {
   CANCELLED
 }
 
-// ActivityType — canonical 19 values for Sprint 4.
+// ActivityType — 22 values for Sprint 5 (19 Sprint 4 + 3 Sprint 5 deal/pipeline types).
 // Shape of each type's metadata field is defined by ActivityMetadata discriminated union
 // in packages/shared/src/types/activity-metadata.ts. All eventBus.emit() sites must use
 // constants from packages/shared/src/constants/events.ts — no inline string literals.
@@ -137,6 +154,10 @@ enum ActivityType {
   DEAL_STAGE_MOVED
   DEAL_WON
   DEAL_LOST
+  // Sprint 5 M1 additions
+  DEAL_UPDATED
+  PIPELINE_CREATED
+  PIPELINE_UPDATED
 }
 
 // Sprint 4 — custom field enums (FR-LEAD-009)
@@ -204,6 +225,9 @@ model User {
   teamInvitesSent         TeamInvite[]            @relation("InviteSender")
   customFieldDefinitions  CustomFieldDefinition[] @relation("CustomFieldCreator")
   savedReplies            SavedReply[]            @relation("SavedReplyCreator")
+  // Sprint 5 Deal relations
+  assignedDeals           Deal[]                  @relation("DealAssignee")
+  createdDeals            Deal[]                  @relation("DealCreator")
 
   @@index([status])
   @@map("users")
@@ -238,6 +262,11 @@ model Organization {
   customFieldDefinitions CustomFieldDefinition[]
   teamInvites            TeamInvite[]
   savedReplies           SavedReply[]
+  // Sprint 5 Pipeline & Deal relations
+  pipelines              Pipeline[]
+  pipelineStages         PipelineStage[]
+  deals                  Deal[]
+  webhookEvents          WebhookEvent[]
 
   @@index([status])
   @@map("organizations")
@@ -437,6 +466,7 @@ model Lead {
   notesList          Note[]
   files              File[]
   aiScores           AiScore[]
+  deals              Deal[]
 
   @@index([organizationId, status])
   @@index([organizationId, assignedToId])
@@ -483,6 +513,7 @@ model Contact {
   tasks           Task[]
   notesList       Note[]
   files           File[]
+  deals           Deal[]
 
   @@index([organizationId, email])
   @@index([organizationId, phone])
@@ -505,7 +536,7 @@ model Task {
   completedAt      DateTime?
   assignedToId     String?      @db.Uuid
   relatedLeadId    String?      @db.Uuid
-  relatedDealId    String?      @db.Uuid // no FK in Sprint 4 — deals table is Sprint 5
+  relatedDealId    String?      @db.Uuid
   relatedContactId String?      @db.Uuid
   createdById      String       @db.Uuid
   createdAt        DateTime     @default(now())
@@ -517,7 +548,7 @@ model Task {
   createdBy      User         @relation("TaskCreator", fields: [createdById], references: [id])
   relatedLead    Lead?        @relation(fields: [relatedLeadId], references: [id])
   relatedContact Contact?     @relation(fields: [relatedContactId], references: [id])
-  // relatedDeal relation deferred to Sprint 5 — tasks.relatedDealId FK added in Sprint 5 migration
+  relatedDeal    Deal?        @relation("TaskDeal", fields: [relatedDealId], references: [id])
 
   @@index([organizationId, assignedToId, status])
   @@index([organizationId, dueDate, status])
@@ -548,6 +579,7 @@ model Activity {
   performedBy    User?        @relation("ActivityPerformer", fields: [performedById], references: [id])
   relatedLead    Lead?        @relation(fields: [relatedLeadId], references: [id])
   relatedContact Contact?     @relation(fields: [relatedContactId], references: [id])
+  relatedDeal    Deal?        @relation("ActivityDeal", fields: [relatedDealId], references: [id])
 
   // NO updatedAt — activities are immutable
   @@index([organizationId, createdAt(sort: Desc)])
@@ -557,13 +589,13 @@ model Activity {
 }
 
 // Note — content stored as ProseMirror/Tiptap JSON (JSONB). Never render as raw HTML.
-// For workflow/email interpolation call toPlainText(content). Sprint 6 adds relatedDealId FK.
+// For workflow/email interpolation call toPlainText(content).
 model Note {
   id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId   String    @db.Uuid
   content          Json      @default("{}")
   relatedLeadId    String?   @db.Uuid
-  relatedDealId    String?   @db.Uuid // no FK in Sprint 4 — deals table is Sprint 5
+  relatedDealId    String?   @db.Uuid
   relatedContactId String?   @db.Uuid
   createdById      String    @db.Uuid
   createdAt        DateTime  @default(now())
@@ -574,6 +606,7 @@ model Note {
   createdBy      User         @relation("NoteCreator", fields: [createdById], references: [id])
   relatedLead    Lead?        @relation(fields: [relatedLeadId], references: [id])
   relatedContact Contact?     @relation(fields: [relatedContactId], references: [id])
+  relatedDeal    Deal?        @relation("NoteDeal", fields: [relatedDealId], references: [id])
 
   @@index([organizationId, relatedLeadId])
   @@index([organizationId, relatedContactId])
@@ -590,7 +623,7 @@ model File {
   sizeBytes        BigInt
   url              String          @db.Text
   relatedLeadId    String?         @db.Uuid
-  relatedDealId    String?         @db.Uuid // no FK in Sprint 4 — deals table is Sprint 5
+  relatedDealId    String?         @db.Uuid
   relatedContactId String?         @db.Uuid
   uploadedById     String          @db.Uuid
   createdAt        DateTime        @default(now())
@@ -600,6 +633,7 @@ model File {
   uploadedBy     User         @relation("FileUploader", fields: [uploadedById], references: [id])
   relatedLead    Lead?        @relation(fields: [relatedLeadId], references: [id])
   relatedContact Contact?     @relation(fields: [relatedContactId], references: [id])
+  relatedDeal    Deal?        @relation("FileDeal", fields: [relatedDealId], references: [id])
 
   @@index([organizationId, relatedLeadId])
   @@index([organizationId, relatedContactId])
@@ -700,4 +734,121 @@ model SavedReply {
 
   @@index([organizationId, deletedAt])
   @@map("saved_replies")
+}
+
+// ============================================================================
+// SPRINT 5 M1 — PIPELINE & DEALS + WEBHOOK FOUNDATION
+// ============================================================================
+
+// Sales pipeline definition. One org can have multiple pipelines (plan-gated: TRIAL/STARTER = 1).
+// Exactly one pipeline per org has isDefault = true — enforced by partial unique index in migration.
+model Pipeline {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String   @db.VarChar(100)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stages       PipelineStage[]
+  deals        Deal[]
+
+  @@index([organizationId])
+  @@map("pipelines")
+}
+
+// Stage within a pipeline. Ordered by `order` ASC (0-based). Each pipeline must have
+// exactly one isWon stage and exactly one isLost stage — enforced at the service layer.
+model PipelineStage {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @db.Uuid
+  pipelineId     String   @db.Uuid
+  name           String   @db.VarChar(100)
+  order          Int
+  color          String?  @db.VarChar(7)
+  probability    Int?
+  isWon          Boolean  @default(false)
+  isLost         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pipeline     Pipeline     @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  deals        Deal[]
+
+  @@index([organizationId, pipelineId])
+  @@index([pipelineId, order])
+  @@map("pipeline_stages")
+}
+
+// Opportunity (deal) linked to a pipeline stage. Optionally associated with a lead/contact.
+// Status machine: OPEN → WON or OPEN → LOST (terminal; no reopen in V1).
+// Soft-deleted via deletedAt. value in INR by default (currency field stores ISO 4217 code).
+model Deal {
+  id                 String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId     String     @db.Uuid
+  title              String     @db.VarChar(200)
+  value              Decimal?   @db.Decimal(15, 2)
+  currency           String     @default("INR") @db.Char(3)
+  pipelineId         String     @db.Uuid
+  stageId            String     @db.Uuid
+  leadId             String?    @db.Uuid
+  contactId          String?    @db.Uuid
+  assignedToId       String?    @db.Uuid
+  createdById        String     @db.Uuid
+  status             DealStatus @default(OPEN)
+  closedAt           DateTime?
+  lostReason         String?    @db.VarChar(500)
+  expectedCloseDate  DateTime?
+  customFields       Json       @default("{}")
+  deletedAt          DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  stage        PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedTo   User?         @relation("DealAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy    User          @relation("DealCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  tasks        Task[]        @relation("TaskDeal")
+  notes        Note[]        @relation("NoteDeal")
+  files        File[]        @relation("FileDeal")
+  activities   Activity[]    @relation("ActivityDeal")
+
+  @@index([organizationId, status, stageId])
+  @@index([organizationId, pipelineId])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([assignedToId])
+  @@index([deletedAt])
+  @@map("deals")
+}
+
+// Inbound webhook event store. persist-then-200: row is written before returning 200 to the source.
+// organizationId is nullable — Stripe events arrive before org resolution; worker back-fills it.
+// Idempotency: UNIQUE(source, externalEventId) — duplicate deliveries skip re-enqueue.
+// Status transitions: PENDING → PROCESSING → DONE | FAILED | SKIPPED.
+model WebhookEvent {
+  id              String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId  String?            @db.Uuid
+  source          WebhookSource
+  externalEventId String
+  payload         Json
+  rawHeaders      Json               @default("{}")
+  status          WebhookEventStatus @default(PENDING)
+  attempts        Int                @default(0)
+  lastAttemptAt   DateTime?
+  processedAt     DateTime?
+  errorMessage    String?            @db.Text
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([source, externalEventId])
+  @@index([status, createdAt])
+  @@map("webhook_events")
 }
