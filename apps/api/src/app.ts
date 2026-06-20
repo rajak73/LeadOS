@@ -29,6 +29,7 @@ import { buildTasksModule } from './modules/tasks/index.js';
 import { buildNotesModule } from './modules/notes/index.js';
 import { buildFilesModule } from './modules/files/index.js';
 import { buildPipelinesModule } from './modules/pipelines/index.js';
+import { buildDealsModule } from './modules/deals/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -70,6 +71,7 @@ export function buildApp(): Express {
   v1.use('/notes', buildNotesModule(rbac.requirePermission));
   v1.use('/files', buildFilesModule(rbac.requirePermission));
   v1.use('/pipelines', buildPipelinesModule(rbac.requirePermission));
+  v1.use('/deals', buildDealsModule(rbac.requirePermission));
   app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, v1);
 
   // Terminal handlers.

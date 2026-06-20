@@ -115,6 +115,9 @@ export interface DealCreatedMetadata {
   type: typeof ActivityType.DEAL_CREATED;
   dealId: string;
   dealTitle: string;
+  pipelineId: string;
+  stageId: string;
+  value?: string;
 }
 
 export interface DealStageMovedMetadata {
