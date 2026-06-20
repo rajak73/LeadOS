@@ -51,6 +51,22 @@ const envSchema = z.object({
   INSTAGRAM_APP_SECRET: z.string().min(1).default('test-ig-secret'),
   INSTAGRAM_WEBHOOK_VERIFY_TOKEN: z.string().min(1).default('test-verify-token'),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).default('test-stripe-secret'),
+
+  // Sprint 6 M1 — Instagram OAuth (required in production; optional in dev/test).
+  INSTAGRAM_APP_ID: z.string().optional(),
+  INSTAGRAM_OAUTH_REDIRECT_URI: z.string().url().optional(),
+
+  // Sprint 6 M1 — AES-256-GCM field encryption.
+  // 64-char hex string (32 bytes / 256 bits). Required in production.
+  // Dev default is a deterministic test key — MUST be overridden in production.
+  FIELD_ENCRYPTION_KEY: z.string().length(64).default('0000000000000000000000000000000000000000000000000000000000000001'),
+
+  // Sprint 6 M1 — Socket.io CORS origin (comma-separated list). Defaults to APP_WEB_ORIGIN.
+  SOCKET_IO_CORS_ORIGIN: z.string().optional(),
+
+  // Sprint 6 M1 — Signs OAuth state JWTs (separate from JWT_ACCESS_SECRET per signoff §4.4).
+  // Dev default is distinct from JWT_ACCESS_SECRET default. Production MUST override.
+  OAUTH_STATE_SECRET: z.string().min(1).default('dev-oauth-state-secret-change-me'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -74,12 +90,18 @@ export const env: Env = loadEnv(process.env);
 export const isProduction = (): boolean => env.NODE_ENV === 'production';
 export const isTest = (): boolean => env.NODE_ENV === 'test';
 
-// In production, the auth secrets must be explicitly set (never the dev defaults).
+// In production, auth and encryption secrets must be explicitly set (never the dev defaults).
 if (env.NODE_ENV === 'production') {
   const insecure: string[] = [];
   if (env.JWT_ACCESS_SECRET === 'dev-access-secret-change-me') insecure.push('JWT_ACCESS_SECRET');
   if (env.JWT_REFRESH_PEPPER === 'dev-refresh-pepper-change-me') insecure.push('JWT_REFRESH_PEPPER');
+  if (env.OAUTH_STATE_SECRET === 'dev-oauth-state-secret-change-me') insecure.push('OAUTH_STATE_SECRET');
+  if (env.FIELD_ENCRYPTION_KEY === '0000000000000000000000000000000000000000000000000000000000000001') {
+    insecure.push('FIELD_ENCRYPTION_KEY');
+  }
+  if (!env.INSTAGRAM_APP_ID) insecure.push('INSTAGRAM_APP_ID');
+  if (!env.INSTAGRAM_OAUTH_REDIRECT_URI) insecure.push('INSTAGRAM_OAUTH_REDIRECT_URI');
   if (insecure.length > 0) {
-    throw new Error(`Refusing to start in production with default auth secrets: ${insecure.join(', ')}`);
+    throw new Error(`Refusing to start in production with missing/default secrets: ${insecure.join(', ')}`);
   }
 }

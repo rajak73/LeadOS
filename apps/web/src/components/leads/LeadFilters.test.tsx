@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, act } from '@testing-library/react';
+import { screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LeadFilters } from './LeadFilters';
 import { renderWithProviders } from '@/test-utils';
@@ -74,5 +74,19 @@ describe('LeadFilters', () => {
     await user.type(screen.getByTestId('preset-name-input'), 'My Preset');
     await user.click(screen.getByTestId('btn-save-preset'));
     expect(mockSavePreset).toHaveBeenCalledWith('My Preset');
+  });
+
+  it('calls setFilters with tags array when tags input changes', () => {
+    renderWithProviders(<LeadFilters />);
+    // fireEvent.change sets the full value at once — correct for controlled inputs
+    // where the mock store setter doesn't re-render with the new value.
+    fireEvent.change(screen.getByTestId('filter-tags'), { target: { value: 'hot, q2' } });
+    expect(mockSetFilters).toHaveBeenLastCalledWith({ tags: ['hot', 'q2'] });
+  });
+
+  it('calls setFilters with assignedToId when assignedToId input changes', () => {
+    renderWithProviders(<LeadFilters />);
+    fireEvent.change(screen.getByTestId('filter-assignedToId'), { target: { value: 'user-abc' } });
+    expect(mockSetFilters).toHaveBeenLastCalledWith({ assignedToId: 'user-abc' });
   });
 });

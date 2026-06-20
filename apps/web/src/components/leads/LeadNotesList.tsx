@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useLeadNotes } from '@/lib/hooks/useLeadNotes';
+import { useLeadNotes, useCreateLeadNote } from '@/lib/hooks/useLeadNotes';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { formatRelativeTime } from '@/lib/types/api';
+import { formatRelativeTime, getNoteText } from '@/lib/types/api';
 
 interface LeadNotesListProps {
   leadId: string;
@@ -12,21 +12,15 @@ interface LeadNotesListProps {
 
 export function LeadNotesList({ leadId }: LeadNotesListProps) {
   const { data, isLoading } = useLeadNotes(leadId);
+  const { mutate: createNote, isPending: saving } = useCreateLeadNote(leadId);
   const [draftContent, setDraftContent] = useState('');
-  const [saving, setSaving] = useState(false);
 
-  // POST /leads/:id/notes is not in the current API (CRM-5.1 implements read only).
-  // The UI is fully implemented — write ops will be wired once the backend adds the route.
-  const handleCreate = async () => {
-    if (!draftContent.trim()) return;
-    setSaving(true);
-    try {
-      // Placeholder: POST /leads/:leadId/notes (not yet in lead.routes.ts)
-      await Promise.resolve();
-    } finally {
-      setSaving(false);
-    }
-    setDraftContent('');
+  const handleCreate = () => {
+    const text = draftContent.trim();
+    if (!text) return;
+    createNote({ text }, {
+      onSuccess: () => setDraftContent(''),
+    });
   };
 
   if (isLoading) {
@@ -53,7 +47,7 @@ export function LeadNotesList({ leadId }: LeadNotesListProps) {
         />
         <Button
           variant="primary"
-          onClick={() => void handleCreate()}
+          onClick={handleCreate}
           disabled={!draftContent.trim() || saving}
           data-testid="btn-add-note"
         >
@@ -71,7 +65,7 @@ export function LeadNotesList({ leadId }: LeadNotesListProps) {
           className="p-3 bg-bg-elevated border border-border rounded-lg space-y-1"
           data-testid={`note-${note.id}`}
         >
-          <p className="text-sm text-text-primary whitespace-pre-wrap">{note.content}</p>
+          <p className="text-sm text-text-primary whitespace-pre-wrap">{getNoteText(note.content)}</p>
           <p className="text-xs text-text-tertiary">{formatRelativeTime(note.createdAt)}</p>
         </div>
       ))}

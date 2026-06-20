@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import type { LeadNote, PaginationMeta } from '@/lib/types/api';
 
@@ -19,5 +19,17 @@ export function useLeadNotes(leadId: string) {
       return res.data;
     },
     staleTime: 60_000,
+  });
+}
+
+export function useCreateLeadNote(leadId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (content: Record<string, unknown>) =>
+      apiClient.post<{ data: LeadNote }>(`/leads/${leadId}/notes`, { content }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['lead-notes', leadId] });
+    },
   });
 }

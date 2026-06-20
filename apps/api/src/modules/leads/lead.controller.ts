@@ -21,6 +21,7 @@ export interface LeadController {
   convert(req: Request, res: Response): Promise<void>;
   listActivities(req: Request, res: Response): Promise<void>;
   listNotes(req: Request, res: Response): Promise<void>;
+  createNote(req: Request, res: Response): Promise<void>;
   listFiles(req: Request, res: Response): Promise<void>;
   importCsv(req: Request, res: Response): Promise<void>;
   getImportJob(req: Request, res: Response): Promise<void>;
@@ -71,6 +72,14 @@ export function createLeadController(service: LeadService): LeadController {
       const { page, limit } = req.query as unknown as PaginationQuery;
       const { items, total } = await service.listNotes(req.params['id']!, page, limit);
       sendSuccess(res, items, 200, buildPaginationMeta(page, limit, total));
+    },
+
+    async createNote(req, res) {
+      const note = await service.createNote(
+        req.params['id']!,
+        req.body.content as Record<string, unknown>,
+      );
+      sendSuccess(res, note, 201);
     },
 
     async listFiles(req, res) {

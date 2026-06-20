@@ -41,7 +41,7 @@ export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
 // Manager default permission set (doc 11 §11.5). Owner/Admin are derived in the seeding
 // service (S3); Sales Executive uses the *_own variants. Kept here as the contract.
-export const MANAGER_PERMISSIONS: PermissionKey[] = [
+export const MANAGER_PERMISSIONS: readonly string[] = [
   'leads.create',
   'leads.read',
   'leads.update',
@@ -57,6 +57,11 @@ export const MANAGER_PERMISSIONS: PermissionKey[] = [
   'pipelines.read',
   'team.read',
   'inbox.read',
+  'inbox.reply',
+  'inbox.reply_own',
+  'inbox.assign',
+  'inbox.close',
+  'inbox.close_own',
   'workflows.read',
   'analytics.read',
   'tasks.create',
@@ -69,9 +74,10 @@ export const MANAGER_PERMISSIONS: PermissionKey[] = [
   'files.read',
   'files.delete',
   'org.read',
+  // org.connect_social is intentionally NOT included here — OWNER and ADMIN only (signoff §4.5)
 ];
 
-export const SALES_EXECUTIVE_PERMISSIONS: PermissionKey[] = [
+export const SALES_EXECUTIVE_PERMISSIONS: readonly string[] = [
   'leads.create',
   'leads.read_own',
   'leads.update_own',
@@ -84,6 +90,8 @@ export const SALES_EXECUTIVE_PERMISSIONS: PermissionKey[] = [
   'pipelines.read',
   'team.read',
   'inbox.read_own',
+  'inbox.reply_own',
+  'inbox.close_own',
   'tasks.create',
   'tasks.read',
   'tasks.update_own',

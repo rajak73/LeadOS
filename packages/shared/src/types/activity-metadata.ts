@@ -190,6 +190,32 @@ export interface PipelineStageReorderedMetadata {
   stageIds: string[];
 }
 
+// Instagram messaging events — Sprint 6 M1.
+export interface MessageReceivedMetadata {
+  type: typeof ActivityType.MESSAGE_RECEIVED;
+  conversationId: string;
+  messageId: string;
+  igHandle?: string; // sender's IG handle, if enriched
+}
+
+export interface MessageSentMetadata {
+  type: typeof ActivityType.MESSAGE_SENT;
+  conversationId: string;
+  messageId: string;
+}
+
+export interface InstagramAccountConnectedMetadata {
+  type: typeof ActivityType.INSTAGRAM_ACCOUNT_CONNECTED;
+  igAccountId: string;
+  igUsername: string;
+}
+
+export interface InstagramAccountDisconnectedMetadata {
+  type: typeof ActivityType.INSTAGRAM_ACCOUNT_DISCONNECTED;
+  igAccountId: string;
+  igUsername: string;
+}
+
 // ─── Union ────────────────────────────────────────────────────────────────────
 
 export type ActivityMetadata =
@@ -219,7 +245,11 @@ export type ActivityMetadata =
   | PipelineStageCreatedMetadata
   | PipelineStageUpdatedMetadata
   | PipelineStageDeletedMetadata
-  | PipelineStageReorderedMetadata;
+  | PipelineStageReorderedMetadata
+  | MessageReceivedMetadata
+  | MessageSentMetadata
+  | InstagramAccountConnectedMetadata
+  | InstagramAccountDisconnectedMetadata;
 
 // ─── Input type for ActivityService.append() ─────────────────────────────────
 

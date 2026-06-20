@@ -18,3 +18,10 @@ export const patchNoteSchema = z.object({
 export type PatchNoteInput = z.infer<typeof patchNoteSchema>;
 
 export const noteIdParamSchema = z.object({ id: z.string().uuid() });
+
+// Body schema for POST /leads/:id/notes and POST /contacts/:id/notes sub-resource routes.
+// The relatedLeadId / relatedContactId comes from the URL param, not the body.
+export const createLeadNoteBodySchema = z.object({
+  content: z.record(z.unknown()),
+});
+export type CreateLeadNoteBody = z.infer<typeof createLeadNoteBodySchema>;

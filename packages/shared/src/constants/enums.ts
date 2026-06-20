@@ -153,6 +153,11 @@ export const ActivityType = {
   PIPELINE_STAGE_UPDATED: 'PIPELINE_STAGE_UPDATED',
   PIPELINE_STAGE_DELETED: 'PIPELINE_STAGE_DELETED',
   PIPELINE_STAGE_REORDERED: 'PIPELINE_STAGE_REORDERED',
+  // Sprint 6 M1 additions — Instagram Inbox
+  MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
+  MESSAGE_SENT: 'MESSAGE_SENT',
+  INSTAGRAM_ACCOUNT_CONNECTED: 'INSTAGRAM_ACCOUNT_CONNECTED',
+  INSTAGRAM_ACCOUNT_DISCONNECTED: 'INSTAGRAM_ACCOUNT_DISCONNECTED',
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 
@@ -179,3 +184,26 @@ export const StorageProvider = {
   CLOUDINARY: 'CLOUDINARY',
 } as const;
 export type StorageProvider = (typeof StorageProvider)[keyof typeof StorageProvider];
+
+// Sprint 6 — Instagram Inbox enums (parity-checked against prisma/schema.prisma)
+
+export const InstagramAccountStatus = {
+  ACTIVE: 'ACTIVE',
+  EXPIRED: 'EXPIRED',
+  DISCONNECTED: 'DISCONNECTED',
+} as const;
+export type InstagramAccountStatus = (typeof InstagramAccountStatus)[keyof typeof InstagramAccountStatus];
+
+export const ConversationStatus = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED',
+} as const;
+export type ConversationStatus = (typeof ConversationStatus)[keyof typeof ConversationStatus];
+
+export const MessageStatus = {
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
+  FAILED: 'FAILED',
+} as const;
+export type MessageStatus = (typeof MessageStatus)[keyof typeof MessageStatus];

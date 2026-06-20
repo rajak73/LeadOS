@@ -8,6 +8,7 @@ import { initSentry } from './core/observability/sentry.js';
 import { initTracing, shutdownTracing } from './core/observability/otel.js';
 import { logger } from './core/observability/logger.js';
 import { buildApp } from './app.js';
+import { initSocketServer } from './core/realtime/socket-server.js';
 
 function start(): void {
   initTracing();
@@ -16,6 +17,7 @@ function start(): void {
   const app = buildApp();
   const server: Server = app.listen(env.PORT, () => {
     logger.info({ message: 'API listening', port: env.PORT, env: env.NODE_ENV });
+    initSocketServer(server);
   });
 
   const shutdown = (signal: string): void => {

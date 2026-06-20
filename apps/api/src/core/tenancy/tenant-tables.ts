@@ -8,7 +8,8 @@
 //
 // Sprint 4 M1 expanded from 5 tables (Sprint 3) to 15 (5 existing + 10 new CRM tables).
 // Sprint 5 M1 expanded from 15 tables (Sprint 4) to 19 (4 new Pipeline/Deal/Webhook tables).
-// check:rls expected output: OK — 19 tenant tables enabled + forced + policied.
+// Sprint 6 M1 expanded from 19 tables (Sprint 5) to 22 (3 new Instagram Inbox tables).
+// check:rls expected output: OK — 22 tenant tables enabled + forced + policied.
 //
 // NOTE on the column name: the actual Prisma-generated column is camelCase `"organizationId"`.
 // Policies + checks use the real column name below.
@@ -55,6 +56,10 @@ export const TENANT_TABLES = [
   'pipeline_stages',
   'deals',
   'webhook_events',
+  // Sprint 6 M1 — Instagram Inbox
+  'instagram_accounts',
+  'instagram_conversations',
+  'messages',
 ] as const;
 
 export type TenantTable = (typeof TENANT_TABLES)[number];
@@ -87,6 +92,10 @@ export const TENANT_MODELS = [
   'PipelineStage',
   'Deal',
   'WebhookEvent',
+  // Sprint 6 M1 — Instagram Inbox
+  'InstagramAccount',
+  'InstagramConversation',
+  'Message',
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];

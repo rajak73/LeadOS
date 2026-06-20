@@ -7,11 +7,13 @@ import { initTracing, shutdownTracing } from './core/observability/otel.js';
 import { logger } from './core/observability/logger.js';
 import { startWorkers, stopWorkers } from './core/queue/worker-registry.js';
 import { scheduleAllCrons } from './core/scheduler/scheduler.js';
+import { initNotificationPublisher } from './core/realtime/notification-publisher.js';
 
 async function start(): Promise<void> {
   initTracing();
   initSentry();
 
+  initNotificationPublisher();
   startWorkers();
   await scheduleAllCrons();
   logger.info({ message: 'Worker process started' });

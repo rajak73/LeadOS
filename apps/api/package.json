@@ -20,6 +20,7 @@
     "db:seed": "tsx ../../prisma/seed/index.ts",
     "db:studio": "prisma studio --schema=../../prisma/schema.prisma",
     "check:rls": "tsx scripts/check-rls-coverage.ts",
+    "check:enum-parity": "node ../../scripts/check-enum-parity.mjs",
     "bench:tenancy": "tsx scripts/tenancy-bench.ts"
   },
   "dependencies": {
@@ -31,8 +32,11 @@
     "@opentelemetry/sdk-node": "^0.219.0",
     "@prisma/client": "^5.21.0",
     "@sentry/node": "^8.35.0",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@socket.io/redis-emitter": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.21.0",
+    "socket.io": "^4.8.1",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

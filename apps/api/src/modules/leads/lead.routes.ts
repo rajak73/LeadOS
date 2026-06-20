@@ -23,7 +23,7 @@ import type { RequestHandler } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { validate } from '../../core/middleware/validate.js';
-import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema, leadExportBodySchema } from '@leados/shared';
+import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema, leadExportBodySchema, createLeadNoteBodySchema } from '@leados/shared';
 import type { LeadController } from './lead.controller.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
@@ -124,6 +124,16 @@ export function buildLeadRouter(
     validate(leadIdParamSchema, 'params'),
     validate(paginationQuerySchema, 'query'),
     asyncHandler(controller.listNotes),
+  );
+
+  // CRM-5.1: create a note for a lead. Uses leads.update permission (resolves _own).
+  // relatedLeadId comes from the URL param; body carries only the content JSON object.
+  router.post(
+    '/:id/notes',
+    requirePermission('leads.update'),
+    validate(leadIdParamSchema, 'params'),
+    validate(createLeadNoteBodySchema),
+    asyncHandler(controller.createNote),
   );
 
   // CRM-5.2: paginated files for a lead.

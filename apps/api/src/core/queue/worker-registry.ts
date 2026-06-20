@@ -16,6 +16,7 @@ import {
   processWebhookJob,
   reEnqueueStalePendingWebhooks,
 } from './workers/webhook.worker.js';
+import { createInstagramSendWorker } from './workers/instagram-send.worker.js';
 
 const workers: Worker[] = [];
 
@@ -49,7 +50,7 @@ export function registerWorker(name: QueueName, processor: Processor): Worker {
   return worker;
 }
 
-/** Starts all domain workers. Sprint-5 M4 adds the webhook-processing worker. */
+/** Starts all domain workers. Sprint-6 M1 adds the instagram-send stub worker. */
 export function startWorkers(): Worker[] {
   registerWorker('system', async (job) => {
     if (job.name === HEALTH_ECHO_JOB) {
@@ -78,6 +79,10 @@ export function startWorkers(): Worker[] {
     }
     return undefined;
   });
+
+  // Sprint 6 M1 — Instagram send worker (stub; full implementation in M2).
+  const instagramSendWorker = createInstagramSendWorker();
+  workers.push(instagramSendWorker);
 
   // Re-enqueue PENDING webhook events orphaned by a crash between DB write and Redis enqueue.
   void reEnqueueStalePendingWebhooks().catch((err: Error) => {

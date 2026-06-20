@@ -17,7 +17,7 @@
 // cross-module repository reference; both repos share the same TenantTransactionClient (db)
 // so the entire operation is atomic.
 
-import type { Lead, Contact } from '@prisma/client';
+import type { Lead, Contact, Note } from '@prisma/client';
 import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext, type TenantContext } from '../../core/tenancy/context.js';
 import { AppError } from '../../core/errors/app-error.js';
@@ -354,6 +354,21 @@ export class LeadService {
     });
 
     return this.noteService.listForLead(leadId, page, limit);
+  }
+
+  // ── CRM-5.1: createNote ──────────────────────────────────────────────────
+
+  async createNote(leadId: string, content: Record<string, unknown>): Promise<Note> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    // 404 guard + ownOnly — mirrors listNotes pattern
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaLeadRepository(db);
+      await repo.findByIdOrThrow(leadId, ownedByUserId);
+    });
+
+    return this.noteService.create({ content, relatedLeadId: leadId });
   }
 
   // ── CRM-6.1: list ────────────────────────────────────────────────────────

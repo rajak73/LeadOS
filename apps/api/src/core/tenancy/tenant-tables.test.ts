@@ -32,14 +32,24 @@ const SPRINT_4_CRM_TABLES = [
   'tasks',
   'team_invites',
 ];
-const ALL_TENANT_TABLES = [...SPRINT_3_TABLES,'pipelines',
-'pipeline_stages',
-'deals',
-'webhook_events', ...SPRINT_4_CRM_TABLES];
+const SPRINT_6_INSTAGRAM_TABLES = [
+  'instagram_accounts',
+  'instagram_conversations',
+  'messages',
+];
+const ALL_TENANT_TABLES = [
+  ...SPRINT_3_TABLES,
+  'pipelines',
+  'pipeline_stages',
+  'deals',
+  'webhook_events',
+  ...SPRINT_4_CRM_TABLES,
+  ...SPRINT_6_INSTAGRAM_TABLES,
+];
 
 describe('tenant-table registry', () => {
-  it('lists exactly 19 org-scoped tables (Sprint 3 identity/audit + Sprint 4 M1 CRM)', () => {
-    expect(TENANT_TABLES).toHaveLength(19);
+  it('lists exactly 22 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram)', () => {
+    expect(TENANT_TABLES).toHaveLength(22);
     expect([...TENANT_TABLES].sort()).toEqual(ALL_TENANT_TABLES.sort());
   });
 

@@ -175,10 +175,17 @@ export interface Lead {
 
 export interface LeadNote {
   id: string;
-  content: string;
+  // content is stored as JSONB (Prisma Json field). The plain-textarea flow stores
+  // { text: string }; the Tiptap flow (Sprint 6+) will store a ProseMirror document.
+  content: Record<string, unknown>;
   createdById: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export function getNoteText(content: Record<string, unknown>): string {
+  if (typeof content['text'] === 'string') return content['text'];
+  return JSON.stringify(content);
 }
 
 export interface LeadFile {

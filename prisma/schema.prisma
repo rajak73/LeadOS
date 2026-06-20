@@ -129,11 +129,10 @@ enum TaskStatus {
   CANCELLED
 }
 
-// ActivityType — 22 values for Sprint 5 (19 Sprint 4 + 3 Sprint 5 deal/pipeline types).
+// ActivityType — 31 values after Sprint 6 M1 (27 existing + 4 Instagram).
 // Shape of each type's metadata field is defined by ActivityMetadata discriminated union
 // in packages/shared/src/types/activity-metadata.ts. All eventBus.emit() sites must use
 // constants from packages/shared/src/constants/events.ts — no inline string literals.
-// MESSAGE_SENT / MESSAGE_RECEIVED deferred to Sprint 6 (Inbox module).
 enum ActivityType {
   LEAD_CREATED
   LEAD_STATUS_CHANGED
@@ -163,6 +162,36 @@ enum ActivityType {
   PIPELINE_STAGE_UPDATED
   PIPELINE_STAGE_DELETED
   PIPELINE_STAGE_REORDERED
+  // Sprint 6 M1 additions — Instagram Inbox
+  MESSAGE_RECEIVED
+  MESSAGE_SENT
+  INSTAGRAM_ACCOUNT_CONNECTED
+  INSTAGRAM_ACCOUNT_DISCONNECTED
+}
+
+// MessageDirection already in enums.ts; parity-checked against this declaration.
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// Sprint 6 M1 — Instagram Inbox enums
+enum InstagramAccountStatus {
+  ACTIVE
+  EXPIRED
+  DISCONNECTED
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
 }
 
 // Sprint 4 — custom field enums (FR-LEAD-009)
@@ -233,6 +262,8 @@ model User {
   // Sprint 5 Deal relations
   assignedDeals           Deal[]                  @relation("DealAssignee")
   createdDeals            Deal[]                  @relation("DealCreator")
+  // Sprint 6 Instagram Inbox relations
+  assignedConversations   InstagramConversation[] @relation("ConversationAssignee")
 
   @@index([status])
   @@map("users")
@@ -272,6 +303,10 @@ model Organization {
   pipelineStages         PipelineStage[]
   deals                  Deal[]
   webhookEvents          WebhookEvent[]
+  // Sprint 6 Instagram Inbox relations
+  instagramAccounts      InstagramAccount[]
+  instagramConversations InstagramConversation[]
+  messages               Message[]
 
   @@index([status])
   @@map("organizations")
@@ -472,6 +507,9 @@ model Lead {
   files              File[]
   aiScores           AiScore[]
   deals              Deal[]
+  // Sprint 6 Instagram Inbox relations
+  instagramConversations InstagramConversation[]
+  instagramAccount       InstagramAccount?       @relation(fields: [instagramAccountId], references: [id])
 
   @@index([organizationId, status])
   @@index([organizationId, assignedToId])
@@ -481,6 +519,8 @@ model Lead {
   @@index([email])
   @@index([phone])
   @@index([instagramUserId])
+  // @@unique enforced here for TypeScript upsert API; DB index created CONCURRENTLY in migration 0015b
+  @@unique([organizationId, instagramUserId])
   @@index([deletedAt])
   @@map("leads")
 }
@@ -519,6 +559,8 @@ model Contact {
   notesList       Note[]
   files           File[]
   deals           Deal[]
+  // Sprint 6 Instagram Inbox relations
+  instagramConversations InstagramConversation[]
 
   @@index([organizationId, email])
   @@index([organizationId, phone])
@@ -860,4 +902,95 @@ model WebhookEvent {
   @@unique([source, externalEventId])
   @@index([status, createdAt])
   @@map("webhook_events")
+}
+
+// ============================================================================
+// SPRINT 6 M1 — INSTAGRAM INBOX MODELS
+// ============================================================================
+
+// Connected Instagram account (business IG account or Page).
+// accessToken is AES-256-GCM encrypted; stored as v{n}:{hex(iv)}:{hex(tag)}:{hex(ct)}.
+// instagramAccountId on Lead has a deferred FK added in migration 0016.
+model InstagramAccount {
+  id                  String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId      String                 @db.Uuid
+  igUserId            String                 @db.VarChar(50)
+  igUsername          String?                @db.VarChar(100)
+  accessToken         String                 @db.Text
+  tokenExpiresAt      DateTime               @db.Timestamptz
+  tokenType           String                 @db.VarChar(20)
+  status              InstagramAccountStatus @default(ACTIVE)
+  webhookSubscribed   Boolean                @default(false)
+  profilePictureUrl   String?                @db.Text
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  deletedAt           DateTime?
+
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversations          InstagramConversation[]
+  leads                  Lead[]
+
+  @@unique([organizationId, igUserId])
+  @@index([organizationId, status])
+  @@index([igUserId])
+  @@map("instagram_accounts")
+}
+
+// An Instagram DM conversation thread between the org's IG account and a contact.
+// igConversationId is Meta's thread identifier (unique per org IG account pair).
+model InstagramConversation {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId   String             @db.Uuid
+  igConversationId String             @db.VarChar(100)
+  igAccountId      String             @db.Uuid
+  leadId           String?            @db.Uuid
+  contactId        String?            @db.Uuid
+  assignedToId     String?            @db.Uuid
+  status           ConversationStatus @default(OPEN)
+  labels           Json               @default("[]")
+  firstResponseAt  DateTime?          @db.Timestamptz
+  lastInboundAt    DateTime?          @db.Timestamptz
+  lastMessageAt    DateTime?          @db.Timestamptz
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  igAccount    InstagramAccount @relation(fields: [igAccountId], references: [id], onDelete: Cascade)
+  lead         Lead?           @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact      Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedTo   User?           @relation("ConversationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages     Message[]
+
+  @@unique([organizationId, igConversationId])
+  @@index([organizationId, status, lastMessageAt(sort: Desc)])
+  @@index([organizationId, assignedToId])
+  @@index([leadId])
+  @@index([igAccountId])
+  @@map("instagram_conversations")
+}
+
+// Individual DM message within an Instagram conversation.
+// mid is Meta's globally unique message ID — used as the idempotency key.
+model Message {
+  id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String            @db.Uuid
+  conversationId String            @db.Uuid
+  mid            String            @unique @db.VarChar(200)
+  direction      MessageDirection
+  contentType    String            @default("TEXT") @db.VarChar(20)
+  content        Json
+  status         MessageStatus     @default(SENT)
+  sentAt         DateTime          @db.Timestamptz
+  deliveredAt    DateTime?         @db.Timestamptz
+  readAt         DateTime?         @db.Timestamptz
+  senderId       String?           @db.VarChar(100)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation InstagramConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sentAt(sort: Desc)])
+  @@index([organizationId, direction, status])
+  @@map("messages")
 }

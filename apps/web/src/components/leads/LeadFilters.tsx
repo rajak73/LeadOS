@@ -156,6 +156,36 @@ export function LeadFilters() {
         </div>
       </div>
 
+      {/* Tags filter */}
+      <div>
+        <label className="text-xs text-text-tertiary block mb-1">Tags (comma-separated)</label>
+        <input
+          value={(filters.tags ?? []).join(', ')}
+          onChange={(e) => {
+            const arr = e.target.value
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean);
+            setFilters({ tags: arr.length ? arr : undefined });
+          }}
+          placeholder="instagram, hot-lead, q2"
+          data-testid="filter-tags"
+          className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-500 transition-colors"
+        />
+      </div>
+
+      {/* Assigned-to filter */}
+      <div>
+        <label className="text-xs text-text-tertiary block mb-1">Assigned to (user ID)</label>
+        <input
+          value={filters.assignedToId ?? ''}
+          onChange={(e) => setFilters({ assignedToId: e.target.value || undefined })}
+          placeholder="User UUID"
+          data-testid="filter-assignedToId"
+          className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-500 transition-colors"
+        />
+      </div>
+
       {/* Actions row */}
       <div className="flex items-center gap-2 pt-1 border-t border-border/50">
         <Button variant="secondary" onClick={resetFilters} data-testid="btn-reset-filters">
