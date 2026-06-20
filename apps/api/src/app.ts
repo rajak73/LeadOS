@@ -30,6 +30,7 @@ import { buildFilesModule } from './modules/files/index.js';
 import { buildPipelinesModule } from './modules/pipelines/index.js';
 import { buildDealsModule } from './modules/deals/index.js';
 import { buildWebhooksModule } from './modules/webhooks/index.js';
+import { buildInstagramCallbackModule, buildInstagramModule } from './modules/instagram/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -47,6 +48,10 @@ export function buildApp(): Express {
 
   // Webhooks: RAW body BEFORE the JSON parser (HMAC verification needs raw bytes).
   app.use('/api/webhooks', express.raw({ type: '*/*', limit: '1mb' }), buildWebhooksModule());
+
+  // Instagram OAuth callback: PUBLIC, outside /api/v1. No auth/tenant middleware.
+  // Browser is redirected here by Meta after the user approves OAuth.
+  app.use('/api/instagram', buildInstagramCallbackModule());
 
   // Global JSON parser for the rest of the API.
   app.use(express.json({ limit: '1mb' }));
@@ -72,6 +77,7 @@ export function buildApp(): Express {
   v1.use('/files', buildFilesModule(rbac.requirePermission));
   v1.use('/pipelines', buildPipelinesModule(rbac.requirePermission));
   v1.use('/deals', buildDealsModule(rbac.requirePermission));
+  v1.use('/instagram', buildInstagramModule(rbac.requirePermission));
   app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, v1);
 
   // Terminal handlers.

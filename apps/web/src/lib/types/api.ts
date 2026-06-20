@@ -1,6 +1,21 @@
 // Frontend API types. Wraps Prisma-returned shapes for use in components.
 // Source of truth for field names is the Prisma schema + API serialization layer.
 
+export type InstagramAccountStatus = 'ACTIVE' | 'EXPIRED' | 'DISCONNECTED';
+
+export interface InstagramAccount {
+  id: string;
+  organizationId: string;
+  igUserId: string;
+  igUsername: string | null;
+  status: InstagramAccountStatus;
+  tokenExpiresAt: string;
+  webhookSubscribed: boolean;
+  profilePictureUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiEnvelope<T> {
   success: boolean;
   data: T;

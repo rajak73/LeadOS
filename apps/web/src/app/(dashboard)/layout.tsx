@@ -24,6 +24,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <span>Pipeline</span>
           </Link>
         </nav>
+        <nav className="px-2 py-3 border-t border-border">
+          <Link
+            href="/settings/integrations/instagram"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
+          >
+            <span>⚙️</span>
+            <span>Settings</span>
+          </Link>
+        </nav>
       </aside>
       <main className="flex-1 overflow-auto p-6">{children}</main>
     </div>

@@ -13,7 +13,9 @@ import { LEAD_IMPORT_JOB, processLeadImportJob } from './workers/lead-import.wor
 import { LEAD_EXPORT_JOB, processLeadExportJob } from './workers/lead-export.worker.js';
 import {
   WEBHOOK_JOB,
+  INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB,
   processWebhookJob,
+  processInstagramWebhookSubscribeJob,
   reEnqueueStalePendingWebhooks,
 } from './workers/webhook.worker.js';
 import { createInstagramSendWorker } from './workers/instagram-send.worker.js';
@@ -56,6 +58,10 @@ export function startWorkers(): Worker[] {
     if (job.name === HEALTH_ECHO_JOB) {
       return processHealthEcho(job.data as HealthEchoPayload);
     }
+    if (job.name === 'instagram-token-refresh') {
+      const { InstagramService } = await import('../../modules/instagram/instagram.service.js');
+      return new InstagramService().refreshAllActiveTokens();
+    }
     return undefined;
   });
 
@@ -76,6 +82,9 @@ export function startWorkers(): Worker[] {
   registerWorker('webhook-processing', async (job) => {
     if (job.name === WEBHOOK_JOB) {
       return processWebhookJob(job);
+    }
+    if (job.name === INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB) {
+      return processInstagramWebhookSubscribeJob(job);
     }
     return undefined;
   });

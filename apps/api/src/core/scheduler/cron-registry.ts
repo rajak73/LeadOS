@@ -14,5 +14,12 @@ export interface CronDefinition {
 }
 
 export const CRON_REGISTRY: CronDefinition[] = [
-  // (empty in Sprint 1)
+  {
+    id: 'instagram-token-refresh',
+    cron: '0 3 * * *', // 03:00 UTC daily
+    owner: 'instagram-module',
+    idempotency: 'BullMQ jobId = id; repeat key ensures a single scheduled job per id',
+    failureImpact:
+      'Instagram access tokens expire ~60 days after connection. If not refreshed within 7 days of expiry the account moves to EXPIRED status and agents lose inbox access until the admin reconnects.',
+  },
 ];

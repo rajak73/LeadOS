@@ -18,10 +18,39 @@ import { moveToDeadLetter } from '../dlq.js';
 import type { WebhookSource } from '@leados/shared';
 
 export const WEBHOOK_JOB = 'webhook-event';
+export const INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB = 'instagram-webhook-subscribe';
+
+export interface InstagramWebhookSubscribePayload {
+  igUserId: string;
+  igAccountId: string;
+  orgId: string;
+}
 
 export interface WebhookJobPayload {
   webhookEventId: string;
   source: string;
+}
+
+export async function processInstagramWebhookSubscribeJob(
+  job: Job<InstagramWebhookSubscribePayload>,
+): Promise<void> {
+  const { igUserId, igAccountId, orgId } = job.data;
+  const { instagramAdapter } = await import('../../../modules/instagram/instagram.adapter.js');
+  const { withTenant } = await import('../../tenancy/with-tenant.js');
+  const { PrismaInstagramAccountRepository } = await import(
+    '../../../modules/instagram/instagram.repository.js'
+  );
+  const { decryptField } = await import('../../crypto/field-encryption.js');
+
+  await withTenant(orgId, async (db) => {
+    const repo = new PrismaInstagramAccountRepository(db);
+    const account = await repo.findByIdOrThrow(igAccountId);
+    const plainToken = decryptField(account.accessToken);
+    await instagramAdapter.subscribeWebhook(igUserId, plainToken);
+    await repo.update(igAccountId, { webhookSubscribed: true });
+  });
+
+  logger.info({ message: 'Instagram webhook subscription completed', igUserId, igAccountId });
 }
 
 export async function processWebhookJob(job: Job<WebhookJobPayload>): Promise<void> {
