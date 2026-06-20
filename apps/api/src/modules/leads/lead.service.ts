@@ -3,6 +3,8 @@
 // CRM-4.1 — Lead activity feed.
 // CRM-5.1 — Lead notes sub-resource.
 // CRM-5.2 — Lead files sub-resource.
+// CRM-6.3 — CSV import (async via BullMQ).
+// CRM-6.4 — CSV export (async via BullMQ).
 //
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // The ActivityService.append() is called within the SAME transaction (atomicity) so an
@@ -20,7 +22,7 @@ import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext, type TenantContext } from '../../core/tenancy/context.js';
 import { AppError } from '../../core/errors/app-error.js';
 import { ErrorCode, PLAN_LIMITS, ActivityType } from '@leados/shared';
-import type { CreateLeadInput, PatchLeadInput, LeadListQuery } from '@leados/shared';
+import type { CreateLeadInput, PatchLeadInput, LeadListQuery, LeadExportBody } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
 import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { PrismaLeadRepository } from './lead.repository.js';
@@ -28,6 +30,12 @@ import { PrismaContactRepository } from '../contacts/contact.repository.js';
 import { sanitizeContact } from '../contacts/contact.service.js';
 import { NoteService, type NotePage } from '../notes/note.service.js';
 import { FileService, type FileResponse } from '../files/file.service.js';
+import { enqueue, getQueue } from '../../core/queue/queues.js';
+import { QUEUE } from '../../core/queue/names.js';
+import { LEAD_IMPORT_JOB } from '../../core/queue/workers/lead-import.worker.js';
+import { LEAD_EXPORT_JOB } from '../../core/queue/workers/lead-export.worker.js';
+import type { ImportResult } from './lead-import.service.js';
+import type { ExportResult } from './lead-export.service.js';
 
 // ─── Status machine ─────────────────────────────────────────────────────────
 
@@ -372,6 +380,99 @@ export class LeadService {
     });
 
     return this.fileService.listForLead(leadId, page, limit);
+  }
+
+  // ── CRM-6.3: CSV import ──────────────────────────────────────────────────────
+
+  async startImport(csvBuffer: Buffer): Promise<string> {
+    const ctx = requireTenantContext();
+
+    const jobId = await enqueue(QUEUE.LEAD_IMPORT, LEAD_IMPORT_JOB, {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      role: ctx.role,
+      csvBase64: csvBuffer.toString('base64'),
+    });
+
+    if (!jobId) {
+      throw new AppError(ErrorCode.INTERNAL_ERROR, 'Failed to enqueue import job');
+    }
+    return jobId;
+  }
+
+  async getImportJob(jobId: string): Promise<{
+    status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
+    result?: ImportResult;
+    error?: string;
+  }> {
+    const job = await getQueue(QUEUE.LEAD_IMPORT).getJob(jobId);
+    if (!job) {
+      throw AppError.notFound('Import job not found');
+    }
+    const state = await job.getState();
+    if (state === 'completed') {
+      return { status: 'DONE', result: job.returnvalue as ImportResult };
+    }
+    if (state === 'failed') {
+      return { status: 'FAILED', error: job.failedReason };
+    }
+    if (state === 'active') {
+      return { status: 'PROCESSING' };
+    }
+    return { status: 'PENDING' };
+  }
+
+  // ── CRM-6.4: CSV export ──────────────────────────────────────────────────────
+
+  async startExport(filters: LeadExportBody): Promise<string> {
+    const ctx = requireTenantContext();
+
+    // Plan limit: STARTER and TRIAL plans cannot export.
+    await withTenant(ctx.organizationId, async (db) => {
+      const sub = await db.subscription.findFirst({ select: { plan: true } });
+      const plan = (sub?.plan ?? 'TRIAL') as keyof typeof PLAN_LIMITS;
+      if (!PLAN_LIMITS[plan].dataExport) {
+        throw new AppError(
+          ErrorCode.FORBIDDEN,
+          `Data export is not available on the ${plan} plan`,
+          { plan },
+        );
+      }
+    });
+
+    const jobId = await enqueue(QUEUE.LEAD_EXPORT, LEAD_EXPORT_JOB, {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      role: ctx.role,
+      filters,
+    });
+
+    if (!jobId) {
+      throw new AppError(ErrorCode.INTERNAL_ERROR, 'Failed to enqueue export job');
+    }
+    return jobId;
+  }
+
+  async getExportJob(jobId: string): Promise<{
+    status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
+    result?: ExportResult;
+    error?: string;
+  }> {
+    const job = await getQueue(QUEUE.LEAD_EXPORT).getJob(jobId);
+    if (!job) {
+      throw AppError.notFound('Export job not found');
+    }
+    const state = await job.getState();
+    if (state === 'completed') {
+      return { status: 'DONE', result: job.returnvalue as ExportResult };
+    }
+    if (state === 'failed') {
+      return { status: 'FAILED', error: job.failedReason };
+    }
+    if (state === 'active') {
+      return { status: 'PROCESSING' };
+    }
+    return { status: 'PENDING' };
   }
 }
 

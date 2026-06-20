@@ -9,6 +9,8 @@ import { queueJobsProcessed } from '../observability/metrics.js';
 import { moveToDeadLetter } from './dlq.js';
 import { QUEUE_CONCURRENCY, type QueueName } from './names.js';
 import { HEALTH_ECHO_JOB, processHealthEcho, type HealthEchoPayload } from './jobs/health-echo.js';
+import { LEAD_IMPORT_JOB, processLeadImportJob } from './workers/lead-import.worker.js';
+import { LEAD_EXPORT_JOB, processLeadExportJob } from './workers/lead-export.worker.js';
 
 const workers: Worker[] = [];
 
@@ -42,7 +44,7 @@ export function registerWorker(name: QueueName, processor: Processor): Worker {
   return worker;
 }
 
-/** Starts the Sprint-1 worker set (the system/demo queue). */
+/** Starts the Sprint-1 system worker plus Sprint-4 M6B domain workers. */
 export function startWorkers(): Worker[] {
   registerWorker('system', async (job) => {
     if (job.name === HEALTH_ECHO_JOB) {
@@ -50,6 +52,21 @@ export function startWorkers(): Worker[] {
     }
     return undefined;
   });
+
+  registerWorker('lead-import', async (job) => {
+    if (job.name === LEAD_IMPORT_JOB) {
+      return processLeadImportJob(job);
+    }
+    return undefined;
+  });
+
+  registerWorker('lead-export', async (job) => {
+    if (job.name === LEAD_EXPORT_JOB) {
+      return processLeadExportJob(job);
+    }
+    return undefined;
+  });
+
   logger.info({ message: 'Workers started', queues: workers.length });
   return workers;
 }

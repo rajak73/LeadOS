@@ -104,6 +104,53 @@ export class PrismaLeadRepository extends TenantRepository {
     });
   }
 
+  /** All matching leads for CRM-6.4 export (no pagination, no sort — caller formats). */
+  async findAllWithFilter(
+    query: Omit<LeadListQuery, 'page' | 'limit' | 'sortBy' | 'sortOrder'>,
+    ownedByUserId?: string,
+  ): Promise<Lead[]> {
+    const where: Prisma.LeadWhereInput = { deletedAt: null };
+
+    if (ownedByUserId !== undefined) {
+      where.assignedToId = ownedByUserId;
+    } else if (query.assignedToId !== undefined) {
+      where.assignedToId = query.assignedToId;
+    }
+
+    if (query.status?.length) {
+      where.status = { in: query.status as LeadStatus[] };
+    }
+    if (query.source?.length) {
+      where.source = { in: query.source as LeadSource[] };
+    }
+    if (query.tags?.length) {
+      where.tags = { hasSome: query.tags };
+    }
+    if (query.aiScoreMin !== undefined || query.aiScoreMax !== undefined) {
+      const scoreFilter: NonNullable<Prisma.LeadWhereInput['aiScore']> = {};
+      if (query.aiScoreMin !== undefined) scoreFilter.gte = query.aiScoreMin;
+      if (query.aiScoreMax !== undefined) scoreFilter.lte = query.aiScoreMax;
+      where.aiScore = scoreFilter;
+    }
+    if (query.createdFrom !== undefined || query.createdTo !== undefined) {
+      const dateFilter: Prisma.DateTimeFilter<'Lead'> = {};
+      if (query.createdFrom !== undefined) dateFilter.gte = query.createdFrom;
+      if (query.createdTo !== undefined) dateFilter.lte = query.createdTo;
+      where.createdAt = dateFilter;
+    }
+    if (query.search !== undefined && query.search.trim().length > 0) {
+      const term = query.search.trim();
+      where.OR = [
+        { firstName: { contains: term, mode: 'insensitive' } },
+        { lastName: { contains: term, mode: 'insensitive' } },
+        { email: { contains: term, mode: 'insensitive' } },
+        { phone: { contains: term, mode: 'insensitive' } },
+      ];
+    }
+
+    return this.db.lead.findMany({ where, orderBy: { createdAt: 'desc' } });
+  }
+
   /** Paginated, filtered, sorted lead list for CRM-6.1. */
   async findManyWithFilter(
     query: LeadListQuery,

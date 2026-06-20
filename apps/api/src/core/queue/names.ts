@@ -11,6 +11,8 @@ export const QUEUE = {
   INSTAGRAM_SEND: 'instagram-send',
   WHATSAPP_SEND: 'whatsapp-send',
   DATA_EXPORT: 'data-export',
+  LEAD_IMPORT: 'lead-import',
+  LEAD_EXPORT: 'lead-export',
   SYSTEM: 'system',
 } as const;
 
@@ -25,6 +27,8 @@ export const QUEUE_CONCURRENCY: Record<QueueName, number> = {
   'instagram-send': 10,
   'whatsapp-send': 10,
   'data-export': 3,
+  'lead-import': 2,
+  'lead-export': 2,
   system: 5,
 };
 

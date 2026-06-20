@@ -89,3 +89,35 @@ export const leadListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(25),
 });
 export type LeadListQuery = z.infer<typeof leadListQuerySchema>;
+
+// ── CRM-6.3: CSV import row schema ───────────────────────────────────────────
+// One validated row from the uploaded CSV.  `source` defaults to IMPORT so
+// the origin of bulk-loaded leads is always distinguishable in the UI.
+// `tags` arrives as a comma-separated string in the CSV cell; callers must
+// split it before passing to the schema.
+export const leadImportRowSchema = z.object({
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().max(100).optional(),
+  email: z.string().email().max(255).optional(),
+  phone: z.string().max(20).optional(),
+  source: z.enum(LEAD_SOURCES).optional().default('IMPORT'),
+  tags: z.array(z.string().max(100)).optional().default([]),
+});
+export type LeadImportRow = z.infer<typeof leadImportRowSchema>;
+
+// ── CRM-6.4: Export filter body schema ───────────────────────────────────────
+// Mirrors leadListQuerySchema but for a JSON POST body — values arrive already
+// typed (arrays, numbers, dates) so no coerce/asArray preprocessing is needed.
+// Pagination and sort are intentionally omitted: export always returns all rows.
+export const leadExportBodySchema = z.object({
+  status: z.array(z.enum(ALL_LEAD_STATUSES)).optional(),
+  source: z.array(z.enum(LEAD_SOURCES)).optional(),
+  assignedToId: z.string().uuid().optional(),
+  tags: z.array(z.string().max(100)).optional(),
+  aiScoreMin: z.number().int().min(0).max(100).optional(),
+  aiScoreMax: z.number().int().min(0).max(100).optional(),
+  createdFrom: z.coerce.date().optional(),
+  createdTo: z.coerce.date().optional(),
+  search: z.string().max(200).optional(),
+});
+export type LeadExportBody = z.infer<typeof leadExportBodySchema>;

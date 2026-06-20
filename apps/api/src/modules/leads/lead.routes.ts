@@ -2,6 +2,8 @@
 // CRM-4.1 — Activity feed.
 // CRM-5.1 — Notes sub-resource.
 // CRM-5.2 — Files sub-resource.
+// CRM-6.3 — CSV import (BullMQ async).
+// CRM-6.4 — CSV export (BullMQ async).
 //
 // Permission model (execution plan §E2 CRM-2.4 / §E3 CRM-3.3):
 //   POST   /leads                   → leads.create
@@ -12,13 +14,19 @@
 //   GET    /leads/:id/activities    → leads.read  OR  leads.read_own (paginated activity feed)
 //   GET    /leads/:id/notes         → leads.read  OR  leads.read_own (paginated notes)
 //   GET    /leads/:id/files         → leads.read  OR  leads.read_own (paginated files)
+//
+// ROUTE ORDERING: /import and /export MUST be registered before /:id to prevent Express
+// from matching the literal string "import" or "export" as a UUID id parameter.
 
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
+import multer from 'multer';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { validate } from '../../core/middleware/validate.js';
-import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema } from '@leados/shared';
+import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema, leadExportBodySchema } from '@leados/shared';
 import type { LeadController } from './lead.controller.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
 
 export function buildLeadRouter(
   controller: LeadController,
@@ -26,8 +34,7 @@ export function buildLeadRouter(
 ): Router {
   const router = Router();
 
-  // CRM-6.1: Lead list — must be first so Express does not match literal path segments
-  // (e.g. '/import' added in M6B) as the /:id wildcard.
+  // CRM-6.1: Lead list.
   router.get(
     '/',
     requirePermission('leads.read'),
@@ -40,6 +47,34 @@ export function buildLeadRouter(
     requirePermission('leads.create'),
     validate(createLeadSchema),
     asyncHandler(controller.create),
+  );
+
+  // CRM-6.3: CSV import — literal path must precede /:id.
+  router.post(
+    '/import',
+    requirePermission('leads.create'),
+    upload.single('file'),
+    asyncHandler(controller.importCsv),
+  );
+
+  router.get(
+    '/import/:jobId',
+    requirePermission('leads.read'),
+    asyncHandler(controller.getImportJob),
+  );
+
+  // CRM-6.4: CSV export — literal path must precede /:id.
+  router.post(
+    '/export',
+    requirePermission('leads.read'),
+    validate(leadExportBodySchema),
+    asyncHandler(controller.exportCsv),
+  );
+
+  router.get(
+    '/export/:jobId',
+    requirePermission('leads.read'),
+    asyncHandler(controller.getExportJob),
   );
 
   router.get(

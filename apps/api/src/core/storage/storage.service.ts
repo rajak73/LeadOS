@@ -10,12 +10,13 @@
 //
 // Production requirements (env.ts): S3_BUCKET, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY.
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { isTest } from '../config/env.js';
 import { env } from '../config/env.js';
 
-const PRESIGNED_URL_EXPIRY_SECONDS = 900; // 15 minutes
+const PRESIGNED_PUT_EXPIRY_SECONDS = 900;   // 15 minutes — PUT (upload)
+const PRESIGNED_GET_EXPIRY_SECONDS = 3600;  // 1 hour — GET (download)
 
 export interface PresignedUrlResult {
   presignedUrl: string;
@@ -70,9 +71,42 @@ export class StorageService {
     });
 
     const presignedUrl = await getSignedUrl(getS3Client(), command, {
-      expiresIn: PRESIGNED_URL_EXPIRY_SECONDS,
+      expiresIn: PRESIGNED_PUT_EXPIRY_SECONDS,  // 15 min
     });
 
     return { presignedUrl, storageKey, storageProvider: 'S3' };
+  }
+
+  /** Generate a presigned GET URL for downloading an object (1h expiry). */
+  async generateDownloadUrl(storageKey: string): Promise<string> {
+    if (isTest()) {
+      return `http://mock-storage.test/download/${storageKey}`;
+    }
+
+    const bucket = env.S3_BUCKET;
+    if (!bucket) {
+      throw new Error('S3_BUCKET is not configured');
+    }
+
+    const command = new GetObjectCommand({ Bucket: bucket, Key: storageKey });
+    return getSignedUrl(getS3Client(), command, { expiresIn: PRESIGNED_GET_EXPIRY_SECONDS });
+  }
+
+  /** Upload a buffer directly from the worker process (CSV export). */
+  async putObject(params: {
+    storageKey: string;
+    body: Buffer;
+    contentType: string;
+  }): Promise<void> {
+    if (isTest()) return; // no-op in test; download URL mock is sufficient
+
+    const bucket = env.S3_BUCKET;
+    if (!bucket) {
+      throw new Error('S3_BUCKET is not configured');
+    }
+
+    await getS3Client().send(
+      new PutObjectCommand({ Bucket: bucket, Key: params.storageKey, Body: params.body, ContentType: params.contentType }),
+    );
   }
 }
