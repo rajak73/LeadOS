@@ -10,6 +10,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex-1 px-2 py-4 space-y-0.5">
           <Link
+            href="/leads"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
+          >
+            <span>👥</span>
+            <span>Leads</span>
+          </Link>
+          <Link
             href="/pipeline"
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
           >

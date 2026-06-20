@@ -53,6 +53,34 @@ export function makeDeal(overrides: Partial<import('@/lib/types/api').Deal> = {}
   };
 }
 
+export function makeLead(overrides: Partial<import('@/lib/types/api').Lead> = {}): import('@/lib/types/api').Lead {
+  return {
+    id: 'lead-1',
+    organizationId: 'org-1',
+    firstName: 'Alice',
+    lastName: 'Smith',
+    email: 'alice@example.com',
+    phone: null,
+    source: 'MANUAL',
+    status: 'NEW',
+    assignedToId: null,
+    aiScore: null,
+    aiScoreUpdatedAt: null,
+    instagramHandle: null,
+    instagramUserId: null,
+    tags: [],
+    customFields: {},
+    lostReason: null,
+    convertedToContactId: null,
+    lastActivityAt: null,
+    createdById: 'user-1',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    deletedAt: null,
+    ...overrides,
+  };
+}
+
 export function makePipeline(overrides: Partial<import('@/lib/types/api').Pipeline> = {}): import('@/lib/types/api').Pipeline {
   return {
     id: 'pipe-1',

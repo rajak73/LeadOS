@@ -109,6 +109,136 @@ export function formatCurrency(value: string | number | null, currency = 'INR'):
   }).format(num);
 }
 
+// ─── Lead types ────────────────────────────────────────────────────────────
+
+export type LeadStatus =
+  | 'NEW'
+  | 'CONTACTED'
+  | 'QUALIFIED'
+  | 'PROPOSAL'
+  | 'NEGOTIATION'
+  | 'WON'
+  | 'LOST';
+
+export type LeadSource =
+  | 'INSTAGRAM_DM'
+  | 'INSTAGRAM_COMMENT'
+  | 'WHATSAPP'
+  | 'MANUAL'
+  | 'IMPORT'
+  | 'REFERRAL'
+  | 'WEB_FORM'
+  | 'OTHER';
+
+export const LEAD_STATUS_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
+  NEW: ['CONTACTED', 'QUALIFIED', 'LOST'],
+  CONTACTED: ['QUALIFIED', 'PROPOSAL', 'LOST'],
+  QUALIFIED: ['PROPOSAL', 'NEGOTIATION', 'LOST'],
+  PROPOSAL: ['NEGOTIATION', 'LOST'],
+  NEGOTIATION: ['LOST'],
+  WON: [],
+  LOST: [],
+};
+
+export const ALL_LEAD_STATUSES: LeadStatus[] = [
+  'NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST',
+];
+
+export const ALL_LEAD_SOURCES: LeadSource[] = [
+  'INSTAGRAM_DM', 'INSTAGRAM_COMMENT', 'WHATSAPP', 'MANUAL', 'IMPORT', 'REFERRAL', 'WEB_FORM', 'OTHER',
+];
+
+export interface Lead {
+  id: string;
+  organizationId: string;
+  firstName: string;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  source: LeadSource;
+  status: LeadStatus;
+  assignedToId: string | null;
+  aiScore: number | null;
+  aiScoreUpdatedAt: string | null;
+  instagramHandle: string | null;
+  instagramUserId: string | null;
+  tags: string[];
+  customFields: Record<string, unknown>;
+  lostReason: string | null;
+  convertedToContactId: string | null;
+  lastActivityAt: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface LeadNote {
+  id: string;
+  content: string;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeadFile {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string | null;
+  createdAt: string;
+}
+
+export interface LeadListQuery {
+  status?: LeadStatus[];
+  source?: LeadSource[];
+  assignedToId?: string;
+  tags?: string[];
+  aiScoreMin?: number;
+  aiScoreMax?: number;
+  createdFrom?: string;
+  createdTo?: string;
+  search?: string;
+  sortBy?: 'firstName' | 'createdAt' | 'aiScore';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export function getLeadDisplayName(lead: Lead): string {
+  return [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+}
+
+export function formatLeadStatus(status: LeadStatus): string {
+  const labels: Record<LeadStatus, string> = {
+    NEW: 'New',
+    CONTACTED: 'Contacted',
+    QUALIFIED: 'Qualified',
+    PROPOSAL: 'Proposal',
+    NEGOTIATION: 'Negotiation',
+    WON: 'Won',
+    LOST: 'Lost',
+  };
+  return labels[status];
+}
+
+export function formatLeadSource(source: LeadSource): string {
+  const labels: Record<LeadSource, string> = {
+    INSTAGRAM_DM: 'Instagram DM',
+    INSTAGRAM_COMMENT: 'Instagram Comment',
+    WHATSAPP: 'WhatsApp',
+    MANUAL: 'Manual',
+    IMPORT: 'Import',
+    REFERRAL: 'Referral',
+    WEB_FORM: 'Web Form',
+    OTHER: 'Other',
+  };
+  return labels[source];
+}
+
+// ─── End Lead types ─────────────────────────────────────────────────────────
+
 export function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60_000);
