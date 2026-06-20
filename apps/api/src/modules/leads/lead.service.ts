@@ -1,6 +1,8 @@
 // CRM-2.2 + CRM-2.3 — Lead service (CRUD + status machine).
 // CRM-3.2 — Lead→Contact conversion (atomic).
 // CRM-4.1 — Lead activity feed.
+// CRM-5.1 — Lead notes sub-resource.
+// CRM-5.2 — Lead files sub-resource.
 //
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // The ActivityService.append() is called within the SAME transaction (atomicity) so an
@@ -24,6 +26,8 @@ import { ActivityService, type ActivityPage } from '../../core/activities/activi
 import { PrismaLeadRepository } from './lead.repository.js';
 import { PrismaContactRepository } from '../contacts/contact.repository.js';
 import { sanitizeContact } from '../contacts/contact.service.js';
+import { NoteService, type NotePage } from '../notes/note.service.js';
+import { FileService, type FileResponse } from '../files/file.service.js';
 
 // ─── Status machine ─────────────────────────────────────────────────────────
 
@@ -53,8 +57,13 @@ function assertValidStatusTransition(current: string, next: string): void {
 
 export class LeadService {
   private readonly activityService = new ActivityService();
+  private readonly noteService: NoteService;
+  private readonly fileService: FileService;
 
-  constructor(private readonly audit: AuditRecorder) {}
+  constructor(private readonly audit: AuditRecorder) {
+    this.noteService = new NoteService(audit);
+    this.fileService = new FileService(audit);
+  }
 
   // ── CRM-2.2: create ────────────────────────────────────────────────────────
 
@@ -313,9 +322,6 @@ export class LeadService {
   }
 
   // ── CRM-4.1: listActivities ───────────────────────────────────────────────
-  //
-  // ownOnly: SALES_EXECUTIVE with leads.read_own may only see activities for leads
-  // assigned to them. findByIdOrThrow with ownedByUserId enforces this before the fetch.
 
   async listActivities(leadId: string, page: number, limit: number): Promise<ActivityPage> {
     const ctx = requireTenantContext();
@@ -326,6 +332,34 @@ export class LeadService {
       await repo.findByIdOrThrow(leadId, ownedByUserId); // 404 guard + ownOnly
       return this.activityService.listForLead(db, leadId, page, limit);
     });
+  }
+
+  // ── CRM-5.1: listNotes ───────────────────────────────────────────────────
+
+  async listNotes(leadId: string, page: number, limit: number): Promise<NotePage> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaLeadRepository(db);
+      await repo.findByIdOrThrow(leadId, ownedByUserId); // 404 guard + ownOnly
+    });
+
+    return this.noteService.listForLead(leadId, page, limit);
+  }
+
+  // ── CRM-5.2: listFiles ───────────────────────────────────────────────────
+
+  async listFiles(leadId: string, page: number, limit: number): Promise<{ items: FileResponse[]; total: number }> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaLeadRepository(db);
+      await repo.findByIdOrThrow(leadId, ownedByUserId); // 404 guard + ownOnly
+    });
+
+    return this.fileService.listForLead(leadId, page, limit);
   }
 }
 

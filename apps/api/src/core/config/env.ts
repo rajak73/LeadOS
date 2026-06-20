@@ -38,6 +38,13 @@ const envSchema = z.object({
   REFRESH_TOKEN_REMEMBER_TTL_DAYS: z.coerce.number().int().positive().default(30),
   BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
   SESSION_COOKIE_DOMAIN: z.string().optional(),
+
+  // Storage (Sprint 4 M5 — S3 for file uploads). Optional in dev/test; required in production
+  // when files are uploaded (guard enforced at runtime in storage.service.ts).
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

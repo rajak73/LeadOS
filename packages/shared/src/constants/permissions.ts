@@ -7,6 +7,7 @@ export const RESOURCES = [
   'deals',
   'pipelines',
   'tasks',
+  'notes',
   'team',
   'roles',
   'inbox',
@@ -61,6 +62,12 @@ export const MANAGER_PERMISSIONS: PermissionKey[] = [
   'tasks.create',
   'tasks.read',
   'tasks.update',
+  'notes.create',
+  'notes.update',
+  'notes.delete',
+  'files.create',
+  'files.read',
+  'files.delete',
   'org.read',
 ];
 
@@ -80,6 +87,10 @@ export const SALES_EXECUTIVE_PERMISSIONS: PermissionKey[] = [
   'tasks.create',
   'tasks.read',
   'tasks.update_own',
+  'notes.create',
+  'notes.update',
+  'files.create',
+  'files.read',
   'analytics.read_own',
   'org.read',
 ];
@@ -103,6 +114,8 @@ export const PERMISSION_CATALOG: readonly string[] = [
   'pipelines.create', 'pipelines.read', 'pipelines.update', 'pipelines.delete',
   // tasks
   'tasks.create', 'tasks.read', 'tasks.update', 'tasks.update_own', 'tasks.delete',
+  // notes
+  'notes.create', 'notes.update', 'notes.delete',
   // inbox
   'inbox.read', 'inbox.read_own', 'inbox.reply', 'inbox.reply_own', 'inbox.assign',
   'inbox.close', 'inbox.close_own',

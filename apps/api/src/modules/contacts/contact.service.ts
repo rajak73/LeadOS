@@ -1,5 +1,7 @@
 // CRM-3.1 — Contact service (CRUD).
 // CRM-4.1 — Contact activity feed.
+// CRM-5.1 — Contact notes sub-resource.
+// CRM-5.2 — Contact files sub-resource.
 //
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // ActivityService.append() is called within the SAME transaction for atomicity.
@@ -15,11 +17,18 @@ import type { CreateContactInput, PatchContactInput } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
 import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { PrismaContactRepository } from './contact.repository.js';
+import { NoteService, type NotePage } from '../notes/note.service.js';
+import { FileService, type FileResponse } from '../files/file.service.js';
 
 export class ContactService {
   private readonly activityService = new ActivityService();
+  private readonly noteService: NoteService;
+  private readonly fileService: FileService;
 
-  constructor(private readonly audit: AuditRecorder) {}
+  constructor(private readonly audit: AuditRecorder) {
+    this.noteService = new NoteService(audit);
+    this.fileService = new FileService(audit);
+  }
 
   // ── CRM-3.1: create ────────────────────────────────────────────────────────
 
@@ -154,9 +163,6 @@ export class ContactService {
   }
 
   // ── CRM-4.1: listActivities ───────────────────────────────────────────────
-  //
-  // ownOnly: SALES_EXECUTIVE with contacts.read_own may only see activities for contacts
-  // assigned to them. findByIdOrThrow with ownedByUserId enforces this before the fetch.
 
   async listActivities(contactId: string, page: number, limit: number): Promise<ActivityPage> {
     const ctx = requireTenantContext();
@@ -167,6 +173,34 @@ export class ContactService {
       await repo.findByIdOrThrow(contactId, ownedByUserId); // 404 guard + ownOnly
       return this.activityService.listForContact(db, contactId, page, limit);
     });
+  }
+
+  // ── CRM-5.1: listNotes ───────────────────────────────────────────────────
+
+  async listNotes(contactId: string, page: number, limit: number): Promise<NotePage> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaContactRepository(db);
+      await repo.findByIdOrThrow(contactId, ownedByUserId); // 404 guard + ownOnly
+    });
+
+    return this.noteService.listForContact(contactId, page, limit);
+  }
+
+  // ── CRM-5.2: listFiles ───────────────────────────────────────────────────
+
+  async listFiles(contactId: string, page: number, limit: number): Promise<{ items: FileResponse[]; total: number }> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaContactRepository(db);
+      await repo.findByIdOrThrow(contactId, ownedByUserId); // 404 guard + ownOnly
+    });
+
+    return this.fileService.listForContact(contactId, page, limit);
   }
 }
 

@@ -1,11 +1,17 @@
 // CRM-2.4 + CRM-3.2 — Lead routes.
+// CRM-4.1 — Activity feed.
+// CRM-5.1 — Notes sub-resource.
+// CRM-5.2 — Files sub-resource.
 //
 // Permission model (execution plan §E2 CRM-2.4 / §E3 CRM-3.3):
-//   POST   /leads               → leads.create
-//   GET    /leads/:id           → leads.read  OR  leads.read_own  (ownOnly → 404 if not assigned)
-//   PATCH  /leads/:id           → leads.update OR leads.update_own
-//   DELETE /leads/:id           → leads.delete
-//   POST   /leads/:id/convert   → leads.update (atomic lead→contact; sets status=WON)
+//   POST   /leads                   → leads.create
+//   GET    /leads/:id               → leads.read  OR  leads.read_own  (ownOnly → 404 if not assigned)
+//   PATCH  /leads/:id               → leads.update OR leads.update_own
+//   DELETE /leads/:id               → leads.delete
+//   POST   /leads/:id/convert       → leads.update (atomic lead→contact; sets status=WON)
+//   GET    /leads/:id/activities    → leads.read  OR  leads.read_own (paginated activity feed)
+//   GET    /leads/:id/notes         → leads.read  OR  leads.read_own (paginated notes)
+//   GET    /leads/:id/files         → leads.read  OR  leads.read_own (paginated files)
 
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
@@ -65,6 +71,24 @@ export function buildLeadRouter(
     validate(leadIdParamSchema, 'params'),
     validate(paginationQuerySchema, 'query'),
     asyncHandler(controller.listActivities),
+  );
+
+  // CRM-5.1: paginated notes for a lead.
+  router.get(
+    '/:id/notes',
+    requirePermission('leads.read'),
+    validate(leadIdParamSchema, 'params'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listNotes),
+  );
+
+  // CRM-5.2: paginated files for a lead.
+  router.get(
+    '/:id/files',
+    requirePermission('leads.read'),
+    validate(leadIdParamSchema, 'params'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listFiles),
   );
 
   return router;

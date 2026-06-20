@@ -1,11 +1,15 @@
 // CRM-3.3 + CRM-4.1 — Contact routes.
+// CRM-5.1 — Notes sub-resource.
+// CRM-5.2 — Files sub-resource.
 //
 // Permission model:
-//   POST   /contacts              → contacts.create
-//   GET    /contacts/:id          → contacts.read  OR  contacts.read_own  (ownOnly → 404 if not assigned)
-//   PATCH  /contacts/:id          → contacts.update OR contacts.update_own
-//   DELETE /contacts/:id          → contacts.delete
+//   POST   /contacts                → contacts.create
+//   GET    /contacts/:id            → contacts.read  OR  contacts.read_own  (ownOnly → 404 if not assigned)
+//   PATCH  /contacts/:id            → contacts.update OR contacts.update_own
+//   DELETE /contacts/:id            → contacts.delete
 //   GET    /contacts/:id/activities → contacts.read OR contacts.read_own (paginated activity feed)
+//   GET    /contacts/:id/notes      → contacts.read OR contacts.read_own (paginated notes)
+//   GET    /contacts/:id/files      → contacts.read OR contacts.read_own (paginated files)
 
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
@@ -61,6 +65,24 @@ export function buildContactRouter(
     validate(contactIdParamSchema, 'params'),
     validate(paginationQuerySchema, 'query'),
     asyncHandler(controller.listActivities),
+  );
+
+  // CRM-5.1: paginated notes for a contact.
+  router.get(
+    '/:id/notes',
+    requirePermission('contacts.read'),
+    validate(contactIdParamSchema, 'params'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listNotes),
+  );
+
+  // CRM-5.2: paginated files for a contact.
+  router.get(
+    '/:id/files',
+    requirePermission('contacts.read'),
+    validate(contactIdParamSchema, 'params'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listFiles),
   );
 
   return router;

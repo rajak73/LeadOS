@@ -1,5 +1,7 @@
 // CRM-3.3 — Contact controller (thin HTTP translation layer).
 // CRM-4.1 — Activity feed handler.
+// CRM-5.1 — Notes sub-resource handler.
+// CRM-5.2 — Files sub-resource handler.
 // Reads validated request data, calls the service, and writes the response envelope.
 
 import type { Request, Response } from 'express';
@@ -13,6 +15,8 @@ export interface ContactController {
   update(req: Request, res: Response): Promise<void>;
   softDelete(req: Request, res: Response): Promise<void>;
   listActivities(req: Request, res: Response): Promise<void>;
+  listNotes(req: Request, res: Response): Promise<void>;
+  listFiles(req: Request, res: Response): Promise<void>;
 }
 
 export function createContactController(service: ContactService): ContactController {
@@ -40,6 +44,18 @@ export function createContactController(service: ContactService): ContactControl
     async listActivities(req, res) {
       const { page, limit } = req.query as unknown as PaginationQuery;
       const { items, total } = await service.listActivities(req.params['id']!, page, limit);
+      sendSuccess(res, items, 200, buildPaginationMeta(page, limit, total));
+    },
+
+    async listNotes(req, res) {
+      const { page, limit } = req.query as unknown as PaginationQuery;
+      const { items, total } = await service.listNotes(req.params['id']!, page, limit);
+      sendSuccess(res, items, 200, buildPaginationMeta(page, limit, total));
+    },
+
+    async listFiles(req, res) {
+      const { page, limit } = req.query as unknown as PaginationQuery;
+      const { items, total } = await service.listFiles(req.params['id']!, page, limit);
       sendSuccess(res, items, 200, buildPaginationMeta(page, limit, total));
     },
   };
