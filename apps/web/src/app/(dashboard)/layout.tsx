@@ -1,14 +1,24 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
-// Protected route group shell. The route guard (redirect when unauthenticated) is wired in
-// Sprint 2 once auth exists. Sprint 1 ships the layout structure only.
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-bg-base text-text-primary">
-      <aside className="hidden" aria-hidden>
-        {/* Sidebar nav lands with the dashboard screens. */}
+    <div className="flex min-h-screen bg-bg-base text-text-primary">
+      <aside className="w-56 shrink-0 border-r border-border bg-bg-elevated flex flex-col">
+        <div className="px-4 py-5 border-b border-border">
+          <span className="text-sm font-semibold text-text-primary">LeadOS</span>
+        </div>
+        <nav className="flex-1 px-2 py-4 space-y-0.5">
+          <Link
+            href="/pipeline"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
+          >
+            <span>📊</span>
+            <span>Pipeline</span>
+          </Link>
+        </nav>
       </aside>
-      <main className="p-8">{children}</main>
+      <main className="flex-1 overflow-auto p-6">{children}</main>
     </div>
   );
 }

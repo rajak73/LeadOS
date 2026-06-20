@@ -29,6 +29,10 @@ import type { DealController } from './deal.controller.js';
 
 const dealParamSchema = z.object({ id: z.string().uuid() });
 const forecastQuerySchema = z.object({ pipelineId: z.string().uuid().optional() });
+const activitiesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
 
 export function buildDealRouter(
   controller: DealController,
@@ -100,6 +104,15 @@ export function buildDealRouter(
     validate(dealParamSchema, 'params'),
     validate(lostDealSchema),
     asyncHandler(controller.markLost),
+  );
+
+  // M5: activity feed for Deal Detail. Service method existed in M3; route deferred until M5.
+  router.get(
+    '/:id/activities',
+    requirePermission('deals.read'),
+    validate(dealParamSchema, 'params'),
+    validate(activitiesQuerySchema, 'query'),
+    asyncHandler(controller.listActivities),
   );
 
   return router;

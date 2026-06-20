@@ -3,7 +3,7 @@
 // (it needs the auth/refresh endpoint); a placeholder hook is left for it here.
 
 import axios, { type AxiosInstance } from 'axios';
-import { getAccessToken } from './auth/token-store.js';
+import { getAccessToken } from './auth/token-store';
 
 export interface ApiClientOptions {
   baseURL?: string;

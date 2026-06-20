@@ -15,6 +15,7 @@ export interface DealController {
   markWon(req: Request, res: Response): Promise<void>;
   markLost(req: Request, res: Response): Promise<void>;
   forecast(req: Request, res: Response): Promise<void>;
+  listActivities(req: Request, res: Response): Promise<void>;
 }
 
 export function createDealController(service: DealService): DealController {
@@ -63,6 +64,12 @@ export function createDealController(service: DealService): DealController {
       const pipelineId = typeof req.query['pipelineId'] === 'string' ? req.query['pipelineId'] : undefined;
       const forecast = await service.forecast(pipelineId);
       sendSuccess(res, forecast);
+    },
+
+    async listActivities(req, res) {
+      const q = req.query as unknown as { page: number; limit: number };
+      const result = await service.listActivities(req.params['id']!, q.page, q.limit);
+      sendSuccess(res, result);
     },
   };
 }
