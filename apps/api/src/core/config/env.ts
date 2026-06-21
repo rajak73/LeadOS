@@ -67,6 +67,10 @@ const envSchema = z.object({
   // Sprint 6 M1 — Signs OAuth state JWTs (separate from JWT_ACCESS_SECRET per signoff §4.4).
   // Dev default is distinct from JWT_ACCESS_SECRET default. Production MUST override.
   OAUTH_STATE_SECRET: z.string().min(1).default('dev-oauth-state-secret-change-me'),
+
+  // Sprint 6 M4 — Kill switch for Instagram outbound sends. Defaults to enabled.
+  // Set to 'false' to disable all sends without a deploy (e.g. during Meta API incidents).
+  FLAG_INSTAGRAM_SENDS_ENABLED: z.coerce.boolean().default(true),
 });
 
 export type Env = z.infer<typeof envSchema>;

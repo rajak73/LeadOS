@@ -1,5 +1,4 @@
-// Inbox routes — M3 read-only endpoints.
-// M4 adds POST /conversations/:id/messages.
+// Inbox routes — M3 read-only + M4 send endpoint.
 
 import { Router } from 'express';
 import { buildInboxController } from './inbox.controller.js';
@@ -29,6 +28,15 @@ export function buildInboxRouter(requirePermission: (permission: string) => impo
     '/conversations/:id/messages',
     requirePermission('inbox.read'),
     (req, res, next) => ctrl.listMessages(req, res).catch(next),
+  );
+
+  // POST /inbox/conversations/:id/messages
+  // inbox.reply_own holders (SALES_EXECUTIVE) can reply to their assigned conversations only;
+  // decide() sets ownOnly=true, service enforces the assignee check.
+  router.post(
+    '/conversations/:id/messages',
+    requirePermission('inbox.reply'),
+    (req, res, next) => ctrl.sendMessage(req, res).catch(next),
   );
 
   return router;

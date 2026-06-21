@@ -3,6 +3,9 @@
 
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../core/http/envelope.js';
+import { AppError } from '../../core/errors/app-error.js';
+import { ErrorCode } from '@leados/shared';
+import { requireTenantContext } from '../../core/tenancy/context.js';
 import { InboxService } from './inbox.service.js';
 
 function createInboxController(service: InboxService) {
@@ -64,7 +67,21 @@ function createInboxController(service: InboxService) {
     sendSuccess(res, { items: result.items, nextCursor: result.nextCursor ?? null });
   }
 
-  return { listConversations, getConversation, listMessages };
+  async function sendMessage(req: Request, res: Response): Promise<void> {
+    const { id: conversationId } = req.params as { id: string };
+    const body = req.body as { content?: { text?: string } } | undefined;
+    const text = body?.content?.text;
+
+    if (typeof text !== 'string' || text.trim() === '') {
+      throw new AppError(ErrorCode.VALIDATION_ERROR, 'content.text is required and must be a non-empty string');
+    }
+
+    const ctx = requireTenantContext();
+    const result = await service.sendMessage(conversationId, { text: text.trim() }, ctx.userId);
+    sendSuccess(res, result, 201);
+  }
+
+  return { listConversations, getConversation, listMessages, sendMessage };
 }
 
 export function buildInboxController(): ReturnType<typeof createInboxController> {

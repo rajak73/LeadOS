@@ -154,6 +154,25 @@ async function handleInstagram(payload: unknown, webhookEventId: string): Promis
 
     for (let i = 0; i < messaging.length; i++) {
       const msgEvent = messaging[i] as Record<string, unknown>;
+
+      // Status webhooks (delivered / read) are handled separately from DM messages
+      const delivery = msgEvent['delivery'] as { mids?: string[]; watermark?: number } | undefined;
+      const read = msgEvent['read'] as { watermark?: number } | undefined;
+
+      if (delivery?.mids && delivery.mids.length > 0) {
+        await processInstagramDelivery(delivery.mids).catch((err) =>
+          logger.warn({ message: 'Instagram webhook: delivery status error', webhookEventId, index: i, error: String(err) }),
+        );
+        continue;
+      }
+
+      if (read?.watermark) {
+        await processInstagramRead(read.watermark).catch((err) =>
+          logger.warn({ message: 'Instagram webhook: read status error', webhookEventId, index: i, error: String(err) }),
+        );
+        continue;
+      }
+
       try {
         await processInstagramMessage(msgEvent, webhookEventId);
       } catch (err) {
@@ -166,6 +185,32 @@ async function handleInstagram(payload: unknown, webhookEventId: string): Promis
       }
     }
   }
+}
+
+// ─── Status webhook handlers (M4) ────────────────────────────────────────────
+
+async function processInstagramDelivery(mids: string[]): Promise<void> {
+  // Meta's `delivery` event: array of mids that were delivered. Update each.
+  // Use base prisma — mids are globally unique, no cross-tenant risk.
+  await prisma.message.updateMany({
+    where: { mid: { in: mids }, status: { notIn: ['DELIVERED', 'READ'] } },
+    data: { status: 'DELIVERED', deliveredAt: new Date() },
+  });
+  logger.debug({ message: 'Instagram webhook: delivery status updated', mids });
+}
+
+async function processInstagramRead(watermark: number): Promise<void> {
+  // Meta's `read` event: all OUTBOUND messages with sentAt ≤ watermark are READ.
+  const watermarkDate = new Date(watermark);
+  await prisma.message.updateMany({
+    where: {
+      direction: 'OUTBOUND',
+      sentAt: { lte: watermarkDate },
+      status: { not: 'READ' },
+    },
+    data: { status: 'READ', readAt: new Date() },
+  });
+  logger.debug({ message: 'Instagram webhook: read status updated', watermark });
 }
 
 async function processInstagramMessage(
