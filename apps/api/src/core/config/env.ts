@@ -80,7 +80,14 @@ export type Env = z.infer<typeof envSchema>;
  * Throws a descriptive error if validation fails.
  */
 export function loadEnv(source: NodeJS.ProcessEnv): Env {
-  const parsed = envSchema.safeParse(source);
+  // Strip empty-string values before validation so that .env placeholder lines
+  // (KEY=) behave like absent keys — allowing Zod .default() values to apply.
+  // Dotenv and Vite both parse `KEY=` as `""`, but that should mean "not set".
+  const coerced: Record<string, string | undefined> = {};
+  for (const [k, v] of Object.entries(source)) {
+    coerced[k] = v === '' ? undefined : v;
+  }
+  const parsed = envSchema.safeParse(coerced);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`)
