@@ -420,4 +420,40 @@ describe('Instagram Inbox — Send Pipeline', () => {
     });
   });
 
+  describe('OBS-1 — messaging window boundary', () => {
+    it('returns 409 WINDOW_CLOSED when lastInboundAt is exactly 24h ago', async () => {
+      if (!infra) return;
+
+      const exactly24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const convId = await seedConversation(orgId, igAccountId, `${CONV_IG_ID}-obs1-boundary-${Date.now()}`, exactly24h);
+
+      const res = await request(app)
+        .post(`/api/v1/inbox/conversations/${convId}/messages`)
+        .set('Authorization', `Bearer ${ownerToken()}`)
+        .send({ content: { text: 'Boundary test' } });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error?.code).toBe('WINDOW_CLOSED');
+
+      await prisma.$executeRawUnsafe(`DELETE FROM instagram_conversations WHERE id = $1::uuid`, convId);
+    });
+
+    it('returns 201 when lastInboundAt is 23 hours ago (inside window)', async () => {
+      if (!infra) return;
+
+      const twentyThreeHoursAgo = new Date(Date.now() - 23 * 60 * 60 * 1000);
+      const convId = await seedConversation(orgId, igAccountId, `${CONV_IG_ID}-obs1-inside-${Date.now()}`, twentyThreeHoursAgo);
+
+      const res = await request(app)
+        .post(`/api/v1/inbox/conversations/${convId}/messages`)
+        .set('Authorization', `Bearer ${ownerToken()}`)
+        .send({ content: { text: 'Inside window test' } });
+
+      expect(res.status).toBe(201);
+
+      await prisma.$executeRawUnsafe(`DELETE FROM messages WHERE "conversationId" = $1::uuid`, convId);
+      await prisma.$executeRawUnsafe(`DELETE FROM instagram_conversations WHERE id = $1::uuid`, convId);
+    });
+  });
+
 });

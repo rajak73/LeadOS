@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { PrimaryNavLinks } from '@/components/nav/NavLinks';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -9,20 +10,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <span className="text-sm font-semibold text-text-primary">LeadOS</span>
         </div>
         <nav className="flex-1 px-2 py-4 space-y-0.5">
-          <Link
-            href="/leads"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
-          >
-            <span>👥</span>
-            <span>Leads</span>
-          </Link>
-          <Link
-            href="/pipeline"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
-          >
-            <span>📊</span>
-            <span>Pipeline</span>
-          </Link>
+          <PrimaryNavLinks />
         </nav>
         <nav className="px-2 py-3 border-t border-border">
           <Link

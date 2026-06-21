@@ -261,6 +261,63 @@ export function formatLeadSource(source: LeadSource): string {
 
 // ─── End Lead types ─────────────────────────────────────────────────────────
 
+// ─── Inbox types ─────────────────────────────────────────────────────────────
+
+export type ConversationStatus = 'OPEN' | 'CLOSED';
+export type MessageDirection = 'INBOUND' | 'OUTBOUND';
+export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+
+/** Mirror of INSTAGRAM_MESSAGING_WINDOW_MS from shared constants. Used for client-side window check. */
+export const MESSAGING_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export interface Conversation {
+  id: string;
+  organizationId: string;
+  igConversationId: string;
+  igAccountId: string;
+  igAccount?: { id: string; igUsername: string | null; profilePictureUrl: string | null } | null;
+  leadId: string | null;
+  lead?: { id: string; firstName: string; lastName: string | null; instagramHandle: string | null } | null;
+  assignedToId: string | null;
+  assignedTo?: { id: string; firstName: string; lastName: string | null } | null;
+  status: ConversationStatus;
+  labels: string[];
+  firstResponseAt: string | null;
+  lastInboundAt: string | null;
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Message {
+  id: string;
+  organizationId: string;
+  conversationId: string;
+  mid: string;
+  direction: MessageDirection;
+  contentType: string;
+  content: { text?: string; attachmentUrl?: string; attachmentType?: string };
+  status: MessageStatus;
+  sentAt: string;
+  deliveredAt: string | null;
+  readAt: string | null;
+  senderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConversationPage {
+  items: Conversation[];
+  nextCursor: string | null;
+}
+
+export interface MessagePage {
+  items: Message[];
+  nextCursor: string | null;
+}
+
+// ─── End Inbox types ──────────────────────────────────────────────────────────
+
 export function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60_000);

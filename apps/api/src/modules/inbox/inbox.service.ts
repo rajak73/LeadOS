@@ -138,6 +138,19 @@ export class InboxService {
     });
   }
 
+  async updateConversation(
+    id: string,
+    patch: { assignedToId?: string | null; status?: 'OPEN' | 'CLOSED' },
+  ): Promise<ConversationWithRelations> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaConversationRepository(db);
+      await repo.findByIdOrThrow(id); // confirms conversation belongs to this org
+      await repo.update(id, patch);
+      return repo.findByIdOrThrow(id);
+    });
+  }
+
   async listMessages(conversationId: string, query: MessageListQuery): Promise<MessagePage> {
     const ctx = requireTenantContext();
     return withTenant(ctx.organizationId, async (db) => {

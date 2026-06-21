@@ -30,6 +30,13 @@ export function buildInboxRouter(requirePermission: (permission: string) => impo
     (req, res, next) => ctrl.listMessages(req, res).catch(next),
   );
 
+  // PATCH /inbox/conversations/:id — assign or open/close (inbox.assign)
+  router.patch(
+    '/conversations/:id',
+    requirePermission('inbox.assign'),
+    (req, res, next) => ctrl.updateConversation(req, res).catch(next),
+  );
+
   // POST /inbox/conversations/:id/messages
   // inbox.reply_own holders (SALES_EXECUTIVE) can reply to their assigned conversations only;
   // decide() sets ownOnly=true, service enforces the assignee check.

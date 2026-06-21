@@ -81,6 +81,52 @@ export function makeLead(overrides: Partial<import('@/lib/types/api').Lead> = {}
   };
 }
 
+export function makeConversation(
+  overrides: Partial<import('@/lib/types/api').Conversation> = {},
+): import('@/lib/types/api').Conversation {
+  return {
+    id: 'conv-1',
+    organizationId: 'org-1',
+    igConversationId: 'ig-conv-1',
+    igAccountId: 'acct-1',
+    igAccount: null,
+    leadId: 'lead-1',
+    lead: { id: 'lead-1', firstName: 'Alice', lastName: 'Smith', instagramHandle: 'alice_ig' },
+    assignedToId: null,
+    assignedTo: null,
+    status: 'OPEN',
+    labels: [],
+    firstResponseAt: null,
+    lastInboundAt: new Date(Date.now() - 60_000).toISOString(),
+    lastMessageAt: new Date(Date.now() - 60_000).toISOString(),
+    createdAt: new Date(Date.now() - 3_600_000).toISOString(),
+    updatedAt: new Date(Date.now() - 60_000).toISOString(),
+    ...overrides,
+  };
+}
+
+export function makeMessage(
+  overrides: Partial<import('@/lib/types/api').Message> = {},
+): import('@/lib/types/api').Message {
+  return {
+    id: 'msg-1',
+    organizationId: 'org-1',
+    conversationId: 'conv-1',
+    mid: 'ig-mid-1',
+    direction: 'INBOUND',
+    contentType: 'TEXT',
+    content: { text: 'Hello there' },
+    status: 'DELIVERED',
+    sentAt: new Date(Date.now() - 60_000).toISOString(),
+    deliveredAt: new Date(Date.now() - 58_000).toISOString(),
+    readAt: null,
+    senderId: null,
+    createdAt: new Date(Date.now() - 60_000).toISOString(),
+    updatedAt: new Date(Date.now() - 58_000).toISOString(),
+    ...overrides,
+  };
+}
+
 export function makePipeline(overrides: Partial<import('@/lib/types/api').Pipeline> = {}): import('@/lib/types/api').Pipeline {
   return {
     id: 'pipe-1',

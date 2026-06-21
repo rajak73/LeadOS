@@ -67,6 +67,16 @@ function createInboxController(service: InboxService) {
     sendSuccess(res, { items: result.items, nextCursor: result.nextCursor ?? null });
   }
 
+  async function updateConversation(req: Request, res: Response): Promise<void> {
+    const { id } = req.params as { id: string };
+    const body = req.body as { assignedToId?: string | null; status?: string } | undefined;
+    const patch: { assignedToId?: string | null; status?: 'OPEN' | 'CLOSED' } = {};
+    if (body && 'assignedToId' in body) patch.assignedToId = body.assignedToId ?? null;
+    if (body?.status === 'OPEN' || body?.status === 'CLOSED') patch.status = body.status;
+    const result = await service.updateConversation(id, patch);
+    sendSuccess(res, result);
+  }
+
   async function sendMessage(req: Request, res: Response): Promise<void> {
     const { id: conversationId } = req.params as { id: string };
     const body = req.body as { content?: { text?: string } } | undefined;
@@ -81,7 +91,7 @@ function createInboxController(service: InboxService) {
     sendSuccess(res, result, 201);
   }
 
-  return { listConversations, getConversation, listMessages, sendMessage };
+  return { listConversations, getConversation, updateConversation, listMessages, sendMessage };
 }
 
 export function buildInboxController(): ReturnType<typeof createInboxController> {
