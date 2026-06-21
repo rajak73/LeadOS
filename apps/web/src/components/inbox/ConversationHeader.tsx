@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import type { Conversation } from '@/lib/types/api';
 import { Button } from '@/components/ui/Button';
 import { useAssignConversation } from '@/lib/hooks/useAssignConversation';
+import { CreateLeadModal } from './CreateLeadModal';
 
 interface ConversationHeaderProps {
   conversation: Conversation;
@@ -11,6 +13,7 @@ interface ConversationHeaderProps {
 
 export function ConversationHeader({ conversation, currentUserId }: ConversationHeaderProps) {
   const { mutate: assign, isPending } = useAssignConversation();
+  const [createLeadOpen, setCreateLeadOpen] = useState(false);
 
   const leadName = conversation.lead
     ? `${conversation.lead.firstName} ${conversation.lead.lastName ?? ''}`.trim()
@@ -35,29 +38,49 @@ export function ConversationHeader({ conversation, currentUserId }: Conversation
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg-base shrink-0">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-text-primary truncate">{leadName}</p>
-        {igHandle && <p className="text-xs text-text-tertiary truncate">@{igHandle}</p>}
+    <>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg-base shrink-0">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-text-primary truncate">{leadName}</p>
+          {igHandle && <p className="text-xs text-text-tertiary truncate">@{igHandle}</p>}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* "→ Lead" button — shown only when conversation has no linked lead */}
+          {!conversation.leadId && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCreateLeadOpen(true)}
+              disabled={isPending}
+            >
+              → Lead
+            </Button>
+          )}
+
+          {assigneeName ? (
+            <span className="text-xs text-text-secondary">{isMine ? 'Mine' : assigneeName}</span>
+          ) : currentUserId ? (
+            <Button variant="secondary" size="sm" onClick={handleAssignToMe} disabled={isPending}>
+              Assign to me
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleToggleStatus}
+            disabled={isPending}
+          >
+            {isOpen ? 'Close' : 'Reopen'}
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {assigneeName ? (
-          <span className="text-xs text-text-secondary">{isMine ? 'Mine' : assigneeName}</span>
-        ) : currentUserId ? (
-          <Button variant="secondary" size="sm" onClick={handleAssignToMe} disabled={isPending}>
-            Assign to me
-          </Button>
-        ) : null}
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleToggleStatus}
-          disabled={isPending}
-        >
-          {isOpen ? 'Close' : 'Reopen'}
-        </Button>
-      </div>
-    </div>
+      <CreateLeadModal
+        conversation={conversation}
+        open={createLeadOpen}
+        onOpenChange={setCreateLeadOpen}
+      />
+    </>
   );
 }

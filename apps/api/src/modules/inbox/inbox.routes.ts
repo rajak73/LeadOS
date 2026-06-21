@@ -1,4 +1,4 @@
-// Inbox routes — M3 read-only + M4 send endpoint.
+// Inbox routes — M3 read-only, M4 send, M6 saved-replies + create-lead.
 
 import { Router } from 'express';
 import { buildInboxController } from './inbox.controller.js';
@@ -44,6 +44,41 @@ export function buildInboxRouter(requirePermission: (permission: string) => impo
     '/conversations/:id/messages',
     requirePermission('inbox.reply'),
     (req, res, next) => ctrl.sendMessage(req, res).catch(next),
+  );
+
+  // POST /inbox/conversations/:id/leads — create a Lead from a conversation (MANAGER+)
+  // SALES_EXECUTIVE does not have inbox.assign; intentional per M6 signoff §R-4
+  router.post(
+    '/conversations/:id/leads',
+    requirePermission('inbox.assign'),
+    (req, res, next) => ctrl.createLeadFromConversation(req, res).catch(next),
+  );
+
+  // Saved Replies — org-scoped template store
+  // GET: inbox.read (SALES_EXECUTIVE satisfies via inbox.read_own — ownOnly has no effect on global list)
+  // POST/PATCH/DELETE: inbox.assign (MANAGER+ only — global template management)
+  router.get(
+    '/saved-replies',
+    requirePermission('inbox.read'),
+    (req, res, next) => ctrl.listSavedReplies(req, res).catch(next),
+  );
+
+  router.post(
+    '/saved-replies',
+    requirePermission('inbox.assign'),
+    (req, res, next) => ctrl.createSavedReply(req, res).catch(next),
+  );
+
+  router.patch(
+    '/saved-replies/:id',
+    requirePermission('inbox.assign'),
+    (req, res, next) => ctrl.updateSavedReply(req, res).catch(next),
+  );
+
+  router.delete(
+    '/saved-replies/:id',
+    requirePermission('inbox.assign'),
+    (req, res, next) => ctrl.deleteSavedReply(req, res).catch(next),
   );
 
   return router;

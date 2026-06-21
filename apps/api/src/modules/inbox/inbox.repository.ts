@@ -2,7 +2,7 @@
 // All classes extend TenantRepository and must be used inside withTenant().
 // organizationId is injected by the tenant extension; callers never supply it.
 
-import type { InstagramConversation, Message, Prisma } from '@prisma/client';
+import type { InstagramConversation, Message, SavedReply, Prisma } from '@prisma/client';
 import { TenantRepository, asTenantCreate } from '../../core/tenancy/tenant-repository.js';
 import { currentTenantOrganizationId } from '../../core/tenancy/scope.js';
 import type { TenantTransactionClient } from '../../core/tenancy/with-tenant.js';
@@ -228,5 +228,77 @@ export class PrismaMessageRepository extends TenantRepository {
         : null;
 
     return { items, nextCursor };
+  }
+}
+
+// ─── SavedReply types ──────────────────────────────────────────────────────────
+
+export interface CreateSavedReplyData {
+  title: string;
+  content: string;
+  shortcut?: string;
+  isGlobal?: boolean;
+  createdById: string;
+}
+
+export interface UpdateSavedReplyData {
+  title?: string;
+  content?: string;
+  shortcut?: string | null;
+  isGlobal?: boolean;
+}
+
+// ─── PrismaSavedReplyRepository ───────────────────────────────────────────────
+
+export class PrismaSavedReplyRepository extends TenantRepository {
+  constructor(db: TenantTransactionClient) {
+    super(db);
+  }
+
+  async list(q?: string): Promise<SavedReply[]> {
+    return this.db.savedReply.findMany({
+      where: {
+        deletedAt: null,
+        ...(q
+          ? {
+              OR: [
+                { shortcut: { contains: q, mode: 'insensitive' } },
+                { title: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ title: 'asc' }],
+    });
+  }
+
+  async findById(id: string): Promise<SavedReply | null> {
+    return this.db.savedReply.findFirst({ where: { id, deletedAt: null } });
+  }
+
+  async findByIdOrThrow(id: string): Promise<SavedReply> {
+    const reply = await this.findById(id);
+    if (!reply) throw new AppError(ErrorCode.NOT_FOUND, `SavedReply ${id} not found`);
+    return reply;
+  }
+
+  async create(data: CreateSavedReplyData): Promise<SavedReply> {
+    return this.db.savedReply.create({
+      data: asTenantCreate({
+        title: data.title,
+        content: data.content,
+        shortcut: data.shortcut ?? null,
+        isGlobal: data.isGlobal ?? true,
+        createdById: data.createdById,
+      }),
+    });
+  }
+
+  async update(id: string, data: UpdateSavedReplyData): Promise<SavedReply> {
+    return this.db.savedReply.update({ where: { id }, data });
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await this.db.savedReply.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 }

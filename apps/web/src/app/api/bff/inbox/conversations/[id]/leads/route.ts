@@ -1,4 +1,4 @@
-// BFF: proxy POST /api/v1/deals/:id/lost.
+// BFF: proxy POST /api/v1/inbox/conversations/:id/leads
 
 import { type NextRequest } from 'next/server';
 import { callApi } from '@/lib/server/bff';
@@ -14,6 +14,11 @@ export async function POST(
   const accessToken = await resolveAccessToken(request);
   if (!accessToken) return Response.json({ success: false, error: { code: 'UNAUTHORIZED' } }, { status: 401 });
   const body = await request.json().catch(() => ({}));
-  const result = await callApi({ path: `/api/v1/deals/${id}/lost`, method: 'POST', body, accessToken });
+  const result = await callApi({
+    path: `/api/v1/inbox/conversations/${id}/leads`,
+    method: 'POST',
+    body,
+    accessToken,
+  });
   return Response.json(result.body, { status: result.status });
 }

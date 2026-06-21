@@ -14,11 +14,15 @@ import { ErrorCode } from '@leados/shared';
 import {
   PrismaConversationRepository,
   PrismaMessageRepository,
+  PrismaSavedReplyRepository,
   type ConversationListQuery,
   type ConversationWithRelations,
   type MessageListQuery,
+  type CreateSavedReplyData,
+  type UpdateSavedReplyData,
 } from './inbox.repository.js';
-import type { Message } from '@prisma/client';
+import type { Message, SavedReply } from '@prisma/client';
+import { PrismaLeadRepository } from '../leads/lead.repository.js';
 
 export interface ConversationPage {
   items: ConversationWithRelations[];
@@ -164,6 +168,93 @@ export class InboxService {
       }
       const msgRepo = new PrismaMessageRepository(db);
       return msgRepo.listByConversation(conversationId, query);
+    });
+  }
+
+  // ─── Saved Replies ──────────────────────────────────────────────────────────
+
+  async listSavedReplies(q?: string): Promise<SavedReply[]> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      return new PrismaSavedReplyRepository(db).list(q);
+    });
+  }
+
+  async createSavedReply(data: Omit<CreateSavedReplyData, 'createdById'>): Promise<SavedReply> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      return new PrismaSavedReplyRepository(db).create({ ...data, createdById: ctx.userId });
+    });
+  }
+
+  async updateSavedReply(id: string, data: UpdateSavedReplyData): Promise<SavedReply> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaSavedReplyRepository(db);
+      await repo.findByIdOrThrow(id); // confirms it belongs to this org and exists
+      return repo.update(id, data);
+    });
+  }
+
+  async deleteSavedReply(id: string): Promise<void> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaSavedReplyRepository(db);
+      await repo.findByIdOrThrow(id);
+      await repo.softDelete(id);
+    });
+  }
+
+  // ─── Create Lead from Conversation (R-1, R-5 corrections applied) ──────────
+
+  async createLeadFromConversation(
+    conversationId: string,
+    data: { firstName: string; lastName?: string },
+  ): Promise<import('@prisma/client').Lead> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      const convRepo = new PrismaConversationRepository(db);
+      const conv = await convRepo.findByIdOrThrow(conversationId);
+
+      // Reject if conversation is already linked to a lead (R-1 correction)
+      if (conv.leadId) {
+        throw new AppError(ErrorCode.CONFLICT, 'This conversation is already linked to a lead');
+      }
+
+      // Parse customer IG user ID from igConversationId: format is "${recipientId}_${senderId}"
+      const parts = conv.igConversationId.split('_');
+      const customerIgUserId = parts.slice(1).join('_');
+      if (!customerIgUserId) {
+        throw new AppError(ErrorCode.INTERNAL_ERROR, 'Unable to derive customer IG user ID from conversation');
+      }
+
+      // Check for existing lead with this Instagram user ID (R-1: unique constraint guard)
+      const leadRepo = new PrismaLeadRepository(db);
+      const existing = await db.lead.findFirst({
+        where: { instagramUserId: customerIgUserId, deletedAt: null },
+      });
+      if (existing) {
+        throw new AppError(ErrorCode.CONFLICT, 'A lead for this Instagram account already exists');
+      }
+
+      // Create the lead — instagramHandle from enriched lead data if available, else null
+      const instagramHandle = conv.lead?.instagramHandle ?? null;
+      const newLead = await leadRepo.create({
+        firstName: data.firstName,
+        lastName: data.lastName ?? null,
+        source: 'INSTAGRAM_DM',
+        status: 'NEW',
+        instagramUserId: customerIgUserId,
+        instagramHandle,
+        tags: [],
+        createdById: ctx.userId,
+      });
+
+      // Link conversation to the new lead (R-5: direct repo call, not updateConversation)
+      await convRepo.update(conversationId, { leadId: newLead.id });
+
+      logger.debug({ message: 'lead created from conversation', conversationId, leadId: newLead.id });
+      return newLead;
     });
   }
 }

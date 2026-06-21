@@ -316,6 +316,19 @@ export interface MessagePage {
   nextCursor: string | null;
 }
 
+export interface SavedReply {
+  id: string;
+  organizationId: string;
+  title: string;
+  content: string;
+  shortcut: string | null;
+  isGlobal: boolean;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
 // ─── End Inbox types ──────────────────────────────────────────────────────────
 
 export function formatRelativeTime(dateStr: string): string {
