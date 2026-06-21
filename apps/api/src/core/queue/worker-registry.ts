@@ -14,8 +14,10 @@ import { LEAD_EXPORT_JOB, processLeadExportJob } from './workers/lead-export.wor
 import {
   WEBHOOK_JOB,
   INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB,
+  INSTAGRAM_ENRICH_JOB,
   processWebhookJob,
   processInstagramWebhookSubscribeJob,
+  processInstagramEnrichJob,
   reEnqueueStalePendingWebhooks,
 } from './workers/webhook.worker.js';
 import { createInstagramSendWorker } from './workers/instagram-send.worker.js';
@@ -85,6 +87,9 @@ export function startWorkers(): Worker[] {
     }
     if (job.name === INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB) {
       return processInstagramWebhookSubscribeJob(job);
+    }
+    if (job.name === INSTAGRAM_ENRICH_JOB) {
+      return processInstagramEnrichJob(job);
     }
     return undefined;
   });

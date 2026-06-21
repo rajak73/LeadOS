@@ -51,7 +51,7 @@ export async function receiveInstagram(req: Request, res: Response): Promise<voi
   }
 
   const payload = parseBody(rawBody);
-  const externalEventId = extractInstagramEventId(payload);
+  const externalEventId = extractInstagramEventId(payload, rawBody);
 
   const safeHeaders: Record<string, string | string[] | undefined> = {
     'x-hub-signature-256': req.headers['x-hub-signature-256'],
@@ -162,7 +162,7 @@ function parseBody(raw: Buffer): unknown {
   }
 }
 
-function extractInstagramEventId(payload: unknown): string {
+function extractInstagramEventId(payload: unknown, rawBody: Buffer): string {
   const p = payload as Record<string, unknown> | null;
   const entries = p?.['entry'];
   if (Array.isArray(entries) && entries.length > 0) {
@@ -176,7 +176,8 @@ function extractInstagramEventId(payload: unknown): string {
     const entryTime = String(entry['time'] ?? '');
     if (entryId || entryTime) return `ig_${entryId}_${entryTime}`;
   }
-  return `ig_unknown_${Date.now()}`;
+  // SEC-4: deterministic fallback — SHA-256 of the raw body (no Date.now())
+  return `ig_sha_${crypto.createHash('sha256').update(rawBody).digest('hex').slice(0, 32)}`;
 }
 
 function extractStripeEventId(payload: unknown): string {
