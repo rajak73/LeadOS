@@ -7,7 +7,10 @@ export type FlagKey =
   | 'whatsapp.sends.enabled'
   | 'ai.scoring.enabled'
   | 'workflows.execution.enabled'
-  | 'signups.enabled';
+  | 'signups.enabled'
+  // Sprint 7 M1 — email notification channel. Default OFF until the sending
+  // domain is SPF/DKIM-verified; in-app notifications are unaffected by this flag.
+  | 'notifications.email.enabled';
 
 const DEFAULTS: Record<FlagKey, boolean> = {
   'instagram.sends.enabled': true,
@@ -15,6 +18,7 @@ const DEFAULTS: Record<FlagKey, boolean> = {
   'ai.scoring.enabled': true,
   'workflows.execution.enabled': true,
   'signups.enabled': true,
+  'notifications.email.enabled': false,
 };
 
 const overrides = new Map<FlagKey, boolean>();

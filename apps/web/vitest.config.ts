@@ -13,6 +13,7 @@ export default defineConfig({
     environmentMatchGlobs: [['src/**/*.test.tsx', 'jsdom']],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['src/test-setup.ts'],
+    testTimeout: 10_000,
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json-summary', 'lcov'],

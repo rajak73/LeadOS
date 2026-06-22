@@ -37,6 +37,10 @@ const SPRINT_6_INSTAGRAM_TABLES = [
   'instagram_conversations',
   'messages',
 ];
+const SPRINT_7_NOTIFICATION_TABLES = [
+  'notifications',
+  'notification_preferences',
+];
 const ALL_TENANT_TABLES = [
   ...SPRINT_3_TABLES,
   'pipelines',
@@ -45,11 +49,12 @@ const ALL_TENANT_TABLES = [
   'webhook_events',
   ...SPRINT_4_CRM_TABLES,
   ...SPRINT_6_INSTAGRAM_TABLES,
+  ...SPRINT_7_NOTIFICATION_TABLES,
 ];
 
 describe('tenant-table registry', () => {
-  it('lists exactly 22 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram)', () => {
-    expect(TENANT_TABLES).toHaveLength(22);
+  it('lists exactly 24 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram + Sprint 7 Notifications)', () => {
+    expect(TENANT_TABLES).toHaveLength(24);
     expect([...TENANT_TABLES].sort()).toEqual(ALL_TENANT_TABLES.sort());
   });
 

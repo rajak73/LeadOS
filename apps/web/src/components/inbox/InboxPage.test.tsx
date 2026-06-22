@@ -15,8 +15,7 @@ vi.mock('@/lib/socket/client', () => ({
 }));
 
 import * as socketClient from '@/lib/socket/client';
-const mockConnectSocket = vi.mocked(socketClient.connectSocket);
-const mockDisconnectSocket = vi.mocked(socketClient.disconnectSocket);
+const mockUseSocketEvent = vi.mocked(socketClient.useSocketEvent);
 
 function successConvResponse(items: ReturnType<typeof makeConversation>[]) {
   return {
@@ -48,11 +47,6 @@ describe('InboxPage', () => {
       expect(screen.getByText('Mine')).toBeInTheDocument();
       expect(screen.getByText('Unassigned')).toBeInTheDocument();
     });
-  });
-
-  it('bootstraps socket on mount with fresh access token', async () => {
-    renderWithProviders(<InboxPage />);
-    await waitFor(() => expect(mockConnectSocket).toHaveBeenCalledWith('token-abc'));
   });
 
   it('shows empty state placeholder when no conversation is selected', async () => {
@@ -94,10 +88,21 @@ describe('InboxPage', () => {
     await waitFor(() => expect(screen.getAllByText('Alice Smith').length).toBeGreaterThan(1));
   });
 
-  // Suppress unused variable warnings for mocks only used for side-effect verification
-  it('disconnects socket on unmount', () => {
-    const { unmount } = renderWithProviders(<InboxPage />);
-    unmount();
-    expect(mockDisconnectSocket).toHaveBeenCalled();
+  // Socket lifecycle (connect on mount, disconnect on unmount, reconnect on drop) moved to
+  // the dashboard chrome in Sprint 7 M1 (R-RT-1); see AppChrome.test.tsx. InboxPage now only
+  // subscribes to 'inbox:message' on the shared socket — exercised by the realtime test below.
+  it('invalidates conversation queries on an inbox:message socket event (R-RT-1 regression)', async () => {
+    const handlers: Record<string, (data: unknown) => void> = {};
+    mockUseSocketEvent.mockImplementation((event: string, handler: (data: unknown) => void) => {
+      handlers[event] = handler;
+    });
+
+    renderWithProviders(<InboxPage />);
+    await waitFor(() => expect(screen.getByText('All')).toBeInTheDocument());
+
+    // The inbox must register an 'inbox:message' listener on the shared socket.
+    expect(handlers['inbox:message']).toBeTypeOf('function');
+    // Firing it must not throw (it invalidates the conversations / messages queries).
+    expect(() => handlers['inbox:message']?.({ conversationId: 'c1', message: {} })).not.toThrow();
   });
 });

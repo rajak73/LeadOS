@@ -167,6 +167,12 @@ enum ActivityType {
   MESSAGE_SENT
   INSTAGRAM_ACCOUNT_CONNECTED
   INSTAGRAM_ACCOUNT_DISCONNECTED
+  // Sprint 7 M1 additions — Notification engine + scaffolds for M2/M3/M4 (R-PARITY-1)
+  NOTIFICATION_SENT
+  LEAD_SCORED
+  WORKFLOW_TRIGGERED
+  WORKFLOW_ACTION_EXECUTED
+  FOLLOW_UP_CREATED
 }
 
 // MessageDirection already in enums.ts; parity-checked against this declaration.
@@ -192,6 +198,17 @@ enum MessageStatus {
   DELIVERED
   READ
   FAILED
+}
+
+// Sprint 7 M1 — Notification engine enums
+enum NotificationType {
+  INBOX_MESSAGE
+  CONVERSATION_ASSIGNED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
 }
 
 // Sprint 4 — custom field enums (FR-LEAD-009)
@@ -264,6 +281,9 @@ model User {
   createdDeals            Deal[]                  @relation("DealCreator")
   // Sprint 6 Instagram Inbox relations
   assignedConversations   InstagramConversation[] @relation("ConversationAssignee")
+  // Sprint 7 Notification relations
+  notifications           Notification[]           @relation("NotificationRecipient")
+  notificationPreferences NotificationPreference[] @relation("NotificationPrefUser")
 
   @@index([status])
   @@map("users")
@@ -307,6 +327,9 @@ model Organization {
   instagramAccounts      InstagramAccount[]
   instagramConversations InstagramConversation[]
   messages               Message[]
+  // Sprint 7 Notification relations
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@index([status])
   @@map("organizations")
@@ -622,6 +645,7 @@ model Activity {
   relatedContactId String?      @db.Uuid
   relatedPipelineId      String? @db.Uuid
   relatedPipelineStageId String? @db.Uuid
+  relatedConversationId  String? @db.Uuid // Sprint 7 M1 — closes §5.1 deferral (scalar-only, mirrors pipeline FKs)
   createdAt        DateTime     @default(now())
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -636,7 +660,48 @@ model Activity {
   @@index([organizationId, relatedContactId, createdAt(sort: Desc)])
   @@index([organizationId, relatedPipelineId, createdAt(sort: Desc)])
   @@index([organizationId, relatedPipelineStageId, createdAt(sort: Desc)])
+  @@index([organizationId, relatedConversationId, createdAt(sort: Desc)])
   @@map("activities")
+}
+
+// ─── Sprint 7 M1 — Notification engine ───────────────────────────────────────
+// Persistent per-user notifications (persist-then-emit). In-app is the primary
+// channel; email is a flag-gated secondary channel (notifications.email.enabled).
+model Notification {
+  id             String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String              @db.Uuid
+  userId         String              @db.Uuid // recipient
+  type           NotificationType
+  title          String              @db.VarChar(200)
+  body           String              @db.Text
+  entityType     String?             @db.VarChar(40) // 'conversation' | 'lead' | 'deal' | ...
+  entityId       String?             @db.Uuid
+  channel        NotificationChannel @default(IN_APP)
+  readAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipient    User         @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId, readAt, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String           @db.Uuid
+  userId         String           @db.Uuid
+  type           NotificationType
+  inApp          Boolean          @default(true)
+  email          Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("NotificationPrefUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, type])
+  @@map("notification_preferences")
 }
 
 // Note — content stored as ProseMirror/Tiptap JSON (JSONB). Never render as raw HTML.

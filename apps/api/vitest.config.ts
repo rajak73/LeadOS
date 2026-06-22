@@ -15,6 +15,7 @@ export default defineConfig({
     // Headroom for pure-JS bcryptjs (TD-S2-1) cost-factor ops running under parallel test
     // load; CI additionally lowers BCRYPT_COST so the suite stays well under this ceiling.
     testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json-summary', 'lcov'],

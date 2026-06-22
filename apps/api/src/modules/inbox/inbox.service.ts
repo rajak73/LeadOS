@@ -23,6 +23,7 @@ import {
 } from './inbox.repository.js';
 import type { Message, SavedReply } from '@prisma/client';
 import { PrismaLeadRepository } from '../leads/lead.repository.js';
+import { NotificationService } from '../notifications/notification.service.js';
 
 export interface ConversationPage {
   items: ConversationWithRelations[];
@@ -147,12 +148,51 @@ export class InboxService {
     patch: { assignedToId?: string | null; status?: 'OPEN' | 'CLOSED' },
   ): Promise<ConversationWithRelations> {
     const ctx = requireTenantContext();
-    return withTenant(ctx.organizationId, async (db) => {
+    const { before, after } = await withTenant(ctx.organizationId, async (db) => {
       const repo = new PrismaConversationRepository(db);
-      await repo.findByIdOrThrow(id); // confirms conversation belongs to this org
+      const prev = await repo.findByIdOrThrow(id); // confirms conversation belongs to this org
       await repo.update(id, patch);
-      return repo.findByIdOrThrow(id);
+      const next = await repo.findByIdOrThrow(id);
+      return { before: prev, after: next };
     });
+
+    // Sprint 7 M1 — notify a newly assigned agent (post-commit, fire-and-forget; never
+    // notify on self-assignment). API process → emitToOrg for the live realtime hint.
+    const newAssignee = after.assignedToId;
+    if (
+      'assignedToId' in patch &&
+      newAssignee &&
+      newAssignee !== before.assignedToId &&
+      newAssignee !== ctx.userId
+    ) {
+      try {
+        const convName = after.lead
+          ? `${after.lead.firstName}${after.lead.lastName ? ` ${after.lead.lastName}` : ''}`
+          : after.igAccount.igUsername ?? 'a conversation';
+        const created = await new NotificationService().notify({
+          organizationId: ctx.organizationId,
+          userId: newAssignee,
+          type: 'CONVERSATION_ASSIGNED',
+          title: 'You were assigned a conversation',
+          body: `Conversation with ${convName} was assigned to you`,
+          entityType: 'conversation',
+          entityId: id,
+          performedById: ctx.userId,
+          email: {
+            templateKey: 'conversation_assigned',
+            data: { conversationName: convName, assignedByName: 'A teammate' },
+          },
+        });
+        if (created) {
+          const { emitToOrg } = await import('../../core/realtime/socket-server.js');
+          emitToOrg(ctx.organizationId, 'notification', { id: created.id });
+        }
+      } catch (err) {
+        logger.warn({ message: 'Assignment notification failed (non-fatal)', error: String(err) });
+      }
+    }
+
+    return after;
   }
 
   async listMessages(conversationId: string, query: MessageListQuery): Promise<MessagePage> {

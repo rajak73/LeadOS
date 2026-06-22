@@ -2,19 +2,27 @@
 //
 // Tests cover: POST send (happy path), window expiry (409), feature-flag kill switch (503),
 // inbox.reply_own FORBIDDEN (403), delivered status webhook, read status webhook,
-// firstResponseAt SLA stamp (set on first send), firstResponseAt immutability (not updated).
+// firstResponseAt SLA stamp (set on first send), firstResponseAt immutability (not updated),
+// per-account rate limiting (M4-GAP-1 fix).
 //
 // Real Postgres + Redis required; self-skips if unavailable.
 // The send worker (processInstagramSendJob) is exercised separately from the HTTP layer —
 // HTTP tests verify the service/controller/queue, not the async Meta API call.
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import IORedis from 'ioredis';
 import request from 'supertest';
 import { buildApp } from '../../src/app.js';
 import { prisma } from '../../src/core/prisma/client.js';
 import { isPostgresUp, isRedisUp } from '../helpers/services.js';
 import { signAccessToken } from '../../src/core/auth/jwt.js';
 import { processWebhookJob } from '../../src/core/queue/workers/webhook.worker.js';
+import {
+  checkAccountRateLimit,
+  rateLimitKey,
+  INSTAGRAM_SEND_RATE_MAX,
+  INSTAGRAM_SEND_RATE_WINDOW_MS,
+} from '../../src/core/queue/workers/instagram-send.worker.js';
 import * as envModule from '../../src/core/config/env.js';
 
 const pgUp = await isPostgresUp();
@@ -456,4 +464,106 @@ describe('Instagram Inbox — Send Pipeline', () => {
     });
   });
 
+});
+
+// ─── Per-account rate limiting (M4-GAP-1) ────────────────────────────────────
+//
+// These tests exercise checkAccountRateLimit() directly against a real Redis instance.
+// They do not go through the HTTP/worker layer — they prove the rate-limit primitive works.
+
+describe('Instagram Send — per-account rate limiting (checkAccountRateLimit)', () => {
+  let rlRedis: IORedis;
+
+  beforeAll(async () => {
+    if (!infra) return;
+    rlRedis = new IORedis(envModule.env.REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: false });
+  });
+
+  afterAll(async () => {
+    if (!infra) return;
+    await rlRedis.quit();
+  });
+
+  it('allows sends up to the configured rate limit max', async () => {
+    if (!infra) return;
+
+    const id = `rl-test-allow-${Date.now()}`;
+    await rlRedis.del(rateLimitKey(id));
+
+    for (let i = 0; i < INSTAGRAM_SEND_RATE_MAX; i++) {
+      const allowed = await checkAccountRateLimit(id, rlRedis);
+      expect(allowed).toBe(true);
+    }
+  });
+
+  it('denies sends that exceed the rate limit max within the same window', async () => {
+    if (!infra) return;
+
+    const id = `rl-test-deny-${Date.now()}`;
+    await rlRedis.del(rateLimitKey(id));
+
+    // Exhaust the limit
+    for (let i = 0; i < INSTAGRAM_SEND_RATE_MAX; i++) {
+      await checkAccountRateLimit(id, rlRedis);
+    }
+
+    // One more call must be denied
+    const denied = await checkAccountRateLimit(id, rlRedis);
+    expect(denied).toBe(false);
+  });
+
+  it('allows sends again after the window expires', async () => {
+    if (!infra) return;
+
+    const id = `rl-test-reset-${Date.now()}`;
+    const shortWindowMs = 150; // short window so the test completes quickly
+    await rlRedis.del(rateLimitKey(id));
+
+    // Exhaust limit with short window
+    for (let i = 0; i < INSTAGRAM_SEND_RATE_MAX; i++) {
+      await checkAccountRateLimit(id, rlRedis, INSTAGRAM_SEND_RATE_MAX, shortWindowMs);
+    }
+
+    // Verify denied within window
+    const deniedMidWindow = await checkAccountRateLimit(id, rlRedis, INSTAGRAM_SEND_RATE_MAX, shortWindowMs);
+    expect(deniedMidWindow).toBe(false);
+
+    // Wait for window to expire
+    await new Promise((r) => setTimeout(r, shortWindowMs + 50));
+
+    // Counter should have expired — first call in new window is allowed
+    const allowedAfterReset = await checkAccountRateLimit(id, rlRedis, INSTAGRAM_SEND_RATE_MAX, shortWindowMs);
+    expect(allowedAfterReset).toBe(true);
+  });
+
+  it('rate limits each account independently (accounts do not share counters)', async () => {
+    if (!infra) return;
+
+    const idA = `rl-test-isolate-a-${Date.now()}`;
+    const idB = `rl-test-isolate-b-${Date.now()}`;
+    await rlRedis.del(rateLimitKey(idA));
+    await rlRedis.del(rateLimitKey(idB));
+
+    // Exhaust account A's limit
+    for (let i = 0; i < INSTAGRAM_SEND_RATE_MAX; i++) {
+      await checkAccountRateLimit(idA, rlRedis);
+    }
+
+    // Account A denied
+    const aAllowed = await checkAccountRateLimit(idA, rlRedis);
+    expect(aAllowed).toBe(false);
+
+    // Account B is unaffected — first call must be allowed
+    const bAllowed = await checkAccountRateLimit(idB, rlRedis);
+    expect(bAllowed).toBe(true);
+  });
+
+  it('rate limit key has the expected format', () => {
+    expect(rateLimitKey('abc-123')).toBe('rl:ig-send:abc-123');
+  });
+
+  it('default constants are defined and positive', () => {
+    expect(INSTAGRAM_SEND_RATE_MAX).toBeGreaterThan(0);
+    expect(INSTAGRAM_SEND_RATE_WINDOW_MS).toBeGreaterThan(0);
+  });
 });

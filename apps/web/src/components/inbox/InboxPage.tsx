@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ConversationList } from './ConversationList';
 import { ThreadView } from './ThreadView';
-import { connectSocket, disconnectSocket, useSocketEvent } from '@/lib/socket/client';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useSocketEvent } from '@/lib/socket/client';
 import type { Conversation, Message } from '@/lib/types/api';
 import type { ConversationFilters } from '@/lib/hooks/useConversations';
 
@@ -25,36 +26,8 @@ export function InboxPage({ currentUserId }: InboxPageProps) {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const queryClient = useQueryClient();
 
-  // Bootstrap socket on mount via fresh token fetch
-  useEffect(() => {
-    let active = true;
-    fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
-      .then((res) => res.json())
-      .then((json: { data?: { accessToken?: string } }) => {
-        const token = json?.data?.accessToken;
-        if (token && active) connectSocket(token);
-      })
-      .catch(() => {
-        // No socket on token failure — polling still works via React Query
-      });
-    return () => {
-      active = false;
-      disconnectSocket();
-    };
-  }, []);
-
-  // Socket disconnect → refresh → reconnect
-  const handleDisconnect = useCallback(() => {
-    fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
-      .then((res) => res.json())
-      .then((json: { data?: { accessToken?: string } }) => {
-        const token = json?.data?.accessToken;
-        if (token) connectSocket(token);
-      })
-      .catch(() => undefined);
-  }, []);
-
-  useSocketEvent('disconnect', handleDisconnect);
+  // The dashboard layout (AppChrome) owns the socket connection + disconnect/reconnect
+  // (R-RT-1). The inbox just subscribes to inbox-specific events on the shared singleton.
 
   // New inbound message → update query cache
   const handleNewMessage = useCallback(
@@ -112,8 +85,12 @@ export function InboxPage({ currentUserId }: InboxPageProps) {
             currentUserId={currentUserId ?? null}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <p className="text-text-secondary text-sm">Select a conversation to get started</p>
+          <div className="flex items-center justify-center h-full">
+            <EmptyState
+              icon="💬"
+              title="Select a conversation to get started"
+              description="Choose a conversation from the list on the left."
+            />
           </div>
         )}
       </main>

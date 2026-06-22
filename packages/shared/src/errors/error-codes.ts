@@ -18,6 +18,8 @@ export const ErrorCode = {
   FEATURE_DISABLED: 'FEATURE_DISABLED',
   INVALID_OAUTH_STATE: 'INVALID_OAUTH_STATE',
   DUPLICATE_INSTAGRAM_ACCOUNT: 'DUPLICATE_INSTAGRAM_ACCOUNT',
+  // Sprint 7 M1 — Notification engine
+  NOTIFICATION_NOT_FOUND: 'NOTIFICATION_NOT_FOUND',
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
@@ -37,4 +39,5 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   FEATURE_DISABLED: 503,
   INVALID_OAUTH_STATE: 400,
   DUPLICATE_INSTAGRAM_ACCOUNT: 409,
+  NOTIFICATION_NOT_FOUND: 404,
 };

@@ -9,6 +9,7 @@ import { DealHealthBadge } from './DealHealthBadge';
 import { LostReasonModal } from '@/components/kanban/LostReasonModal';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { useDealDetail } from '@/lib/hooks/useDealDetail';
 import { useMarkWon } from '@/lib/hooks/useDealActions';
@@ -54,12 +55,24 @@ export function DealDetailPage({ dealId, initialDeal }: DealDetailPageProps) {
     {
       value: 'notes',
       label: 'Notes',
-      content: <div className="text-sm text-text-tertiary py-8 text-center">Coming soon</div>,
+      content: (
+        <EmptyState
+          icon="📝"
+          title="No notes yet"
+          description="Notes for this deal will appear here once the Notes module ships in a future sprint."
+        />
+      ),
     },
     {
       value: 'files',
       label: 'Files',
-      content: <div className="text-sm text-text-tertiary py-8 text-center">Coming soon</div>,
+      content: (
+        <EmptyState
+          icon="📎"
+          title="No files attached"
+          description="File uploads for this deal will be available in a future sprint."
+        />
+      ),
     },
   ];
 

@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
 import { InstagramAccountCard } from '@/components/settings/InstagramAccountCard';
 import {
   useInstagramAccounts,
@@ -19,9 +20,9 @@ export function InstagramIntegrationView() {
   const disconnectMutation = useDisconnectInstagramAccount();
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6 max-w-screen-lg">
       <div>
-        <h1 className="text-lg font-semibold text-text-primary">Instagram Integration</h1>
+        <h1 className="text-xl font-semibold text-text-primary">Instagram Integration</h1>
         <p className="mt-1 text-sm text-text-secondary">
           Connect Instagram accounts to receive and reply to DMs from within LeadOS.
         </p>
@@ -52,7 +53,9 @@ export function InstagramIntegrationView() {
         </div>
 
         {isLoading ? (
-          <div className="text-sm text-text-tertiary">Loading…</div>
+          <div className="flex items-center justify-center py-8">
+            <Spinner />
+          </div>
         ) : accounts.length === 0 ? (
           <div className="rounded-lg border border-border border-dashed px-4 py-6 text-center text-sm text-text-tertiary">
             No Instagram accounts connected yet.

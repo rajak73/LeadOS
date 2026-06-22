@@ -42,6 +42,7 @@ export class ActivityService {
         relatedDealId: input.relatedDealId ?? null,
         relatedPipelineId: input.relatedPipelineId ?? null,
         relatedPipelineStageId: input.relatedPipelineStageId ?? null,
+        relatedConversationId: input.relatedConversationId ?? null,
       }),
     });
 

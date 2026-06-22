@@ -21,6 +21,8 @@ import {
   reEnqueueStalePendingWebhooks,
 } from './workers/webhook.worker.js';
 import { createInstagramSendWorker } from './workers/instagram-send.worker.js';
+import { NOTIFICATION_DELIVERY_JOB, processNotificationDeliveryJob } from './workers/notification-delivery.worker.js';
+import { EMAIL_DELIVERY_JOB, processEmailDeliveryJob } from './workers/email-delivery.worker.js';
 
 const workers: Worker[] = [];
 
@@ -97,6 +99,21 @@ export function startWorkers(): Worker[] {
   // Sprint 6 M1 — Instagram send worker (stub; full implementation in M2).
   const instagramSendWorker = createInstagramSendWorker();
   workers.push(instagramSendWorker);
+
+  // Sprint 7 M1 — Notification + email delivery workers.
+  registerWorker('notification-delivery', async (job) => {
+    if (job.name === NOTIFICATION_DELIVERY_JOB) {
+      return processNotificationDeliveryJob(job);
+    }
+    return undefined;
+  });
+
+  registerWorker('email-delivery', async (job) => {
+    if (job.name === EMAIL_DELIVERY_JOB) {
+      return processEmailDeliveryJob(job);
+    }
+    return undefined;
+  });
 
   // Re-enqueue PENDING webhook events orphaned by a crash between DB write and Redis enqueue.
   void reEnqueueStalePendingWebhooks().catch((err: Error) => {

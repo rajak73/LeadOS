@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { PrimaryNavLinks } from '@/components/nav/NavLinks';
+import { AppChrome } from '@/components/app/AppChrome';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-bg-base text-text-primary">
       <aside className="w-56 shrink-0 border-r border-border bg-bg-elevated flex flex-col">
-        <div className="px-4 py-5 border-b border-border">
+        <div className="px-4 py-5 border-b border-border flex items-center justify-between">
           <span className="text-sm font-semibold text-text-primary">LeadOS</span>
+          <AppChrome />
         </div>
         <nav className="flex-1 px-2 py-4 space-y-0.5">
           <PrimaryNavLinks />

@@ -158,6 +158,14 @@ export const ActivityType = {
   MESSAGE_SENT: 'MESSAGE_SENT',
   INSTAGRAM_ACCOUNT_CONNECTED: 'INSTAGRAM_ACCOUNT_CONNECTED',
   INSTAGRAM_ACCOUNT_DISCONNECTED: 'INSTAGRAM_ACCOUNT_DISCONNECTED',
+  // Sprint 7 M1 — Notification engine (NOTIFICATION_SENT is emitted now).
+  // The remaining four are scaffolded for parity so later milestones (M2 scoring,
+  // M3 workflows, M4 follow-ups) do not require a four-file enum edit (R-PARITY-1).
+  NOTIFICATION_SENT: 'NOTIFICATION_SENT',
+  LEAD_SCORED: 'LEAD_SCORED',
+  WORKFLOW_TRIGGERED: 'WORKFLOW_TRIGGERED',
+  WORKFLOW_ACTION_EXECUTED: 'WORKFLOW_ACTION_EXECUTED',
+  FOLLOW_UP_CREATED: 'FOLLOW_UP_CREATED',
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 

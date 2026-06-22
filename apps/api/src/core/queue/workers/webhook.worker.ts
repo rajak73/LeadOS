@@ -262,6 +262,9 @@ async function processInstagramMessage(
 
   let conversationId: string | null = null;
   let messageId: string | null = null;
+  let assignedToId: string | null = null;
+  const senderName = senderIgUserId;
+  let preview = '';
 
   await withTenant(orgId, async (db) => {
     const convRepo = new PrismaConversationRepository(db);
@@ -300,6 +303,8 @@ async function processInstagramMessage(
 
     conversationId = conversation.id;
     messageId = newMsg.id;
+    assignedToId = conversation.assignedToId;
+    preview = text ?? '[attachment]';
 
     // 3. Find or create lead by instagramUserId
     const lead = await findOrCreateLead(db, senderIgUserId, systemUserId);
@@ -335,6 +340,31 @@ async function processInstagramMessage(
       notifyOrg(orgId, 'instagram:message', { conversationId, messageId });
     } catch (err) {
       logger.warn({ message: 'Socket.io notification failed (non-fatal)', orgId, error: String(err) });
+    }
+  }
+
+  // 9. Sprint 7 M1 — persist a notification for the assigned agent (DM1-a: only when assigned;
+  //    unassigned conversations rely on the org-room emit above + the Unassigned tab).
+  //    Post-commit + fire-and-forget — never fails message ingestion.
+  if (conversationId && messageId && assignedToId) {
+    try {
+      const { NotificationService } = await import('../../../modules/notifications/notification.service.js');
+      const created = await new NotificationService().notify({
+        organizationId: orgId,
+        userId: assignedToId,
+        type: 'INBOX_MESSAGE',
+        title: `New message from ${senderName}`,
+        body: preview,
+        entityType: 'conversation',
+        entityId: conversationId,
+        email: { templateKey: 'inbox_message', data: { senderName, preview } },
+      });
+      if (created) {
+        const { notifyOrg } = await import('../../realtime/notification-publisher.js');
+        notifyOrg(orgId, 'notification', { id: created.id });
+      }
+    } catch (err) {
+      logger.warn({ message: 'Notification persist failed (non-fatal)', orgId, error: String(err) });
     }
   }
 }

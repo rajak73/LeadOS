@@ -3,6 +3,7 @@
 import type { Conversation } from '@/lib/types/api';
 import { formatRelativeTime } from '@/lib/types/api';
 import { Badge } from '@/components/ui/Badge';
+import { AvatarInitials } from '@/components/ui/AvatarInitials';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -15,19 +16,21 @@ export function ConversationItem({ conversation, isActive, onClick }: Conversati
     ? `${conversation.lead.firstName} ${conversation.lead.lastName ?? ''}`.trim()
     : 'Unknown';
 
-  const preview = '';
+  const preview = conversation.igAccount?.igUsername
+    ? `@${conversation.igAccount.igUsername}`
+    : conversation.lead?.instagramHandle
+      ? `@${conversation.lead.instagramHandle}`
+      : null;
 
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex items-start gap-3 px-4 py-3 border-b border-border/40 last:border-0 cursor-pointer w-full text-left transition-colors ${
-        isActive ? 'bg-bg-subtle' : 'hover:bg-bg-subtle'
+        isActive ? 'bg-bg-subtle border-l-2 border-l-primary-500' : 'hover:bg-bg-subtle'
       }`}
     >
-      <div className="w-8 h-8 rounded-full bg-bg-muted flex items-center justify-center text-xs font-medium text-text-secondary shrink-0">
-        {leadName.charAt(0).toUpperCase()}
-      </div>
+      <AvatarInitials name={leadName} size="md" className="mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-text-primary truncate">{leadName}</p>

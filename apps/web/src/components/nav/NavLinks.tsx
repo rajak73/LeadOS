@@ -34,6 +34,7 @@ export function PrimaryNavLinks() {
       <NavLink href="/leads" icon="👥" label="Leads" />
       <NavLink href="/pipeline" icon="📊" label="Pipeline" />
       <NavLink href="/inbox" icon="💬" label="Inbox" />
+      <NavLink href="/notifications" icon="🔔" label="Notifications" />
     </>
   );
 }

@@ -216,6 +216,44 @@ export interface InstagramAccountDisconnectedMetadata {
   igUsername: string;
 }
 
+// Notification engine — Sprint 7 M1 (emitted now).
+export interface NotificationSentMetadata {
+  type: typeof ActivityType.NOTIFICATION_SENT;
+  notificationId: string;
+  notificationType: string; // NotificationType enum value
+  recipientUserId: string;
+  channel: string; // NotificationChannel enum value
+}
+
+// Scaffolds for later milestones — present now so enum parity and the exhaustive
+// discriminated union compile once (R-PARITY-1). Shapes are finalized in M2/M3/M4.
+export interface LeadScoredMetadata {
+  type: typeof ActivityType.LEAD_SCORED;
+  leadId: string;
+  score: number;
+  previousScore?: number;
+}
+
+export interface WorkflowTriggeredMetadata {
+  type: typeof ActivityType.WORKFLOW_TRIGGERED;
+  workflowId: string;
+  workflowRunId: string;
+  triggerEvent: string;
+}
+
+export interface WorkflowActionExecutedMetadata {
+  type: typeof ActivityType.WORKFLOW_ACTION_EXECUTED;
+  workflowId: string;
+  workflowRunId: string;
+  action: string;
+}
+
+export interface FollowUpCreatedMetadata {
+  type: typeof ActivityType.FOLLOW_UP_CREATED;
+  taskId: string;
+  reason: string;
+}
+
 // ─── Union ────────────────────────────────────────────────────────────────────
 
 export type ActivityMetadata =
@@ -249,7 +287,12 @@ export type ActivityMetadata =
   | MessageReceivedMetadata
   | MessageSentMetadata
   | InstagramAccountConnectedMetadata
-  | InstagramAccountDisconnectedMetadata;
+  | InstagramAccountDisconnectedMetadata
+  | NotificationSentMetadata
+  | LeadScoredMetadata
+  | WorkflowTriggeredMetadata
+  | WorkflowActionExecutedMetadata
+  | FollowUpCreatedMetadata;
 
 // ─── Input type for ActivityService.append() ─────────────────────────────────
 
@@ -264,4 +307,5 @@ export interface ActivityAppendInput {
   relatedDealId?: string;
   relatedPipelineId?: string;
   relatedPipelineStageId?: string;
+  relatedConversationId?: string; // Sprint 7 M1 — §5.1 deferral closed
 }

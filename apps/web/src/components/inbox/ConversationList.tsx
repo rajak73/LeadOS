@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from 'react';
 import { Spinner } from '@/components/ui/Spinner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ConversationItem } from './ConversationItem';
 import { useConversations, type ConversationFilters } from '@/lib/hooks/useConversations';
 import type { Conversation } from '@/lib/types/api';
@@ -42,9 +43,11 @@ export function ConversationList({ filters, selectedId, onSelect }: Conversation
 
   if (!conversations.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        <p className="text-sm text-text-secondary">No conversations</p>
-      </div>
+      <EmptyState
+        icon="💬"
+        title="No conversations"
+        description="Conversations from connected Instagram accounts will appear here."
+      />
     );
   }
 

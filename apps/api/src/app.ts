@@ -32,6 +32,7 @@ import { buildDealsModule } from './modules/deals/index.js';
 import { buildWebhooksModule } from './modules/webhooks/index.js';
 import { buildInstagramCallbackModule, buildInstagramModule } from './modules/instagram/index.js';
 import { buildInboxModule } from './modules/inbox/index.js';
+import { buildNotificationsModule } from './modules/notifications/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -80,6 +81,7 @@ export function buildApp(): Express {
   v1.use('/deals', buildDealsModule(rbac.requirePermission));
   v1.use('/instagram', buildInstagramModule(rbac.requirePermission));
   v1.use('/inbox', buildInboxModule(rbac.requirePermission));
+  v1.use('/notifications', buildNotificationsModule(rbac.requirePermission));
   app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, v1);
 
   // Terminal handlers.

@@ -52,6 +52,13 @@ export const DomainEvent = {
   MESSAGE_SENT: 'MESSAGE_SENT',
   INSTAGRAM_ACCOUNT_CONNECTED: 'INSTAGRAM_ACCOUNT_CONNECTED',
   INSTAGRAM_ACCOUNT_DISCONNECTED: 'INSTAGRAM_ACCOUNT_DISCONNECTED',
+  // Sprint 7 M1 — Notification engine + scaffolds for M2/M3/M4 (R-PARITY-1).
+  // Values MUST match the ActivityType enum and prisma/schema.prisma exactly.
+  NOTIFICATION_SENT: 'NOTIFICATION_SENT',
+  LEAD_SCORED: 'LEAD_SCORED',
+  WORKFLOW_TRIGGERED: 'WORKFLOW_TRIGGERED',
+  WORKFLOW_ACTION_EXECUTED: 'WORKFLOW_ACTION_EXECUTED',
+  FOLLOW_UP_CREATED: 'FOLLOW_UP_CREATED',
 } as const;
 export type DomainEvent = (typeof DomainEvent)[keyof typeof DomainEvent];
 

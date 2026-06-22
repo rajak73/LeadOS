@@ -71,6 +71,13 @@ const envSchema = z.object({
   // Sprint 6 M4 — Kill switch for Instagram outbound sends. Defaults to enabled.
   // Set to 'false' to disable all sends without a deploy (e.g. during Meta API incidents).
   FLAG_INSTAGRAM_SENDS_ENABLED: z.coerce.boolean().default(true),
+
+  // Sprint 7 M1 — Email delivery (SendGrid). Optional everywhere; only required in
+  // production when the notifications.email.enabled flag is on (guard enforced below).
+  // Without SENDGRID_API_KEY the email channel degrades to LoggingEmailSender.
+  SENDGRID_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().email().optional(),
+  EMAIL_REPLY_TO: z.string().email().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -112,6 +119,13 @@ if (env.NODE_ENV === 'production') {
   }
   if (!env.INSTAGRAM_APP_ID) insecure.push('INSTAGRAM_APP_ID');
   if (!env.INSTAGRAM_OAUTH_REDIRECT_URI) insecure.push('INSTAGRAM_OAUTH_REDIRECT_URI');
+  // Email is opt-in: only require SendGrid config when the email channel is turned on.
+  // (Read the env override directly to avoid importing the flags module into config.)
+  const emailFlag = process.env['FLAG_NOTIFICATIONS_EMAIL_ENABLED'];
+  if (emailFlag === 'true' || emailFlag === '1') {
+    if (!env.SENDGRID_API_KEY) insecure.push('SENDGRID_API_KEY (required when notifications.email.enabled)');
+    if (!env.EMAIL_FROM) insecure.push('EMAIL_FROM (required when notifications.email.enabled)');
+  }
   if (insecure.length > 0) {
     throw new Error(`Refusing to start in production with missing/default secrets: ${insecure.join(', ')}`);
   }
