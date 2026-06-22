@@ -5,14 +5,16 @@ import { GET, PUT } from './route';
 afterEach(() => vi.restoreAllMocks());
 
 function req(method: 'GET' | 'PUT', cookie?: string): NextRequest {
-  const init: RequestInit = {
+  const init = {
     method,
     headers: cookie ? { cookie } : {},
+    ...(method === 'PUT' ? { body: JSON.stringify({ inApp: true }) } : {}),
   };
-  if (method === 'PUT') {
-    init.body = JSON.stringify({ inApp: true });
-  }
-  return new NextRequest('http://localhost:3000/api/bff/notifications/preferences', init);
+
+  return new NextRequest(
+    'http://localhost:3000/api/bff/notifications/preferences',
+    init,
+  );
 }
 
 function mockAuthedFetch(apiStatus: number, apiBody: unknown) {
