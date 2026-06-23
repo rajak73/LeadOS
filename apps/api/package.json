@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "dev:worker": "tsx watch src/worker.ts",
+    "dev": "node --env-file=../../.env --import tsx --watch src/server.ts",
+    "dev:worker": "node --env-file=../../.env --import tsx --watch src/worker.ts",
     "build": "tsup",
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
