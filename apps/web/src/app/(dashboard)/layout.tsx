@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { AppChrome } from '@/components/app/AppChrome';
@@ -22,8 +22,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<{ firstName: string; lastName: string; email: string } | null>(null);
   const [org, setOrg] = useState<{ name: string } | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const verifyStarted = useRef(false);
 
   useEffect(() => {
+    if (verifyStarted.current) return;
+    verifyStarted.current = true;
+
     async function verifySession() {
       try {
         const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
