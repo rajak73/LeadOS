@@ -33,6 +33,12 @@ import { buildWebhooksModule } from './modules/webhooks/index.js';
 import { buildInstagramCallbackModule, buildInstagramModule } from './modules/instagram/index.js';
 import { buildInboxModule } from './modules/inbox/index.js';
 import { buildNotificationsModule } from './modules/notifications/index.js';
+import { buildWorkflowRouter } from './modules/workflow/workflow.routes.js';
+import { buildAnalyticsRouter } from './modules/analytics/analytics.routes.js';
+import { buildSearchRouter } from './modules/search/search.routes.js';
+import { buildBillingRouter } from './modules/billing/billing.routes.js';
+import { billingGuard } from './modules/billing/billing.middleware.js';
+import { buildWhatsAppModule } from './modules/whatsapp/index.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -50,6 +56,10 @@ export function buildApp(): Express {
 
   // Webhooks: RAW body BEFORE the JSON parser (HMAC verification needs raw bytes).
   app.use('/api/webhooks', express.raw({ type: '*/*', limit: '1mb' }), buildWebhooksModule());
+
+  // WhatsApp webhooks: mounted under the same raw-body middleware path.
+  // The WebhooksModule already mounts at /api/webhooks, so WhatsApp is handled inside webhook.worker.ts.
+  // The dedicated GET challenge handler is built into the WhatsApp route at /api/webhooks/whatsapp.
 
   // Instagram OAuth callback: PUBLIC, outside /api/v1. No auth/tenant middleware.
   // Browser is redirected here by Meta after the user approves OAuth.
@@ -82,7 +92,12 @@ export function buildApp(): Express {
   v1.use('/instagram', buildInstagramModule(rbac.requirePermission));
   v1.use('/inbox', buildInboxModule(rbac.requirePermission));
   v1.use('/notifications', buildNotificationsModule(rbac.requirePermission));
-  app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, v1);
+  v1.use('/workflows', buildWorkflowRouter(rbac.requirePermission));
+  v1.use('/analytics', buildAnalyticsRouter(rbac.requirePermission));
+  v1.use('/search', buildSearchRouter(rbac.requirePermission));
+  v1.use('/billing', buildBillingRouter(rbac.requirePermission));
+  v1.use('/whatsapp', buildWhatsAppModule(rbac.requirePermission));
+  app.use('/api/v1', apiRateLimit, authMiddleware, tenantMiddleware, billingGuard, v1);
 
   // Terminal handlers.
   app.use(notFoundHandler);

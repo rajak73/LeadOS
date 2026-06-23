@@ -7,6 +7,8 @@ import { useConvertLead } from '@/lib/hooks/useLeadActions';
 import { useToast } from '@/components/ui/Toast';
 import { LeadMetadataForm } from './LeadMetadataForm';
 import { LeadStatusBadge } from './LeadStatusBadge';
+import { LeadScoreBadge } from './LeadScoreBadge';
+import { LeadScorePopover } from './LeadScorePopover';
 import { LeadActivityFeed } from './LeadActivityFeed';
 import { LeadNotesList } from './LeadNotesList';
 import { LeadFilesList } from './LeadFilesList';
@@ -26,6 +28,7 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
   const { mutate: convert, isPending: converting } = useConvertLead();
   const { toast } = useToast();
   const [confirmConvert, setConfirmConvert] = useState(false);
+  const [showScoreDetails, setShowScoreDetails] = useState(false);
 
   if (isLoading || !lead) {
     return (
@@ -65,6 +68,7 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
             ← Back
           </Link>
           <LeadStatusBadge status={lead.status} />
+          <LeadScoreBadge score={lead.aiScore} onClick={() => setShowScoreDetails(true)} />
         </div>
 
         <LeadMetadataForm lead={lead} />
@@ -128,6 +132,12 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
       <div className="flex-[2] min-w-0 min-h-[400px] lg:min-h-0 border border-border rounded-xl overflow-hidden">
         <Tabs defaultValue="activity" tabs={tabs} />
       </div>
+
+      <LeadScorePopover
+        leadId={lead.id}
+        open={showScoreDetails}
+        onOpenChange={setShowScoreDetails}
+      />
     </div>
   );
 }

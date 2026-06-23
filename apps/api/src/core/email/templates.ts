@@ -45,6 +45,24 @@ export function conversationAssignedEmail(input: {
   return { subject, html, text };
 }
 
+export function leadScoredEmail(input: {
+  leadName: string;
+  score: string;
+  recommendation: string;
+}): RenderedEmail {
+  const subject = `Lead Score Update: ${input.leadName}`;
+  const html = shell(
+    subject,
+    `<p>The AI score for lead <strong>${escapeHtml(input.leadName)}</strong> has been updated:</p>` +
+      `<ul>` +
+      `<li>Score: <strong>${escapeHtml(input.score)}</strong></li>` +
+      `<li>Recommendation: ${escapeHtml(input.recommendation)}</li>` +
+      `</ul>`,
+  );
+  const text = `Lead ${input.leadName} score updated to ${input.score}. Recommendation: ${input.recommendation}.`;
+  return { subject, html, text };
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

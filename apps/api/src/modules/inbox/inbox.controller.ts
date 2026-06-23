@@ -4,7 +4,7 @@
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../core/http/envelope.js';
 import { AppError } from '../../core/errors/app-error.js';
-import { ErrorCode } from '@leados/shared';
+import { ErrorCode, type BulkConversationsInput } from '@leados/shared';
 import { requireTenantContext } from '../../core/tenancy/context.js';
 import { InboxService } from './inbox.service.js';
 
@@ -154,6 +154,11 @@ function createInboxController(service: InboxService) {
     sendSuccess(res, lead, 201);
   }
 
+  async function bulkConversations(req: Request, res: Response): Promise<void> {
+    await service.bulk(req.body as BulkConversationsInput);
+    sendSuccess(res, null, 204);
+  }
+
   return {
     listConversations,
     getConversation,
@@ -165,6 +170,7 @@ function createInboxController(service: InboxService) {
     updateSavedReply,
     deleteSavedReply,
     createLeadFromConversation,
+    bulkConversations,
   };
 }
 

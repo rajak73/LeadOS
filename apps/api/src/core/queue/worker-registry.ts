@@ -3,6 +3,7 @@
 // workers are registered by their owning modules in later sprints via registerWorker().
 
 import { Worker, type Processor } from 'bullmq';
+import { prisma } from '../prisma/client.js';
 import { createQueueConnection } from '../redis/client.js';
 import { logger } from '../observability/logger.js';
 import { queueJobsProcessed } from '../observability/metrics.js';
@@ -23,6 +24,10 @@ import {
 import { createInstagramSendWorker } from './workers/instagram-send.worker.js';
 import { NOTIFICATION_DELIVERY_JOB, processNotificationDeliveryJob } from './workers/notification-delivery.worker.js';
 import { EMAIL_DELIVERY_JOB, processEmailDeliveryJob } from './workers/email-delivery.worker.js';
+import { AI_SCORING_JOB, processAiScoringJob } from './workers/ai-scoring.worker.js';
+import { processWorkflowExecutionJob } from './workers/workflow-execution.worker.js';
+import { processFollowupSweepJob } from './workers/followup-sweep.worker.js';
+import { WHATSAPP_SEND_JOB, processWhatsAppSendJob } from './workers/whatsapp-send.worker.js';
 
 const workers: Worker[] = [];
 
@@ -65,6 +70,14 @@ export function startWorkers(): Worker[] {
     if (job.name === 'instagram-token-refresh') {
       const { InstagramService } = await import('../../modules/instagram/instagram.service.js');
       return new InstagramService().refreshAllActiveTokens();
+    }
+    if (job.name === 'followup-sweep') {
+      return processFollowupSweepJob(job);
+    }
+    if (job.name === 'billing-reconciliation') {
+      const { BillingService } = await import('../../modules/billing/billing.service.js');
+      const service = new BillingService(prisma);
+      return service.reconcileSubscriptions();
     }
     return undefined;
   });
@@ -111,6 +124,26 @@ export function startWorkers(): Worker[] {
   registerWorker('email-delivery', async (job) => {
     if (job.name === EMAIL_DELIVERY_JOB) {
       return processEmailDeliveryJob(job);
+    }
+    return undefined;
+  });
+
+  registerWorker('ai-scoring', async (job) => {
+    if (job.name === AI_SCORING_JOB) {
+      return processAiScoringJob(job);
+    }
+    return undefined;
+  });
+
+  registerWorker('workflow-execution', async (job) => {
+    // Process both event-named jobs and default workflow jobs
+    return processWorkflowExecutionJob(job);
+  });
+
+  // Sprint 9 — WhatsApp send worker.
+  registerWorker('whatsapp-send', async (job) => {
+    if (job.name === WHATSAPP_SEND_JOB) {
+      return processWhatsAppSendJob(job);
     }
     return undefined;
   });

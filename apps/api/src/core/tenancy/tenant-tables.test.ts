@@ -41,6 +41,19 @@ const SPRINT_7_NOTIFICATION_TABLES = [
   'notifications',
   'notification_preferences',
 ];
+const SPRINT_7_M2_TABLES = [
+  'ai_usage_counters',
+];
+const SPRINT_7_M3_TABLES = [
+  'workflows',
+  'workflow_runs',
+];
+const SPRINT_9_WHATSAPP_TABLES = [
+  'whatsapp_accounts',
+  'whatsapp_templates',
+  'whatsapp_conversations',
+  'whatsapp_messages',
+];
 const ALL_TENANT_TABLES = [
   ...SPRINT_3_TABLES,
   'pipelines',
@@ -50,11 +63,14 @@ const ALL_TENANT_TABLES = [
   ...SPRINT_4_CRM_TABLES,
   ...SPRINT_6_INSTAGRAM_TABLES,
   ...SPRINT_7_NOTIFICATION_TABLES,
+  ...SPRINT_7_M2_TABLES,
+  ...SPRINT_7_M3_TABLES,
+  ...SPRINT_9_WHATSAPP_TABLES,
 ];
 
 describe('tenant-table registry', () => {
-  it('lists exactly 24 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram + Sprint 7 Notifications)', () => {
-    expect(TENANT_TABLES).toHaveLength(24);
+  it('lists exactly 31 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram + Sprint 7 Notifications/AI Quota/Workflows + Sprint 9 WhatsApp)', () => {
+    expect(TENANT_TABLES).toHaveLength(31);
     expect([...TENANT_TABLES].sort()).toEqual(ALL_TENANT_TABLES.sort());
   });
 

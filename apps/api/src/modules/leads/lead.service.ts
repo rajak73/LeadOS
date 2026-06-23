@@ -22,7 +22,7 @@ import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext, type TenantContext } from '../../core/tenancy/context.js';
 import { AppError } from '../../core/errors/app-error.js';
 import { ErrorCode, PLAN_LIMITS, ActivityType } from '@leados/shared';
-import type { CreateLeadInput, PatchLeadInput, LeadListQuery, LeadExportBody } from '@leados/shared';
+import type { CreateLeadInput, PatchLeadInput, LeadListQuery, LeadExportBody, BulkLeadsInput } from '@leados/shared';
 import type { AuditRecorder } from '../../core/audit/audit-recorder.js';
 import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { PrismaLeadRepository } from './lead.repository.js';
@@ -36,6 +36,8 @@ import { LEAD_IMPORT_JOB } from '../../core/queue/workers/lead-import.worker.js'
 import { LEAD_EXPORT_JOB } from '../../core/queue/workers/lead-export.worker.js';
 import type { ImportResult } from './lead-import.service.js';
 import type { ExportResult } from './lead-export.service.js';
+import { eventBus } from '../../core/events/event-bus.js';
+import { DomainEvent } from '@leados/shared';
 
 // ─── Status machine ─────────────────────────────────────────────────────────
 
@@ -107,6 +109,21 @@ export class LeadService {
       // Create
       const created = await repo.create({ ...input, createdById: ctx.userId });
 
+      // Enqueue AI lead scoring job
+      await enqueue(QUEUE.AI_SCORING, 'score-lead', {
+        leadId: created.id,
+        organizationId: ctx.organizationId,
+        triggerEvent: 'LEAD_CREATED',
+      }).catch(() => undefined);
+
+      // Emit LEAD_CREATED event for workflows
+      await eventBus.emitDurable(
+        DomainEvent.LEAD_CREATED,
+        { id: created.id, organizationId: ctx.organizationId, depth: ctx.depth || 0 },
+        QUEUE.WORKFLOW_EXECUTION,
+        'LEAD_CREATED'
+      ).catch(() => undefined);
+
       // Activity — same transaction
       await this.activityService.append(db, ctx, {
         type: ActivityType.LEAD_CREATED,
@@ -177,6 +194,21 @@ export class LeadService {
           },
           relatedLeadId: id,
         });
+
+        // Enqueue AI lead scoring job
+        await enqueue(QUEUE.AI_SCORING, 'score-lead', {
+          leadId: id,
+          organizationId: ctx.organizationId,
+          triggerEvent: 'LEAD_STATUS_CHANGED',
+        }).catch(() => undefined);
+
+        // Emit LEAD_STATUS_CHANGED event for workflows
+        await eventBus.emitDurable(
+          DomainEvent.LEAD_STATUS_CHANGED,
+          { id, organizationId: ctx.organizationId, depth: ctx.depth || 0 },
+          QUEUE.WORKFLOW_EXECUTION,
+          'LEAD_STATUS_CHANGED'
+        ).catch(() => undefined);
       }
 
       // Activity: assignment change
@@ -488,6 +520,128 @@ export class LeadService {
       return { status: 'PROCESSING' };
     }
     return { status: 'PENDING' };
+  }
+
+  async bulk(input: BulkLeadsInput): Promise<void> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    const auditedLeads: { id: string; action: 'updated' | 'deleted'; before?: Lead; after?: Lead }[] = [];
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaLeadRepository(db);
+
+      for (const id of input.ids) {
+        const existing = await repo.findByIdOrThrow(id, ownedByUserId);
+
+        if (input.action === 'update-status') {
+          const status = input.status as "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL" | "NEGOTIATION" | "LOST" | undefined;
+          if (!status) {
+            throw new AppError(ErrorCode.VALIDATION_ERROR, 'status is required for update-status action');
+          }
+          if (status !== existing.status) {
+            assertValidStatusTransition(existing.status, status);
+
+            const lostReason = status === 'LOST' ? (input.lostReason ?? existing.lostReason) : undefined;
+            if (status === 'LOST' && !lostReason) {
+              throw new AppError(ErrorCode.VALIDATION_ERROR, 'lostReason is required when status is LOST');
+            }
+
+            const updated = await repo.update(id, { status, lostReason });
+
+            await this.activityService.append(db, ctx, {
+              type: ActivityType.LEAD_STATUS_CHANGED,
+              description: `Status changed from ${existing.status} to ${status} (Bulk)`,
+              metadata: {
+                type: ActivityType.LEAD_STATUS_CHANGED,
+                from: existing.status,
+                to: status,
+              },
+              relatedLeadId: id,
+            });
+
+            await enqueue(QUEUE.AI_SCORING, 'score-lead', {
+              leadId: id,
+              organizationId: ctx.organizationId,
+              triggerEvent: 'LEAD_STATUS_CHANGED',
+            }).catch(() => undefined);
+
+            await eventBus.emitDurable(
+              DomainEvent.LEAD_STATUS_CHANGED,
+              { id, organizationId: ctx.organizationId, depth: ctx.depth || 0 },
+              QUEUE.WORKFLOW_EXECUTION,
+              'LEAD_STATUS_CHANGED'
+            ).catch(() => undefined);
+
+            auditedLeads.push({ id, action: 'updated', before: existing, after: updated });
+          }
+        } else if (input.action === 'assign') {
+          const assignedToId = input.assignedToId;
+          const currentAssignee = existing.assignedToId;
+
+          if (assignedToId !== ctx.userId && assignedToId !== currentAssignee) {
+            const hasAssign = ctx.isSuperAdmin || ctx.permissions?.includes('leads.assign');
+            if (!hasAssign) {
+              throw AppError.forbidden('Missing permission: leads.assign');
+            }
+          }
+
+          if (assignedToId !== currentAssignee) {
+            const updated = await repo.update(id, { assignedToId });
+            await this.activityService.append(db, ctx, {
+              type: ActivityType.LEAD_ASSIGNED,
+              description: `Lead ${assignedToId ? 'assigned' : 'unassigned'} (Bulk)`,
+              metadata: {
+                type: ActivityType.LEAD_ASSIGNED,
+                assignedToUserId: assignedToId ?? null,
+                previousUserId: currentAssignee ?? null,
+              },
+              relatedLeadId: id,
+            });
+
+            auditedLeads.push({ id, action: 'updated', before: existing, after: updated });
+          }
+        } else if (input.action === 'delete') {
+          const hasDelete = ctx.isSuperAdmin || ctx.permissions?.includes('leads.delete');
+          if (!hasDelete) {
+            throw AppError.forbidden('Missing permission: leads.delete');
+          }
+          await repo.softDelete(id);
+          auditedLeads.push({ id, action: 'deleted', before: existing });
+        } else if (input.action === 'add-tags') {
+          const tagsToAdd = input.tags || [];
+          const currentTags = existing.tags || [];
+          const updatedTags = Array.from(new Set([...currentTags, ...tagsToAdd]));
+          const updated = await repo.update(id, { tags: updatedTags });
+          auditedLeads.push({ id, action: 'updated', before: existing, after: updated });
+        } else if (input.action === 'remove-tags') {
+          const tagsToRemove = input.tags || [];
+          const currentTags = existing.tags || [];
+          const updatedTags = currentTags.filter(t => !tagsToRemove.includes(t));
+          const updated = await repo.update(id, { tags: updatedTags });
+          auditedLeads.push({ id, action: 'updated', before: existing, after: updated });
+        }
+      }
+    });
+
+    for (const item of auditedLeads) {
+      if (item.action === 'deleted') {
+        await this.audit.record({
+          action: 'deleted',
+          resource: 'lead',
+          resourceId: item.id,
+          before: item.before ? sanitizeLead(item.before) : undefined,
+        });
+      } else {
+        await this.audit.record({
+          action: 'updated',
+          resource: 'lead',
+          resourceId: item.id,
+          before: item.before ? sanitizeLead(item.before) : undefined,
+          after: item.after ? sanitizeLead(item.after) : undefined,
+        });
+      }
+    }
   }
 }
 

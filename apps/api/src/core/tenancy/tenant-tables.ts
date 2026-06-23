@@ -10,7 +10,8 @@
 // Sprint 5 M1 expanded from 15 tables (Sprint 4) to 19 (4 new Pipeline/Deal/Webhook tables).
 // Sprint 6 M1 expanded from 19 tables (Sprint 5) to 22 (3 new Instagram Inbox tables).
 // Sprint 7 M1 expanded from 22 tables (Sprint 6) to 24 (2 new Notification tables).
-// check:rls expected output: OK — 24 tenant tables enabled + forced + policied.
+// Sprint 9 expanded from 26 tables (Sprint 8) to 30 (4 new WhatsApp tables).
+// check:rls expected output: OK — 30 tenant tables enabled + forced + policied.
 //
 // NOTE on the column name: the actual Prisma-generated column is camelCase `"organizationId"`.
 // Policies + checks use the real column name below.
@@ -64,6 +65,16 @@ export const TENANT_TABLES = [
   // Sprint 7 M1 — Notification engine
   'notifications',
   'notification_preferences',
+  // Sprint 7 M2 — AI usage tracking
+  'ai_usage_counters',
+  // Sprint 7 M3 — Workflow engine
+  'workflows',
+  'workflow_runs',
+  // Sprint 9 — WhatsApp integration
+  'whatsapp_accounts',
+  'whatsapp_templates',
+  'whatsapp_conversations',
+  'whatsapp_messages',
 ] as const;
 
 export type TenantTable = (typeof TENANT_TABLES)[number];
@@ -103,6 +114,16 @@ export const TENANT_MODELS = [
   // Sprint 7 M1 — Notification engine
   'Notification',
   'NotificationPreference',
+  // Sprint 7 M2 — AI usage tracking
+  'AiUsageCounter',
+  // Sprint 7 M3 — Workflow engine
+  'Workflow',
+  'WorkflowRun',
+  // Sprint 9 — WhatsApp integration
+  'WhatsAppAccount',
+  'WhatsAppTemplate',
+  'WhatsAppConversation',
+  'WhatsAppMessage',
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];
@@ -119,6 +140,8 @@ export const NON_TENANT_TABLES = [
   'permissions',
   'health_check',
   'platform_audit_logs', // AUD-3 scaffold — intentionally NOT tenant-scoped (no organizationId)
+  'billing_plans',
+  'stripe_webhook_events',
 ] as const;
 
 export function isTenantTable(table: string): table is TenantTable {

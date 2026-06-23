@@ -17,6 +17,8 @@ export interface TenantContext {
   permissions?: readonly string[];
   /** True when the caller holds only `*_own` permissions — populated in Milestone 4. */
   ownOnly?: boolean;
+  /** Workflow loop depth propagation */
+  depth?: number;
 }
 
 const storage = new AsyncLocalStorage<TenantContext>();

@@ -10,6 +10,7 @@ export interface TaskController {
   getById(req: Request, res: Response): Promise<void>;
   update(req: Request, res: Response): Promise<void>;
   softDelete(req: Request, res: Response): Promise<void>;
+  list(req: Request, res: Response): Promise<void>;
 }
 
 export function createTaskController(service: TaskService): TaskController {
@@ -32,6 +33,18 @@ export function createTaskController(service: TaskService): TaskController {
     async softDelete(req, res) {
       await service.softDelete(req.params['id']!);
       sendSuccess(res, null, 204);
+    },
+
+    async list(req, res) {
+      const filters: { status?: string; type?: string } = {};
+      if (typeof req.query['status'] === 'string') {
+        filters.status = req.query['status'];
+      }
+      if (typeof req.query['type'] === 'string') {
+        filters.type = req.query['type'];
+      }
+      const tasks = await service.list(filters);
+      sendSuccess(res, tasks);
     },
   };
 }

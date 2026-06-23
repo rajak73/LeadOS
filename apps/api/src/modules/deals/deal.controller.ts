@@ -3,7 +3,7 @@
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../core/http/envelope.js';
 import type { DealService } from './deal.service.js';
-import type { CreateDeal, DealListQuery, LostDeal, MoveDeal, PatchDeal } from '@leados/shared';
+import type { CreateDeal, DealListQuery, LostDeal, MoveDeal, PatchDeal, BulkDealsInput } from '@leados/shared';
 
 export interface DealController {
   list(req: Request, res: Response): Promise<void>;
@@ -16,6 +16,7 @@ export interface DealController {
   markLost(req: Request, res: Response): Promise<void>;
   forecast(req: Request, res: Response): Promise<void>;
   listActivities(req: Request, res: Response): Promise<void>;
+  bulk(req: Request, res: Response): Promise<void>;
 }
 
 export function createDealController(service: DealService): DealController {
@@ -70,6 +71,11 @@ export function createDealController(service: DealService): DealController {
       const q = req.query as unknown as { page: number; limit: number };
       const result = await service.listActivities(req.params['id']!, q.page, q.limit);
       sendSuccess(res, result);
+    },
+
+    async bulk(req, res) {
+      await service.bulk(req.body as BulkDealsInput);
+      sendSuccess(res, null, 204);
     },
   };
 }

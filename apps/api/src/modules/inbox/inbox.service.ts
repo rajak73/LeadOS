@@ -10,7 +10,7 @@ import { QUEUE } from '../../core/queue/names.js';
 import { INSTAGRAM_SEND_JOB } from '../../core/queue/workers/instagram-send.worker.js';
 import { env } from '../../core/config/env.js';
 import { AppError } from '../../core/errors/app-error.js';
-import { ErrorCode } from '@leados/shared';
+import { ErrorCode, type BulkConversationsInput } from '@leados/shared';
 import {
   PrismaConversationRepository,
   PrismaMessageRepository,
@@ -296,5 +296,62 @@ export class InboxService {
       logger.debug({ message: 'lead created from conversation', conversationId, leadId: newLead.id });
       return newLead;
     });
+  }
+
+  async bulk(input: BulkConversationsInput): Promise<void> {
+    const ctx = requireTenantContext();
+
+    const notificationsToCreate: { userId: string; id: string; convName: string }[] = [];
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaConversationRepository(db);
+
+      for (const id of input.ids) {
+        const prev = await repo.findByIdOrThrow(id); // validates membership in organization
+
+        const patch: { assignedToId?: string | null; status?: 'OPEN' | 'CLOSED' } = {};
+        if (input.action === 'update-status') {
+          if (!input.status) {
+            throw new AppError(ErrorCode.VALIDATION_ERROR, 'status is required for update-status action');
+          }
+          patch.status = input.status;
+        } else if (input.action === 'assign') {
+          patch.assignedToId = input.assignedToId ?? null;
+        }
+
+        await repo.update(id, patch);
+        const next = await repo.findByIdOrThrow(id);
+
+        const newAssignee = next.assignedToId;
+        if (
+          'assignedToId' in patch &&
+          newAssignee &&
+          newAssignee !== prev.assignedToId &&
+          newAssignee !== ctx.userId
+        ) {
+          const convName = next.lead
+            ? `${next.lead.firstName}${next.lead.lastName ? ` ${next.lead.lastName}` : ''}`
+            : next.igAccount.igUsername ?? 'a conversation';
+          notificationsToCreate.push({ userId: newAssignee, id, convName });
+        }
+      }
+    });
+
+    for (const notif of notificationsToCreate) {
+      try {
+        await new NotificationService().notify({
+          organizationId: ctx.organizationId,
+          userId: notif.userId,
+          type: 'CONVERSATION_ASSIGNED',
+          title: 'You were assigned a conversation',
+          body: `Conversation with ${notif.convName} was assigned to you`,
+          entityType: 'conversation',
+          entityId: notif.id,
+          performedById: ctx.userId,
+        });
+      } catch {
+        // ignore notification failures
+      }
+    }
   }
 }

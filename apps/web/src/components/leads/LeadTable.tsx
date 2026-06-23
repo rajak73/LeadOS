@@ -1,10 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useLeads } from '@/lib/hooks/useLeads';
 import { usePatchLead } from '@/lib/hooks/useLeadActions';
 import { useLeadsStore } from '@/lib/store/leads-store';
 import { LeadStatusBadge } from './LeadStatusBadge';
+import { LeadScoreBadge } from './LeadScoreBadge';
+import { LeadScorePopover } from './LeadScorePopover';
+import { BulkActionBar } from './BulkActionBar';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -85,6 +89,8 @@ interface LeadTableProps {
 export function LeadTable({ onImport, onExport }: LeadTableProps) {
   const { filters, setFilters } = useLeadsStore();
   const { data, isLoading } = useLeads(filters);
+  const [selectedLeadScoreId, setSelectedLeadScoreId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const leads = data?.data ?? [];
   const meta = data?.meta;
@@ -98,6 +104,24 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
   };
 
   const handlePageChange = (page: number) => setFilters({ page });
+
+  // Checkbox selection helpers
+  const allSelected = leads.length > 0 && leads.every((l) => selectedIds.includes(l.id));
+  const someSelected = selectedIds.length > 0 && !allSelected;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(leads.map((l) => l.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
 
   return (
     <div className="space-y-4" data-testid="lead-table">
@@ -131,6 +155,19 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-bg-elevated">
+              {/* Select-all checkbox */}
+              <th scope="col" className="w-10 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all leads"
+                  className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-500 cursor-pointer"
+                />
+              </th>
               <th scope="col" className="text-left px-4 py-3">
                 <SortButton
                   label="Name"
@@ -166,72 +203,74 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
+                <td colSpan={7} className="px-4 py-12 text-center">
                   <Spinner />
                 </td>
               </tr>
             )}
             {!isLoading && leads.length === 0 && (
               <TableEmptyState
-                colSpan={6}
+                colSpan={7}
                 icon="👤"
                 title="No leads found"
                 description="Try adjusting your filters or add a new lead."
               />
             )}
-            {leads.map((lead) => (
-              <tr
-                key={lead.id}
-                className="border-b border-border/50 last:border-0 hover:bg-bg-elevated/50 transition-colors"
-                data-testid={`lead-row-${lead.id}`}
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <AvatarInitials name={getLeadDisplayName(lead)} size="sm" />
-                    <div className="min-w-0">
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className="font-medium text-text-primary hover:text-primary-400 transition-colors"
-                      >
-                        {getLeadDisplayName(lead)}
-                      </Link>
-                      {lead.tags.length > 0 && (
-                        <div className="flex gap-1 mt-0.5 flex-wrap">
-                          {lead.tags.slice(0, 3).map((t) => (
-                            <Badge key={t} variant="default" className="text-xs">
-                              {t}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+            {leads.map((lead) => {
+              const isSelected = selectedIds.includes(lead.id);
+              return (
+                <tr
+                  key={lead.id}
+                  className={`border-b border-border/50 last:border-0 transition-colors
+                    ${isSelected ? 'bg-primary-500/5' : 'hover:bg-bg-elevated/50'}`}
+                  data-testid={`lead-row-${lead.id}`}
+                >
+                  <td className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectOne(lead.id)}
+                      aria-label={`Select ${getLeadDisplayName(lead)}`}
+                      className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-500 cursor-pointer"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <AvatarInitials name={getLeadDisplayName(lead)} size="sm" />
+                      <div className="min-w-0">
+                        <Link
+                          href={`/leads/${lead.id}`}
+                          className="font-medium text-text-primary hover:text-primary-400 transition-colors"
+                        >
+                          {getLeadDisplayName(lead)}
+                        </Link>
+                        {lead.tags.length > 0 && (
+                          <div className="flex gap-1 mt-0.5 flex-wrap">
+                            {lead.tags.slice(0, 3).map((t) => (
+                              <Badge key={t} variant="default" className="text-xs">
+                                {t}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-text-secondary text-xs">{lead.email ?? '—'}</td>
-                <td className="px-4 py-3 text-text-secondary text-xs">{formatLeadSource(lead.source)}</td>
-                <td className="px-4 py-3">
-                  <InlineStatusEdit lead={lead} />
-                </td>
-                <td className="px-4 py-3 text-text-secondary text-xs">
-                  {lead.aiScore !== null ? (
-                    <span
-                      className={`font-medium ${
-                        lead.aiScore >= 70
-                          ? 'text-green-400'
-                          : lead.aiScore >= 40
-                            ? 'text-yellow-400'
-                            : 'text-text-secondary'
-                      }`}
-                    >
-                      {lead.aiScore}
-                    </span>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td className="px-4 py-3 text-text-tertiary text-xs">{formatRelativeTime(lead.createdAt)}</td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-4 py-3 text-text-secondary text-xs">{lead.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-text-secondary text-xs">{formatLeadSource(lead.source)}</td>
+                  <td className="px-4 py-3">
+                    <InlineStatusEdit lead={lead} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <LeadScoreBadge
+                      score={lead.aiScore}
+                      onClick={() => setSelectedLeadScoreId(lead.id)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-text-tertiary text-xs">{formatRelativeTime(lead.createdAt)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -264,6 +303,21 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
           </div>
         </div>
       )}
+      {selectedLeadScoreId && (
+        <LeadScorePopover
+          leadId={selectedLeadScoreId}
+          open={!!selectedLeadScoreId}
+          onOpenChange={(open) => {
+            if (!open) setSelectedLeadScoreId(null);
+          }}
+        />
+      )}
+
+      {/* Bulk action bar — floats when rows are selected */}
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onClearSelection={() => setSelectedIds([])}
+      />
     </div>
   );
 }
