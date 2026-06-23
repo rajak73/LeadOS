@@ -47,6 +47,16 @@ export class PrismaTaskRepository extends TenantRepository {
     });
   }
 
+  async findMany(where: Prisma.TaskWhereInput): Promise<Task[]> {
+    return this.db.task.findMany({
+      where: {
+        ...where,
+        deletedAt: null,
+      },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
   async findById(id: string, ownedByUserId?: string): Promise<Task | null> {
     return this.db.task.findFirst({
       where: {

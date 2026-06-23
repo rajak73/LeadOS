@@ -78,6 +78,24 @@ const envSchema = z.object({
   SENDGRID_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
   EMAIL_REPLY_TO: z.string().email().optional(),
+
+  // Sprint 7 M2 — AI Lead Scoring
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL_PRIMARY: z.string().default('gpt-4o-mini'),
+  OPENAI_MODEL_ESCALATION: z.string().default('gpt-4o'),
+  AI_MONTHLY_HARD_CAP_USD: z.coerce.number().default(100),
+
+  // Sprint 9 — WhatsApp / Meta Cloud API.
+  // META_APP_SECRET is used for HMAC-SHA256 webhook signature verification.
+  // Dev/test default allows integration tests without real Meta credentials.
+  META_APP_SECRET: z.string().min(1).default('test-meta-app-secret'),
+  META_WHATSAPP_VERIFY_TOKEN: z.string().min(1).default('test-wa-verify-token'),
+  // Optional: default sender phone number id (used when account omitted in sends).
+  META_WHATSAPP_PHONE_ID: z.string().optional(),
+  // Meta Graph API version. Bump when Cloud API deprecates the current version.
+  META_API_VERSION: z.string().default('v20.0'),
+  // Kill switch: set to 'false' to disable all WhatsApp outbound sends without a deploy.
+  FLAG_WHATSAPP_SENDS_ENABLED: z.coerce.boolean().default(true),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -126,6 +144,13 @@ if (env.NODE_ENV === 'production') {
     if (!env.SENDGRID_API_KEY) insecure.push('SENDGRID_API_KEY (required when notifications.email.enabled)');
     if (!env.EMAIL_FROM) insecure.push('EMAIL_FROM (required when notifications.email.enabled)');
   }
+
+  // AI is enabled by default: require OpenAI config when enabled
+  const aiFlag = process.env['FLAG_AI_SCORING_ENABLED'];
+  if (aiFlag !== 'false' && aiFlag !== '0') {
+    if (!env.OPENAI_API_KEY) insecure.push('OPENAI_API_KEY');
+  }
+
   if (insecure.length > 0) {
     throw new Error(`Refusing to start in production with missing/default secrets: ${insecure.join(', ')}`);
   }

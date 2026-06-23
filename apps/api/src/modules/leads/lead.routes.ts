@@ -23,8 +23,9 @@ import type { RequestHandler } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { validate } from '../../core/middleware/validate.js';
-import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema, leadExportBodySchema, createLeadNoteBodySchema } from '@leados/shared';
+import { createLeadSchema, patchLeadSchema, leadIdParamSchema, paginationQuerySchema, leadListQuerySchema, leadExportBodySchema, createLeadNoteBodySchema, bulkLeadsSchema } from '@leados/shared';
 import type { LeadController } from './lead.controller.js';
+import { buildAiRouter } from '../ai/ai.routes.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
 
@@ -33,6 +34,9 @@ export function buildLeadRouter(
   requirePermission: (permission: string) => RequestHandler,
 ): Router {
   const router = Router();
+
+  // Mount AI routes (/:id/score, /:id/rescore)
+  router.use('/', buildAiRouter(requirePermission));
 
   // CRM-6.1: Lead list.
   router.get(
@@ -75,6 +79,13 @@ export function buildLeadRouter(
     '/export/:jobId',
     requirePermission('leads.read'),
     asyncHandler(controller.getExportJob),
+  );
+
+  router.post(
+    '/bulk',
+    requirePermission('leads.update'),
+    validate(bulkLeadsSchema),
+    asyncHandler(controller.bulk),
   );
 
   router.get(

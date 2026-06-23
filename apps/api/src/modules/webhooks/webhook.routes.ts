@@ -11,6 +11,8 @@ import {
   verifyInstagramChallenge,
   receiveInstagram,
   receiveStripe,
+  verifyWhatsAppChallenge,
+  receiveWhatsApp,
 } from './webhook.controller.js';
 
 export function buildWebhookRouter(): Router {
@@ -24,6 +26,12 @@ export function buildWebhookRouter(): Router {
 
   // Stripe event receiver (POST).
   router.post('/stripe', asyncHandler(receiveStripe));
+
+  // WhatsApp challenge verification (GET) — Meta sends this when setting up the webhook.
+  router.get('/whatsapp', asyncHandler(verifyWhatsAppChallenge));
+
+  // WhatsApp event receiver (POST) — live webhook deliveries.
+  router.post('/whatsapp', asyncHandler(receiveWhatsApp));
 
   return router;
 }

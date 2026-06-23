@@ -109,6 +109,65 @@ export async function receiveStripe(req: Request, res: Response): Promise<void> 
   res.status(200).json({ received: true });
 }
 
+// ─── WhatsApp ─────────────────────────────────────────────────────────────────
+
+export async function verifyWhatsAppChallenge(req: Request, res: Response): Promise<void> {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === env.META_WHATSAPP_VERIFY_TOKEN) {
+    logger.info({ message: 'WhatsApp webhook challenge verified' });
+    res.status(200).send(String(challenge));
+    return;
+  }
+
+  logger.warn({ message: 'WhatsApp webhook challenge failed', mode, token: typeof token });
+  res.status(403).json({ error: 'Forbidden' });
+}
+
+export async function receiveWhatsApp(req: Request, res: Response): Promise<void> {
+  const sigHeader = req.headers['x-hub-signature-256'];
+  const rawBody = req.body as Buffer;
+
+  if (!sigHeader || typeof sigHeader !== 'string') {
+    logger.warn({ message: 'WhatsApp webhook missing signature header' });
+    res.status(400).json({ error: 'Missing X-Hub-Signature-256' });
+    return;
+  }
+
+  const received = sigHeader.startsWith('sha256=') ? sigHeader.slice(7) : sigHeader;
+  const computed = crypto
+    .createHmac('sha256', env.META_APP_SECRET)
+    .update(rawBody)
+    .digest('hex');
+
+  if (!timingSafeCompareHex(computed, received)) {
+    logger.warn({ message: 'WhatsApp webhook invalid signature' });
+    res.status(400).json({ error: 'Invalid signature' });
+    return;
+  }
+
+  const payload = parseBody(rawBody);
+  const externalEventId = extractWhatsAppEventId(payload, rawBody);
+
+  const safeHeaders: Record<string, string | string[] | undefined> = {
+    'x-hub-signature-256': req.headers['x-hub-signature-256'],
+    'content-type': req.headers['content-type'],
+  };
+
+  const result = await persistAndEnqueue('WHATSAPP', externalEventId, payload, safeHeaders);
+
+  logger.info({
+    message: 'WhatsApp webhook received',
+    externalEventId,
+    created: result.created,
+    skipped: result.skipped,
+  });
+
+  res.status(200).json({ received: true });
+}
+
 // ─── HMAC helpers ─────────────────────────────────────────────────────────────
 
 function timingSafeCompareHex(a: string, b: string): boolean {
@@ -184,4 +243,17 @@ function extractStripeEventId(payload: unknown): string {
   const p = payload as Record<string, unknown> | null;
   const id = p?.['id'];
   return typeof id === 'string' && id.length > 0 ? id : `stripe_unknown_${Date.now()}`;
+}
+
+function extractWhatsAppEventId(payload: unknown, rawBody: Buffer): string {
+  const p = payload as Record<string, unknown> | null;
+  const entry = (p?.['entry'] as unknown[])?.[0] as Record<string, unknown> | undefined;
+  if (entry) {
+    const changes = (entry['changes'] as unknown[])?.[0] as Record<string, unknown> | undefined;
+    const value = changes?.['value'] as Record<string, unknown> | undefined;
+    const messages = (value?.['messages'] as unknown[])?.[0] as Record<string, unknown> | undefined;
+    const msgId = messages?.['id'] as string | undefined;
+    if (msgId) return `wa_${msgId}`;
+  }
+  return `wa_sha_${crypto.createHash('sha256').update(rawBody).digest('hex').slice(0, 32)}`;
 }

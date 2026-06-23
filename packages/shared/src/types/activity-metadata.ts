@@ -301,7 +301,8 @@ export interface ActivityAppendInput {
   type: ActivityType;
   description: string;
   metadata: ActivityMetadata;
-  performedById?: string;
+  /** null = system-initiated activity (no human performer, e.g. AI scoring worker) */
+  performedById?: string | null;
   relatedLeadId?: string;
   relatedContactId?: string;
   relatedDealId?: string;

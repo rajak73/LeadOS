@@ -36,7 +36,7 @@ export class ActivityService {
         type: input.type,
         description: input.description,
         metadata: input.metadata as unknown as Prisma.InputJsonValue,
-        performedById: input.performedById ?? ctx.userId,
+        performedById: input.performedById !== undefined ? input.performedById : ctx.userId,
         relatedLeadId: input.relatedLeadId ?? null,
         relatedContactId: input.relatedContactId ?? null,
         relatedDealId: input.relatedDealId ?? null,

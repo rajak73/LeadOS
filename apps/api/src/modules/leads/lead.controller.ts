@@ -10,7 +10,7 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, buildPaginationMeta } from '../../core/http/envelope.js';
 import type { LeadService } from './lead.service.js';
-import type { CreateLeadInput, PatchLeadInput, PaginationQuery, LeadListQuery, LeadExportBody } from '@leados/shared';
+import type { CreateLeadInput, PatchLeadInput, PaginationQuery, LeadListQuery, LeadExportBody, BulkLeadsInput } from '@leados/shared';
 
 export interface LeadController {
   list(req: Request, res: Response): Promise<void>;
@@ -27,6 +27,7 @@ export interface LeadController {
   getImportJob(req: Request, res: Response): Promise<void>;
   exportCsv(req: Request, res: Response): Promise<void>;
   getExportJob(req: Request, res: Response): Promise<void>;
+  bulk(req: Request, res: Response): Promise<void>;
 }
 
 export function createLeadController(service: LeadService): LeadController {
@@ -112,6 +113,11 @@ export function createLeadController(service: LeadService): LeadController {
     async getExportJob(req, res) {
       const result = await service.getExportJob(req.params['jobId']!);
       sendSuccess(res, result);
+    },
+
+    async bulk(req, res) {
+      await service.bulk(req.body as BulkLeadsInput);
+      sendSuccess(res, null, 204);
     },
   };
 }

@@ -2,6 +2,8 @@
 
 import { Router } from 'express';
 import { buildInboxController } from './inbox.controller.js';
+import { validate } from '../../core/middleware/validate.js';
+import { bulkConversationsSchema } from '@leados/shared';
 
 export function buildInboxRouter(requirePermission: (permission: string) => import('express').RequestHandler): Router {
   const router = Router();
@@ -14,6 +16,14 @@ export function buildInboxRouter(requirePermission: (permission: string) => impo
     '/conversations',
     requirePermission('inbox.read'),
     (req, res, next) => ctrl.listConversations(req, res).catch(next),
+  );
+
+  // POST /inbox/conversations/bulk
+  router.post(
+    '/conversations/bulk',
+    requirePermission('inbox.assign'),
+    validate(bulkConversationsSchema),
+    (req, res, next) => ctrl.bulkConversations(req, res).catch(next),
   );
 
   // GET /inbox/conversations/:id

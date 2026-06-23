@@ -174,4 +174,18 @@ export class TaskService {
       resourceId: id,
     });
   }
+
+  async list(filters: { status?: string; type?: string }): Promise<Task[]> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    return withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaTaskRepository(db);
+      return repo.findMany({
+        ...(filters.status ? { status: filters.status as import('@prisma/client').TaskStatus } : {}),
+        ...(filters.type ? { type: filters.type as import('@prisma/client').TaskType } : {}),
+        ...(ownedByUserId !== undefined ? { assignedToId: ownedByUserId } : {}),
+      });
+    });
+  }
 }

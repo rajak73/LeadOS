@@ -22,4 +22,20 @@ export const CRON_REGISTRY: CronDefinition[] = [
     failureImpact:
       'Instagram access tokens expire ~60 days after connection. If not refreshed within 7 days of expiry the account moves to EXPIRED status and agents lose inbox access until the admin reconnects.',
   },
+  {
+    id: 'followup-sweep',
+    cron: '0 * * * *', // hourly
+    owner: 'tasks-module',
+    idempotency: 'BullMQ jobId = id; repeat key ensures a single scheduled job per id',
+    failureImpact:
+      'Stale leads and overdue deals will not have automated follow-up tasks suggested, reducing sales team outreach efficiency.',
+  },
+  {
+    id: 'billing-reconciliation',
+    cron: '0 2 * * *', // 02:00 UTC daily
+    owner: 'billing-module',
+    idempotency: 'BullMQ jobId = id; repeat key ensures a single scheduled job per id',
+    failureImpact:
+      'Subscriptions may drift from Stripe source of truth, causing access lock issues or delinquent usage.',
+  },
 ];

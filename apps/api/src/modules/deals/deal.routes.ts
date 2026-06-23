@@ -24,6 +24,7 @@ import {
   lostDealSchema,
   moveDealSchema,
   patchDealSchema,
+  bulkDealsSchema,
 } from '@leados/shared';
 import type { DealController } from './deal.controller.js';
 
@@ -59,6 +60,13 @@ export function buildDealRouter(
     requirePermission('deals.create'),
     validate(createDealSchema),
     asyncHandler(controller.create),
+  );
+
+  router.post(
+    '/bulk',
+    requirePermission('deals.update'),
+    validate(bulkDealsSchema),
+    asyncHandler(controller.bulk),
   );
 
   router.get(

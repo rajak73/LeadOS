@@ -8,7 +8,7 @@ import { withTenant, type TenantTransactionClient } from '../../core/tenancy/wit
 import { requireTenantContext, type TenantContext } from '../../core/tenancy/context.js';
 import { AppError } from '../../core/errors/app-error.js';
 import { ActivityType, ErrorCode, PLAN_LIMITS } from '@leados/shared';
-import type { CreateDeal, DealListQuery, LostDeal, MoveDeal, PatchDeal } from '@leados/shared';
+import type { CreateDeal, DealListQuery, LostDeal, MoveDeal, PatchDeal, BulkDealsInput } from '@leados/shared';
 import { buildAuditRow, type AuditInput } from '../../core/audit/audit-recorder.js';
 import { ActivityService, type ActivityPage } from '../../core/activities/activity.service.js';
 import { asTenantCreate } from '../../core/tenancy/tenant-repository.js';
@@ -301,6 +301,88 @@ export class DealService {
   private hasPermission(ctx: TenantContext, permission: string): boolean {
     if (ctx.isSuperAdmin) return true;
     return ctx.permissions?.includes(permission) ?? false;
+  }
+
+  async bulk(input: BulkDealsInput): Promise<void> {
+    const ctx = requireTenantContext();
+    const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
+
+    await withTenant(ctx.organizationId, async (db) => {
+      const repo = new PrismaDealRepository(db);
+
+      for (const id of input.ids) {
+        const existing = await repo.findByIdOrThrow(id, ownedByUserId);
+
+        if (input.action === 'update-stage') {
+          const stageId = input.stageId;
+          if (!stageId) {
+            throw new AppError(ErrorCode.VALIDATION_ERROR, 'stageId is required for update-stage action');
+          }
+          await repo.assertStageBelongsToPipeline(existing.pipelineId, stageId);
+          const deal = await repo.moveToStage(id, stageId);
+
+          await this.activityService.append(db, ctx, {
+            type: ActivityType.DEAL_STAGE_MOVED,
+            description: `Deal moved: ${deal.title} (Bulk)`,
+            metadata: {
+              type: ActivityType.DEAL_STAGE_MOVED,
+              dealId: deal.id,
+              fromStageId: existing.stageId,
+              toStageId: stageId,
+            },
+            relatedDealId: deal.id,
+          });
+
+          await this.recordAudit(db, ctx, {
+            action: 'moved',
+            resource: 'deal',
+            resourceId: id,
+            before: { stageId: existing.stageId },
+            after: { stageId: deal.stageId },
+          });
+        } else if (input.action === 'assign') {
+          const assignedToId = input.assignedToId;
+          this.assertAssignmentAllowed(ctx, assignedToId ?? undefined, existing.assignedToId);
+
+          if (assignedToId !== existing.assignedToId) {
+            const deal = await repo.update(id, { assignedToId: assignedToId ?? undefined });
+            const fields = changedFields({ assignedToId: assignedToId ?? undefined }, existing, deal);
+
+            await this.activityService.append(db, ctx, {
+              type: ActivityType.DEAL_UPDATED,
+              description: `Deal updated: ${deal.title} (Bulk)`,
+              metadata: {
+                type: ActivityType.DEAL_UPDATED,
+                dealId: deal.id,
+                fields,
+              },
+              relatedDealId: deal.id,
+            });
+
+            await this.recordAudit(db, ctx, {
+              action: 'updated',
+              resource: 'deal',
+              resourceId: id,
+              before: sanitizeDeal(existing),
+              after: sanitizeDeal(deal),
+            });
+          }
+        } else if (input.action === 'delete') {
+          const hasDelete = ctx.isSuperAdmin || ctx.permissions?.includes('deals.delete');
+          if (!hasDelete) {
+            throw AppError.forbidden('Missing permission: deals.delete');
+          }
+          await repo.softDelete(id);
+          
+          await this.recordAudit(db, ctx, {
+            action: 'deleted',
+            resource: 'deal',
+            resourceId: id,
+            before: sanitizeDeal(existing),
+          });
+        }
+      }
+    });
   }
 }
 

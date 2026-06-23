@@ -8,12 +8,13 @@ import { getEmailSender } from '../../email/email-sender.js';
 import {
   inboxMessageEmail,
   conversationAssignedEmail,
+  leadScoredEmail,
   type RenderedEmail,
 } from '../../email/templates.js';
 
 export const EMAIL_DELIVERY_JOB = 'email-deliver';
 
-export type EmailTemplateKey = 'inbox_message' | 'conversation_assigned';
+export type EmailTemplateKey = 'inbox_message' | 'conversation_assigned' | 'lead_scored';
 
 export interface EmailDeliveryPayload {
   to: string;
@@ -29,6 +30,12 @@ function render(templateKey: EmailTemplateKey, data: Record<string, string>): Re
       return conversationAssignedEmail({
         conversationName: data['conversationName'] ?? 'a conversation',
         assignedByName: data['assignedByName'] ?? 'A teammate',
+      });
+    case 'lead_scored':
+      return leadScoredEmail({
+        leadName: data['leadName'] ?? 'Lead',
+        score: data['score'] ?? '0',
+        recommendation: data['recommendation'] ?? '',
       });
     default:
       throw new Error(`Unknown email template: ${templateKey as string}`);

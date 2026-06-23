@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { LeadFilters } from './LeadFilters';
 import { LeadTable } from './LeadTable';
+import { ViewBar } from './ViewBar';
 import { CsvImportModal } from './CsvImportModal';
 import { apiClient } from '@/lib/api-client';
 import { useLeadsStore } from '@/lib/store/leads-store';
@@ -45,6 +46,9 @@ export function LeadListPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-text-primary">Leads</h1>
       </div>
+
+      {/* Saved views bar */}
+      <ViewBar />
 
       <LeadFilters />
       <LeadTable onImport={() => setImportOpen(true)} onExport={handleExport} />

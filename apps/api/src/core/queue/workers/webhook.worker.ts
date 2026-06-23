@@ -132,6 +132,9 @@ async function dispatch(source: WebhookSource, payload: unknown, webhookEventId:
     case 'STRIPE':
       await handleStripe(payload);
       break;
+    case 'WHATSAPP':
+      await handleWhatsApp(payload, webhookEventId);
+      break;
     default:
       await handleSystem(payload);
   }
@@ -421,11 +424,202 @@ function isPrismaP2002(err: unknown): boolean {
   );
 }
 
+// ─── WhatsApp Cloud API receive pipeline ─────────────────────────────────────
+
+async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise<void> {
+  const p = payload as Record<string, unknown> | null;
+  if (!p || !Array.isArray(p['entry'])) {
+    logger.info({ message: 'WhatsApp webhook: no entries', webhookEventId });
+    return;
+  }
+
+  for (const rawEntry of p['entry'] as unknown[]) {
+    const entry = rawEntry as Record<string, unknown>;
+    const changes = entry['changes'] as unknown[] | undefined;
+    if (!Array.isArray(changes)) continue;
+
+    for (const rawChange of changes) {
+      const change = rawChange as Record<string, unknown>;
+      const value = change['value'] as Record<string, unknown> | undefined;
+      if (!value) continue;
+
+      const messages = value['messages'] as unknown[] | undefined;
+      const contacts = value['contacts'] as unknown[] | undefined;
+      const metadata = value['metadata'] as Record<string, unknown> | undefined;
+      const phoneNumberId = String(metadata?.['phone_number_id'] ?? '');
+
+      if (!Array.isArray(messages) || messages.length === 0) continue;
+
+      // Resolve account by phoneNumberId (cross-tenant lookup via base prisma)
+      const waAccount = await prisma.whatsAppAccount.findFirst({
+        where: { phoneNumberId, deletedAt: null },
+        select: { id: true, organizationId: true },
+      });
+
+      if (!waAccount) {
+        logger.warn({ message: 'No WhatsApp account for phoneNumberId, skipping', phoneNumberId });
+        continue;
+      }
+
+      const orgId = waAccount.organizationId;
+
+      // Find system user for lead creation
+      const systemMember = await prisma.organizationMember.findFirst({
+        where: { organizationId: orgId, status: 'ACTIVE' },
+        orderBy: { createdAt: 'asc' },
+        select: { userId: true },
+      });
+      const systemUserId = systemMember?.userId;
+
+      for (const rawMsg of messages) {
+        const msg = rawMsg as Record<string, unknown>;
+        const waMessageId = String(msg['id'] ?? '');
+        const fromPhone = String(msg['from'] ?? '');
+        const msgType = String(msg['type'] ?? 'text');
+        const timestampMs = (Number(msg['timestamp'] ?? 0)) * 1000;
+        const sentAt = new Date(timestampMs || Date.now());
+
+        if (!waMessageId || !fromPhone) continue;
+
+        // Resolve contact name from contacts array
+        const contactEntry = contacts?.find(
+          (c) => (c as Record<string, unknown>)['wa_id'] === fromPhone,
+        ) as Record<string, unknown> | undefined;
+        const senderName = (contactEntry?.['profile'] as Record<string, unknown>)?.['name'] as string | undefined ?? fromPhone;
+
+        let content: Record<string, unknown> = {};
+        let contentType = 'TEXT';
+        if (msgType === 'text') {
+          content = { text: (msg['text'] as Record<string, unknown>)?.['body'] ?? '' };
+          contentType = 'TEXT';
+        } else if (msgType === 'image') {
+          content = { raw: msg['image'] };
+          contentType = 'IMAGE';
+        } else if (msgType === 'audio') {
+          content = { raw: msg['audio'] };
+          contentType = 'AUDIO';
+        } else if (msgType === 'document') {
+          content = { raw: msg['document'] };
+          contentType = 'DOCUMENT';
+        } else if (msgType === 'template') {
+          content = { raw: msg['template'] };
+          contentType = 'TEMPLATE';
+        } else {
+          content = { raw: msg };
+          contentType = 'UNKNOWN';
+        }
+
+        let conversationId: string | null = null;
+        const windowExpiresAt = new Date(sentAt.getTime() + 24 * 60 * 60 * 1000); // +24h
+
+        await withTenant(orgId, async (db) => {
+          const {
+            PrismaWhatsAppConversationRepository,
+            PrismaWhatsAppMessageRepository,
+          } = await import('../../../modules/whatsapp/whatsapp.repository.js');
+
+          const convRepo = new PrismaWhatsAppConversationRepository(db);
+          const msgRepo = new PrismaWhatsAppMessageRepository(db);
+
+          // Upsert conversation keyed on (account, customerPhone)
+          const wabaConversationId = `${waAccount.id}_${fromPhone}`;
+          const conv = await convRepo.upsertForOrg(orgId, {
+            wabaConversationId,
+            accountId: waAccount.id,
+            customerPhone: fromPhone,
+            lastMessageAt: sentAt,
+          });
+
+          // Create message if not duplicate
+          const newMsg = await msgRepo.createIfNotExists({
+            conversationId: conv.id,
+            waMessageId,
+            direction: 'INBOUND',
+            contentType,
+            content: content as import('@prisma/client').Prisma.InputJsonValue,
+            sentAt,
+          });
+
+          if (!newMsg) {
+            logger.debug({ message: 'Duplicate WA message id, skipping', waMessageId });
+            return;
+          }
+
+          conversationId = conv.id;
+
+          // Update 24h window + lastInboundAt
+          await convRepo.update(conv.id, {
+            windowExpiresAt,
+            lastInboundAt: sentAt,
+            lastMessageAt: sentAt,
+          });
+
+          // Find or create lead by phone number
+          if (systemUserId) {
+            const { asTenantCreate } = await import('../../tenancy/tenant-repository.js');
+            const existingLead = await db.lead.findFirst({
+              where: { phone: fromPhone, deletedAt: null },
+              select: { id: true },
+            });
+            if (!existingLead) {
+              try {
+                const lastName = senderName.split(' ').slice(1).join(' ');
+                const newLead = await db.lead.create({
+                  data: asTenantCreate<import('@prisma/client').Prisma.LeadUncheckedCreateInput>({
+                    firstName: senderName.split(' ')[0] ?? fromPhone,
+                    ...(lastName ? { lastName } : {}),
+                    phone: fromPhone,
+                    source: 'WHATSAPP',
+                    status: 'NEW',
+                    tags: [],
+                    customFields: {} as import('@prisma/client').Prisma.InputJsonValue,
+                    createdById: systemUserId,
+                  }),
+                  select: { id: true },
+                });
+                // Link lead to conversation
+                await convRepo.update(conv.id, { leadId: newLead.id });
+              } catch {
+                // P2002 concurrent create — ignore
+              }
+            } else {
+              if (!conv.leadId) {
+                await convRepo.update(conv.id, { leadId: existingLead.id });
+              }
+            }
+          }
+        });
+
+        // Backfill webhook event org
+        await prisma.webhookEvent.updateMany({
+          where: { id: webhookEventId, organizationId: null },
+          data: { organizationId: orgId },
+        });
+
+        // Realtime notification
+        if (conversationId) {
+          try {
+            const { notifyOrg } = await import('../../realtime/notification-publisher.js');
+            notifyOrg(orgId, 'whatsapp:message', { conversationId, waMessageId });
+          } catch (err) {
+            logger.warn({ message: 'WhatsApp realtime notify failed', orgId, error: String(err) });
+          }
+        }
+      }
+    }
+  }
+}
+
 // ─── Stripe / System stubs ────────────────────────────────────────────────────
 
 async function handleStripe(payload: unknown): Promise<void> {
   const p = payload as Record<string, unknown> | null;
   logger.info({ message: 'Stripe webhook received', eventType: p?.['type'], eventId: p?.['id'] });
+  if (!p) return;
+
+  const { BillingService } = await import('../../../modules/billing/billing.service.js');
+  const service = new BillingService(prisma);
+  await service.processStripeEvent(p as unknown as import('stripe').Stripe.Event);
 }
 
 async function handleSystem(payload: unknown): Promise<void> {

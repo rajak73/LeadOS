@@ -19,6 +19,12 @@ export function buildTaskRouter(
 ): Router {
   const router = Router();
 
+  router.get(
+    '/',
+    requirePermission('tasks.read'),
+    asyncHandler(controller.list),
+  );
+
   router.post(
     '/',
     requirePermission('tasks.create'),
