@@ -67,6 +67,19 @@ export function buildLeadRouter(
     asyncHandler(controller.getImportJob),
   );
 
+  router.get(
+    '/import-history',
+    requirePermission('leads.read'),
+    validate(paginationQuerySchema, 'query'),
+    asyncHandler(controller.listImportHistory),
+  );
+
+  router.get(
+    '/import-history/:id',
+    requirePermission('leads.read'),
+    asyncHandler(controller.getImportHistoryById),
+  );
+
   // CRM-6.4: CSV export — literal path must precede /:id.
   router.post(
     '/export',

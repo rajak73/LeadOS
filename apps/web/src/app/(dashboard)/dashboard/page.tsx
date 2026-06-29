@@ -6,29 +6,9 @@ import { useDashboardAnalytics } from '@/lib/hooks/useAnalytics';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 
-// Mock list of tasks for the Tasks Due list
-interface LocalTask {
-  id: string;
-  title: string;
-  priority: 'High' | 'Medium' | 'Low';
-  due: string;
-  completed: boolean;
-}
-
 export default function DashboardPage() {
-  const { data: analytics, isLoading, isError } = useDashboardAnalytics();
-  const [tasks, setTasks] = useState<LocalTask[]>([
-    { id: '1', title: 'Follow up with Acme Corp', priority: 'High', due: 'Today', completed: false },
-    { id: '2', title: 'Prepare proposal for Zenith Solutions', priority: 'Medium', due: 'Tomorrow', completed: false },
-    { id: '3', title: 'Call Vikram Logistics', priority: 'High', due: 'May 8', completed: false },
-    { id: '4', title: 'Demo for Globex Corporation', priority: 'Low', due: 'May 9', completed: false },
-  ]);
-
-  const toggleTask = (id: string) => {
-    setTasks(prev =>
-      prev.map(t => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
-  };
+  const [timeRange, setTimeRange] = useState('week');
+  const { data: analytics, isLoading, isError } = useDashboardAnalytics(timeRange);
 
   if (isLoading) {
     return (
@@ -53,8 +33,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-10 text-text-primary">
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Page Header Area */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             👋 Welcome back, <span className="text-primary-400 font-extrabold">Rohan</span>
@@ -64,27 +44,21 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Global Search & Action Buttons */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Mock search input */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search leads, deals, contacts..."
-              className="w-64 pl-3 pr-8 py-1.5 text-xs rounded-lg border border-border bg-[#0e0e18]
-                         text-text-primary placeholder:text-text-tertiary focus:outline-none
-                         focus:border-primary-500 transition-colors"
-              readOnly
-            />
-            <span className="absolute right-2.5 top-2 text-[10px] bg-[#1a1a2e] px-1 py-0.5 rounded text-text-tertiary font-mono">
-              ⌘ K
-            </span>
-          </div>
-
           {/* Quick Filter Date Dropdown */}
-          <div className="flex items-center bg-[#0e0e18] border border-border rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer hover:bg-[#1a1a2e] transition-colors">
-            <span>📅 This Week</span>
-            <svg className="w-3.5 h-3.5 ml-1 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="relative group">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="appearance-none bg-[#0e0e18] border border-border rounded-lg pl-8 pr-8 py-1.5 text-xs font-medium cursor-pointer hover:bg-[#1a1a2e] transition-colors focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+            </select>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">📅</span>
+            <svg className="w-3.5 h-3.5 text-text-secondary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
@@ -359,146 +333,20 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="space-y-3.5 flex-1 pt-1">
-            {[
-              {
-                name: 'Priya Sharma',
-                action: 'marked as',
-                target: '“Hot Lead”',
-                meta: 'Acme Corp',
-                time: '2m ago',
-                initials: 'PS',
-                grad: 'from-pink-500 to-indigo-500',
-              },
-              {
-                name: 'Rahul Mehra',
-                action: 'moved deal to',
-                target: 'Proposal stage',
-                meta: 'Zenith CRM Project',
-                time: '15m ago',
-                initials: 'RM',
-                grad: 'from-blue-500 to-emerald-500',
-              },
-              {
-                name: 'Neha Kapoor',
-                action: 'opened conversation',
-                target: 'Follow-up due',
-                meta: 'Email thread (3x)',
-                time: '1h ago',
-                initials: 'NK',
-                grad: 'from-orange-500 to-purple-500',
-              },
-              {
-                name: 'System Integration',
-                action: 'ingested lead from',
-                target: '“Vikram Logistics”',
-                meta: 'Website API Connection',
-                time: '2h ago',
-                initials: 'VL',
-                grad: 'from-indigo-600 to-blue-500',
-                isGlobe: true,
-              },
-              {
-                name: 'Rohan Kumar',
-                action: 'completed call with',
-                target: 'Zenith Solutions',
-                meta: 'Next Actions Scheduled',
-                time: '3h ago',
-                initials: 'RK',
-                grad: 'from-violet-500 to-pink-500',
-              },
-            ].map((activity, idx) => (
-              <div key={idx} className="flex gap-3 items-center text-xs border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
-                {activity.isGlobe ? (
-                  <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                  </div>
-                ) : (
-                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${activity.grad} flex items-center justify-center text-[10px] font-extrabold text-white shrink-0`}>
-                    {activity.initials}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-text-secondary text-[11px] truncate leading-tight">
-                    <span className="font-bold text-white mr-1">{activity.name}</span>
-                    {activity.action} <span className="text-primary-400 font-semibold">{activity.target}</span>
-                  </p>
-                  <p className="text-[9px] text-text-tertiary">
-                    {activity.meta} · {activity.time}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-3.5 flex-1 pt-1 flex items-center justify-center">
+            <p className="text-sm text-text-tertiary">No recent activity found.</p>
           </div>
         </div>
 
-        {/* AI Insights Card */}
+        {/* Empty Box in place of AI Insights */}
         <div className="bg-[#0e0e18]/90 border border-white/5 rounded-2xl p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex justify-between items-center">
+           <div className="flex justify-between items-center">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <span>🤖</span> AI Insights
+              Insights
             </h3>
-            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-primary-600/10 text-primary-400 border border-primary-600/20">
-              AI
-            </span>
           </div>
-
-          <div className="space-y-2.5 flex-1 pt-1">
-            {/* Insight 1 */}
-            <div className="bg-[#121222]/50 border border-green-500/10 hover:border-green-500/20 rounded-xl p-3 flex items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center gap-3">
-                <span className="text-green-400 text-lg">⚡</span>
-                <div className="space-y-0.5 min-w-0">
-                  <h4 className="text-[11px] font-bold text-white leading-tight">High Intent Lead Detected</h4>
-                  <p className="text-[9px] text-text-secondary leading-normal truncate max-w-[140px]">
-                    Vikram Logistics visited pricing page 3 times.
-                  </p>
-                </div>
-              </div>
-              <Link href="/leads" className="shrink-0">
-                <Button variant="secondary" className="text-[9px] py-1 px-2.5 h-6 rounded-md bg-[#1d1d36] hover:bg-[#252545] border-white/5 text-white">
-                  View Lead
-                </Button>
-              </Link>
-            </div>
-
-            {/* Insight 2 */}
-            <div className="bg-[#121222]/50 border border-yellow-500/10 hover:border-yellow-500/20 rounded-xl p-3 flex items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center gap-3">
-                <span className="text-yellow-400 text-lg">⚠️</span>
-                <div className="space-y-0.5 min-w-0">
-                  <h4 className="text-[11px] font-bold text-white leading-tight">Deal at Risk</h4>
-                  <p className="text-[9px] text-text-secondary leading-normal truncate max-w-[140px]">
-                    3 deals have not had active communication.
-                  </p>
-                </div>
-              </div>
-              <Link href="/pipeline" className="shrink-0">
-                <Button variant="secondary" className="text-[9px] py-1 px-2.5 h-6 rounded-md bg-[#1d1d36] hover:bg-[#252545] border-white/5 text-white">
-                  Review Deals
-                </Button>
-              </Link>
-            </div>
-
-            {/* Insight 3 */}
-            <div className="bg-[#121222]/50 border border-purple-500/10 hover:border-purple-500/20 rounded-xl p-3 flex items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center gap-3">
-                <span className="text-purple-400 text-lg">📈</span>
-                <div className="space-y-0.5 min-w-0">
-                  <h4 className="text-[11px] font-bold text-white leading-tight">Revenue Forecast</h4>
-                  <p className="text-[9px] text-text-secondary leading-normal truncate max-w-[140px]">
-                    Predicted monthly value is ₹31.8L.
-                  </p>
-                </div>
-              </div>
-              <Link href="/analytics" className="shrink-0">
-                <Button variant="secondary" className="text-[9px] py-1 px-2.5 h-6 rounded-md bg-[#1d1d36] hover:bg-[#252545] border-white/5 text-white">
-                  View Forecast
-                </Button>
-              </Link>
-            </div>
+          <div className="flex items-center justify-center flex-1">
+            <p className="text-sm text-text-tertiary">No insights generated.</p>
           </div>
         </div>
       </div>
@@ -521,50 +369,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Line Chart Grid representation using SVG */}
-          <div className="h-44 w-full pt-4 relative flex flex-col justify-end">
-            <svg className="w-full h-full text-indigo-500 overflow-visible" viewBox="0 0 500 120">
-              <defs>
-                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              {/* Horizontal grid lines */}
-              <line x1="0" y1="30" x2="500" y2="30" stroke="rgba(255,255,255,0.03)" strokeWidth="1" strokeDasharray="3 3" />
-              <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.03)" strokeWidth="1" strokeDasharray="3 3" />
-              <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255,255,255,0.03)" strokeWidth="1" strokeDasharray="3 3" />
-              
-              {/* Area under curve */}
-              <polygon
-                points="0,120 0,110 50,105 100,95 150,88 200,92 250,75 300,82 350,55 400,68 450,42 500,30 500,120"
-                fill="url(#revenueGrad)"
-              />
-              
-              {/* Line path */}
-              <polyline
-                points="0,110 50,105 100,95 150,88 200,92 250,75 300,82 350,55 400,68 450,42 500,30"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* Dynamic data dot anchors */}
-              <circle cx="350" cy="55" r="4.5" fill="#FFF" stroke="currentColor" strokeWidth="2.5" />
-              <circle cx="500" cy="30" r="4.5" fill="#FFF" stroke="currentColor" strokeWidth="2.5" />
-            </svg>
-
-            {/* X Axis Labels */}
-            <div className="flex justify-between text-[9px] font-bold text-text-tertiary pt-3 px-1">
-              <span>Apr 1</span>
-              <span>Apr 8</span>
-              <span>Apr 15</span>
-              <span>Apr 22</span>
-              <span>Apr 29</span>
-              <span>May 6</span>
-            </div>
+          <div className="flex items-center justify-center flex-1 min-h-[150px]">
+            <p className="text-sm text-text-tertiary">Not enough data to generate trend.</p>
           </div>
         </div>
 
@@ -577,41 +383,8 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="space-y-2.5 flex-1 pt-1">
-            {tasks.map(task => (
-              <div
-                key={task.id}
-                onClick={() => toggleTask(task.id)}
-                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none
-                           ${task.completed
-                             ? 'border-white/5 bg-[#121222]/30 opacity-55'
-                             : 'border-white/5 bg-[#121222]/70 hover:border-indigo-500/20'
-                           }`}
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => {}} // toggled on container click
-                    className="rounded border-white/10 bg-[#0e0e18] text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer"
-                  />
-                  <span className={`text-[11px] font-medium ${task.completed ? 'line-through text-text-tertiary' : 'text-white'}`}>
-                    {task.title}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase
-                                   ${task.priority === 'High' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : ''}
-                                   ${task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : ''}
-                                   ${task.priority === 'Low' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : ''}
-                                 `}>
-                    {task.priority}
-                  </span>
-                  <span className={`text-[9px] font-bold ${task.due === 'Today' ? 'text-red-400 font-extrabold' : 'text-text-tertiary'}`}>{task.due}</span>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-center flex-1">
+            <p className="text-sm text-text-tertiary">No pending tasks.</p>
           </div>
         </div>
       </div>

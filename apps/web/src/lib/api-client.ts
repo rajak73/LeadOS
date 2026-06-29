@@ -4,7 +4,7 @@
 // access token. A _retried flag on the config prevents infinite retry loops.
 
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
-import { getAccessToken, setAccessToken, clearAccessToken } from './auth/token-store';
+import { getAccessToken, clearAccessToken, refreshAccessToken } from './auth/token-store';
 
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
@@ -61,20 +61,11 @@ export function createApiClient(options: ApiClientOptions = {}): AxiosInstance {
       config._retried = true;
 
       try {
-        const refreshRes = await doRefreshFetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!refreshRes.ok) throw new Error('refresh failed');
-        const json = (await refreshRes.json()) as { data?: { accessToken?: string } };
-        const newToken = json.data?.accessToken;
-        if (!newToken) throw new Error('no token in refresh response');
-        setAccessToken(newToken);
+        const newToken = await refreshAccessToken(doRefreshFetch);
+        if (!newToken) throw new Error('refresh failed');
         config.headers.set('Authorization', `Bearer ${newToken}`);
         return client(config);
       } catch {
-        clearAccessToken();
         if (typeof window !== 'undefined') window.location.href = '/login';
         return Promise.reject(error);
       }

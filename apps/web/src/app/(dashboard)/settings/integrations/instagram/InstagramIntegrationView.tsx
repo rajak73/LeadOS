@@ -22,15 +22,15 @@ export function InstagramIntegrationView() {
   return (
     <div className="space-y-6 max-w-screen-lg">
       <div>
-        <h1 className="text-xl font-semibold text-text-primary">Instagram Integration</h1>
+        <h1 className="text-xl font-semibold text-text-primary">Meta Integration</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Connect Instagram accounts to receive and reply to DMs from within LeadOS.
+          Connect Instagram and Facebook pages to receive and reply to DMs and Comments from within LeadOS.
         </p>
       </div>
 
       {connected && (
         <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
-          Instagram account connected successfully.
+          Account connected successfully.
         </div>
       )}
       {error && (
@@ -58,7 +58,7 @@ export function InstagramIntegrationView() {
           </div>
         ) : accounts.length === 0 ? (
           <div className="rounded-lg border border-border border-dashed px-4 py-6 text-center text-sm text-text-tertiary">
-            No Instagram accounts connected yet.
+            No Meta accounts connected yet.
           </div>
         ) : (
           <div className="space-y-2">
@@ -83,11 +83,11 @@ export function InstagramIntegrationView() {
 
 function errorMessage(code: string): string {
   const messages: Record<string, string> = {
-    ACCESS_DENIED: 'Instagram access was denied. Please try again.',
+    ACCESS_DENIED: 'Access was denied. Please try again.',
     INVALID_STATE: 'Invalid OAuth state. Please try connecting again.',
     STATE_EXPIRED: 'The connection attempt expired. Please try again.',
-    ALREADY_CONNECTED: 'This Instagram account is already connected.',
-    PLAN_LIMIT_EXCEEDED: 'You have reached the Instagram account limit for your plan.',
+    ALREADY_CONNECTED: 'This account is already connected.',
+    PLAN_LIMIT_EXCEEDED: 'You have reached the account limit for your plan.',
     INTERNAL_ERROR: 'An unexpected error occurred. Please try again.',
   };
   return messages[code] ?? `Connection failed (${code}). Please try again.`;

@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/components/ui/Toast';
 
-import { getAccessToken } from '@/lib/auth/token-store';
+import { getAccessToken, refreshAccessToken } from '@/lib/auth/token-store';
 
 // App-wide client providers. TanStack Query owns server state.
 export function Providers({ children }: { children: ReactNode }) {
@@ -27,20 +27,35 @@ export function Providers({ children }: { children: ReactNode }) {
             ? input.href
             : input.url || '';
 
-        let newInit = init;
-        if (url.includes('/api/bff/')) {
-          const token = getAccessToken();
-          if (token) {
+        const getNewInit = (token: string | null) => {
+          if (url.includes('/api/bff/') && token) {
             const headers = new Headers(init?.headers || {});
             headers.set('Authorization', `Bearer ${token}`);
-            newInit = {
+            return {
               ...(init || {}),
               headers,
             };
           }
+          return init;
+        };
+
+        const token = getAccessToken();
+        const newInit = getNewInit(token);
+
+        let response = await originalFetch(input, newInit);
+
+        if (response.status === 401 && url.includes('/api/bff/')) {
+          try {
+            const newToken = await refreshAccessToken();
+            if (newToken) {
+              const retryInit = getNewInit(newToken);
+              response = await originalFetch(input, retryInit);
+            }
+          } catch (e) {
+            console.error('BFF token refresh/retry failed:', e);
+          }
         }
 
-        const response = await originalFetch(input, newInit);
         if (response.status === 401) {
           if (
             (url.includes('/api/bff/') || url.includes('/api/auth/refresh')) &&

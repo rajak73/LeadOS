@@ -58,19 +58,20 @@ export function SavedReplyPicker({ replies, onSelect, onClose }: SavedReplyPicke
 
   return (
     <div
-      className="absolute bottom-full left-0 right-0 mb-1 bg-bg-elevated border border-border rounded-xl shadow-xl z-20 overflow-hidden"
+      className="absolute bottom-full left-0 right-0 mb-2 bg-bg-elevated border border-border-strong rounded-xl shadow-2xl z-20 overflow-hidden ring-1 ring-white/5 origin-bottom animate-in fade-in slide-in-from-bottom-2 duration-200"
       role="dialog"
-      aria-label="Saved replies"
+      aria-label="AI Suggested replies"
       onKeyDown={handleKeyDown}
     >
-      <div className="p-2 border-b border-border">
+      <div className="p-3 border-b border-border-strong bg-bg-base/50 flex items-center gap-3">
+        <span className="text-ai-start text-base pointer-events-none">✨</span>
         <input
           ref={searchRef}
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search replies…"
-          className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none"
+          placeholder="Search AI replies & templates…"
+          className="w-full bg-transparent text-sm font-medium text-text-primary placeholder:text-text-tertiary outline-none"
           aria-label="Search saved replies"
         />
       </div>
@@ -86,17 +87,17 @@ export function SavedReplyPicker({ replies, onSelect, onClose }: SavedReplyPicke
               aria-selected={i === activeIndex}
               onClick={() => onSelect(reply.content)}
               onMouseEnter={() => setActiveIndex(i)}
-              className={`px-3 py-2 cursor-pointer ${
-                i === activeIndex ? 'bg-bg-subtle' : ''
+              className={`px-4 py-3 cursor-pointer transition-colors border-l-2 ${
+                i === activeIndex ? 'bg-bg-subtle border-ai-start' : 'border-transparent hover:bg-bg-subtle/50'
               }`}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-medium text-text-primary truncate">{reply.title}</span>
+              <div className="flex items-center justify-between min-w-0 mb-1">
+                <span className="text-sm font-semibold text-text-primary truncate">{reply.title}</span>
                 {reply.shortcut && (
-                  <span className="text-xs text-text-tertiary shrink-0">{reply.shortcut}</span>
+                  <span className="text-[10px] font-mono text-primary-400 bg-primary-500/10 ring-1 ring-primary-500/20 px-1.5 py-0.5 rounded shrink-0 ml-2">{reply.shortcut}</span>
                 )}
               </div>
-              <p className="text-xs text-text-secondary truncate mt-0.5">{reply.content}</p>
+              <p className="text-xs text-text-secondary truncate">{reply.content}</p>
             </li>
           ))}
         </ul>

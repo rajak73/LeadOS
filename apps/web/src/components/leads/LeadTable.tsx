@@ -9,7 +9,7 @@ import { LeadStatusBadge } from './LeadStatusBadge';
 import { LeadScoreBadge } from './LeadScoreBadge';
 import { LeadScorePopover } from './LeadScorePopover';
 import { BulkActionBar } from './BulkActionBar';
-import { Spinner } from '@/components/ui/Spinner';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { AvatarInitials } from '@/components/ui/AvatarInitials';
@@ -151,10 +151,10 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-border rounded-xl">
+      <div className="overflow-x-auto border border-border-strong rounded-xl bg-bg-base ring-1 ring-white/5 shadow-sm max-h-[70vh] relative">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-bg-elevated">
+          <thead className="sticky top-0 z-10 shadow-sm">
+            <tr className="border-b border-border-strong bg-bg-elevated/95 backdrop-blur-md">
               {/* Select-all checkbox */}
               <th scope="col" className="w-10 px-4 py-3">
                 <input
@@ -203,8 +203,17 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
-                  <Spinner />
+                <td colSpan={7} className="p-0">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-6 px-4 py-4 border-b border-border/30">
+                       <Skeleton className="w-4 h-4 rounded" />
+                       <Skeleton className="w-32 h-4" />
+                       <Skeleton className="w-40 h-4 hidden sm:block" />
+                       <Skeleton className="w-24 h-4" />
+                       <Skeleton className="w-20 h-4" />
+                       <Skeleton className="w-16 h-4" />
+                    </div>
+                  ))}
                 </td>
               </tr>
             )}
@@ -222,7 +231,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                 <tr
                   key={lead.id}
                   className={`border-b border-border/50 last:border-0 transition-colors
-                    ${isSelected ? 'bg-primary-500/5' : 'hover:bg-bg-elevated/50'}`}
+                    ${isSelected ? 'bg-primary-500/10' : 'hover:bg-bg-subtle/80'}`}
                   data-testid={`lead-row-${lead.id}`}
                 >
                   <td className="w-10 px-4 py-3">

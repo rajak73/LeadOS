@@ -12,6 +12,12 @@
 // Force test mode — must happen before any module imports env.ts
 process.env['NODE_ENV'] = 'test';
 
+// Increase test pool size to prevent connection exhaustion timeouts
+if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('connection_limit')) {
+  const separator = process.env.DATABASE_URL.includes('?') ? '&' : '?';
+  process.env.DATABASE_URL += `${separator}connection_limit=20`;
+}
+
 const ENV_VARS_WITH_DEFAULTS = [
   'JWT_ACCESS_SECRET',
   'JWT_REFRESH_PEPPER',

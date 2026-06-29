@@ -73,6 +73,14 @@ export const WebhookEventStatus = {
 } as const;
 export type WebhookEventStatus = (typeof WebhookEventStatus)[keyof typeof WebhookEventStatus];
 
+export const ImportJobStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const;
+export type ImportJobStatus = (typeof ImportJobStatus)[keyof typeof ImportJobStatus];
+
 export const TaskType = {
   CALL: 'CALL',
   EMAIL: 'EMAIL',
@@ -166,6 +174,10 @@ export const ActivityType = {
   WORKFLOW_TRIGGERED: 'WORKFLOW_TRIGGERED',
   WORKFLOW_ACTION_EXECUTED: 'WORKFLOW_ACTION_EXECUTED',
   FOLLOW_UP_CREATED: 'FOLLOW_UP_CREATED',
+  // Sprint 8 M1 additions
+  CSV_IMPORT_STARTED: 'CSV_IMPORT_STARTED',
+  CSV_IMPORT_COMPLETED: 'CSV_IMPORT_COMPLETED',
+  CSV_IMPORT_FAILED: 'CSV_IMPORT_FAILED',
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 

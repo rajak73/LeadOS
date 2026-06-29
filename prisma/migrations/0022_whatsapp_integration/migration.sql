@@ -166,3 +166,11 @@ ALTER TABLE "whatsapp_messages" FORCE ROW LEVEL SECURITY;
 CREATE POLICY "tenant_isolation" ON "whatsapp_messages"
   USING ("organizationId" = current_setting('app.current_organization_id', true)::uuid)
   WITH CHECK ("organizationId" = current_setting('app.current_organization_id', true)::uuid);
+
+-- ─── import_history ───────────────────────────────────────────────────────────
+-- RLS patch for Sprint 8
+ALTER TABLE "import_history" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "import_history" FORCE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_isolation" ON "import_history"
+  USING ("organizationId" = current_setting('app.current_organization_id', true)::uuid)
+  WITH CHECK ("organizationId" = current_setting('app.current_organization_id', true)::uuid);

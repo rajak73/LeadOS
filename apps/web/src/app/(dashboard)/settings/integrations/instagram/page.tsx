@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { Spinner } from '@/components/ui/Spinner';
 import { InstagramIntegrationView } from './InstagramIntegrationView';
 
-export const metadata = { title: 'Instagram Integration — LeadOS' };
+export const metadata = { title: 'Meta Integration — LeadOS' };
 
 export default function InstagramIntegrationPage() {
   return (

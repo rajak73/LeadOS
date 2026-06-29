@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { href: '/settings/profile', label: 'Profile', icon: '👤' },
   { href: '/settings/team', label: 'Team & Roles', icon: '👥' },
   { href: '/settings/billing', label: 'Billing', icon: '💳' },
-  { href: '/settings/integrations/instagram', label: 'Instagram', icon: '📸' },
+  { href: '/settings/integrations/instagram', label: 'Meta (IG & FB)', icon: '💬' },
 ];
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {

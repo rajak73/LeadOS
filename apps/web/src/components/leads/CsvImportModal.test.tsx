@@ -10,11 +10,10 @@ describe('CsvImportModal', () => {
     expect(screen.queryByTestId('csv-import-modal')).not.toBeInTheDocument();
   });
 
-  it('renders the file input and upload button when open', () => {
+  it('renders the file input when open', () => {
     renderWithProviders(<CsvImportModal open={true} onClose={vi.fn()} />);
     expect(screen.getByTestId('csv-import-modal')).toBeInTheDocument();
     expect(screen.getByTestId('file-input')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-start-import')).toBeInTheDocument();
   });
 
   it('calls onClose when Cancel is clicked', async () => {

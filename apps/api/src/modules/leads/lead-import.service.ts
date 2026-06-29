@@ -30,6 +30,11 @@ export interface ImportJobPayload {
   userId: string;
   role: string;
   csvBase64: string;
+  mappings: Record<string, string>;
+  assignment: { type: 'NONE' | 'SINGLE' | 'ROUND_ROBIN'; userId?: string };
+  fileName: string;
+  fileSize: number;
+  historyId: string;
 }
 
 export interface ImportResult {
@@ -62,6 +67,14 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
   const total = rawRows.length;
   const errorRows: { row: number; errors: string[] }[] = [];
 
+  // Update history to PROCESSING
+  await withTenant(ctx.organizationId, async (db) => {
+    await db.importHistory.update({
+      where: { id: payload.historyId },
+      data: { status: 'PROCESSING' }
+    });
+  });
+
   // Validate every row upfront. Collect valid rows and invalid indices.
   interface ValidRow {
     rowIndex: number;
@@ -69,6 +82,7 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
     lastName: string | undefined;
     email: string | undefined;
     phone: string | undefined;
+    company: string | undefined;
     source: 'INSTAGRAM_DM' | 'INSTAGRAM_COMMENT' | 'WHATSAPP' | 'MANUAL' | 'IMPORT' | 'REFERRAL' | 'WEB_FORM' | 'OTHER';
     tags: string[];
   }
@@ -77,10 +91,22 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
 
   for (let i = 0; i < rawRows.length; i++) {
     const raw = rawRows[i]!;
+    
+    // Apply mappings
+    const mappedRow: Record<string, any> = {};
+    for (const [leadField, csvColumn] of Object.entries(payload.mappings)) {
+      if (csvColumn && raw[csvColumn] !== undefined) {
+        mappedRow[leadField] = raw[csvColumn];
+      }
+    }
+    
+    if (!mappedRow.source) mappedRow.source = 'IMPORT';
+
     // Split comma-separated tags string into an array before validating.
-    const tagsRaw = raw['tags'];
-    const tagsArr = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
-    const parsed = leadImportRowSchema.safeParse({ ...raw, tags: tagsArr });
+    const tagsRaw = mappedRow.tags;
+    const tagsArr = tagsRaw ? tagsRaw.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+    
+    const parsed = leadImportRowSchema.safeParse({ ...mappedRow, tags: tagsArr });
 
     if (!parsed.success) {
       errorRows.push({
@@ -96,17 +122,33 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
       lastName: d.lastName,
       email: d.email,
       phone: d.phone,
+      company: mappedRow.company,
       source: d.source,
       tags: d.tags,
     });
   }
 
-  if (validRows.length === 0) {
-    return { total, imported: 0, duplicates: 0, errorRows };
-  }
-
   let imported = 0;
   let duplicates = 0;
+
+  if (validRows.length === 0) {
+    // If no valid rows, just finish.
+    await withTenant(ctx.organizationId, async (db) => {
+      await db.importHistory.update({
+        where: { id: payload.historyId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          recordsTotal: total,
+          recordsImported: 0,
+          recordsFailed: errorRows.length,
+          recordsSkipped: 0,
+          errorSummary: errorRows.slice(0, 50) as any
+        }
+      });
+    });
+    return { total, imported: 0, duplicates: 0, errorRows };
+  }
 
   // Single transaction: plan limit check + dedup + batch insert + activity.
   await withTenant(ctx.organizationId, async (db) => {
@@ -162,11 +204,42 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
       );
     }
 
+    // Fetch assignees for ROUND_ROBIN
+    let assignees: string[] = [];
+    if (payload.assignment.type === 'ROUND_ROBIN') {
+      const users = await db.user.findMany({
+        where: {
+          status: 'ACTIVE',
+          memberships: {
+            some: {
+              organizationId: ctx.organizationId,
+              role: {
+                name: { in: ['SALES_EXECUTIVE', 'MANAGER', 'ADMIN'] }
+              }
+            }
+          }
+        },
+        select: { id: true },
+        orderBy: { id: 'asc' }
+      });
+      assignees = users.map(u => u.id);
+    }
+    
+    let rrIndex = 0;
+
     // Batch insert in groups of 100.
     const BATCH = 100;
     for (let start = 0; start < toInsert.length; start += BATCH) {
       const batch = toInsert.slice(start, start + BATCH);
       for (const row of batch) {
+        let assignedToId: string | null = null;
+        if (payload.assignment.type === 'SINGLE' && payload.assignment.userId) {
+          assignedToId = payload.assignment.userId;
+        } else if (payload.assignment.type === 'ROUND_ROBIN' && assignees.length > 0) {
+          assignedToId = assignees[rrIndex % assignees.length]!;
+          rrIndex++;
+        }
+
         const lead = await db.lead.create({
           data: asTenantCreate<Prisma.LeadUncheckedCreateInput>({
             firstName: row.firstName,
@@ -176,7 +249,8 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
             source: row.source,
             status: 'NEW',
             tags: row.tags,
-            customFields: {},
+            customFields: row.company ? { company: row.company } : {},
+            assignedToId,
             createdById: ctx.userId,
           }),
         });
@@ -190,8 +264,7 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
 
         imported++;
 
-        // Audit — inside transaction (import is a bulk operation; individual audit rows
-        // are written here rather than post-transaction to keep them atomic with the insert).
+        // Audit — inside transaction
         const auditRow = buildAuditRow(
           { action: 'created', resource: 'lead', resourceId: lead.id, after: { id: lead.id, firstName: lead.firstName, email: lead.email } },
           ctx,
@@ -201,6 +274,20 @@ export async function processImport(payload: ImportJobPayload): Promise<ImportRe
         });
       }
     }
+    
+    // Finalize History
+    await db.importHistory.update({
+      where: { id: payload.historyId },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        recordsTotal: total,
+        recordsImported: imported,
+        recordsFailed: errorRows.length,
+        recordsSkipped: duplicates,
+        errorSummary: errorRows.slice(0, 50) as any
+      }
+    });
   });
 
   return { total, imported, duplicates, errorRows };

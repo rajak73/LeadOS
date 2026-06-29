@@ -34,6 +34,14 @@ export interface MessageContent {
   mediaUrl?: string;
 }
 
+export interface FacebookPage {
+  id: string;
+  name: string;
+  access_token: string;
+  category?: string;
+  picture?: { data: { url: string } };
+}
+
 // ─── Interface ────────────────────────────────────────────────────────────────
 
 export interface InstagramAdapter {
@@ -83,7 +91,17 @@ export interface InstagramAdapter {
     recipientIgUserId: string,
     content: MessageContent,
     accessToken: string,
+    platform?: 'INSTAGRAM' | 'FACEBOOK',
   ): Promise<{ mid: string }>;
+
+  /** Fetch connected Facebook Pages for the user. */
+  getFacebookPages(userAccessToken: string): Promise<FacebookPage[]>;
+
+  /** Subscribe the app to Facebook Page webhook events. */
+  subscribeFacebookWebhook(pageId: string, pageAccessToken: string): Promise<void>;
+
+  /** Unsubscribe the app from Facebook Page webhook events. */
+  unsubscribeFacebookWebhook(pageId: string, pageAccessToken: string): Promise<void>;
 }
 
 // ─── Meta Graph API implementation ───────────────────────────────────────────
@@ -96,6 +114,24 @@ async function graphFetch(
   opts: RequestInit = {},
 ): Promise<Record<string, unknown>> {
   const url = `${GRAPH_BASE}/${GRAPH_VERSION}${path}`;
+  const res = await fetch(url, opts);
+  const body = (await res.json()) as Record<string, unknown>;
+  if (!res.ok) {
+    const err = body['error'] as Record<string, unknown> | undefined;
+    throw new Error(
+      `Meta API ${res.status}: ${(err?.['message'] as string | undefined) ?? 'unknown error'}`,
+    );
+  }
+  return body;
+}
+
+const FB_GRAPH_BASE = 'https://graph.facebook.com';
+
+async function fbGraphFetch(
+  path: string,
+  opts: RequestInit = {},
+): Promise<Record<string, unknown>> {
+  const url = `${FB_GRAPH_BASE}/${GRAPH_VERSION}${path}`;
   const res = await fetch(url, opts);
   const body = (await res.json()) as Record<string, unknown>;
   if (!res.ok) {
@@ -196,17 +232,32 @@ export class MetaInstagramAdapter implements InstagramAdapter {
     recipientIgUserId: string,
     content: MessageContent,
     accessToken: string,
+    platform: 'INSTAGRAM' | 'FACEBOOK' = 'INSTAGRAM',
   ): Promise<{ mid: string }> {
     const message =
       content.type === 'text'
         ? { text: content.text ?? '' }
         : { attachment: { type: content.type, payload: { url: content.mediaUrl } } };
-    const body = await graphFetch(`/me/messages?access_token=${accessToken}`, {
+    const fetcher = platform === 'FACEBOOK' ? fbGraphFetch : graphFetch;
+    const body = await fetcher(`/me/messages?access_token=${accessToken}`, {
       method: 'POST',
       body: JSON.stringify({ recipient: { id: recipientIgUserId }, message }),
       headers: { 'Content-Type': 'application/json' },
     });
     return { mid: body['message_id'] as string };
+  }
+
+  async getFacebookPages(userAccessToken: string): Promise<FacebookPage[]> {
+    const body = await fbGraphFetch(`/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,category,picture`);
+    return (body['data'] as FacebookPage[]) ?? [];
+  }
+
+  async subscribeFacebookWebhook(pageId: string, pageAccessToken: string): Promise<void> {
+    await fbGraphFetch(`/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,feed&access_token=${pageAccessToken}`, { method: 'POST' });
+  }
+
+  async unsubscribeFacebookWebhook(pageId: string, pageAccessToken: string): Promise<void> {
+    await fbGraphFetch(`/${pageId}/subscribed_apps?access_token=${pageAccessToken}`, { method: 'DELETE' });
   }
 }
 
@@ -251,9 +302,17 @@ export class SandboxInstagramAdapter implements InstagramAdapter {
     _recipientIgUserId: string,
     _content: MessageContent,
     _accessToken: string,
+    _platform?: 'INSTAGRAM' | 'FACEBOOK',
   ): Promise<{ mid: string }> {
-    return { mid: `sb-mid-${Date.now().toString()}` };
+    return { mid: `sandbox_mid_${Date.now()}` };
   }
+
+  async getFacebookPages(_userAccessToken: string): Promise<FacebookPage[]> {
+    return [{ id: 'fb_page_1', name: 'Sandbox FB Page', access_token: 'sandbox_fb_token', category: 'Testing' }];
+  }
+
+  async subscribeFacebookWebhook(_pageId: string, _pageAccessToken: string): Promise<void> {}
+  async unsubscribeFacebookWebhook(_pageId: string, _pageAccessToken: string): Promise<void> {}
 }
 
 // Singleton adapter — swapped to SandboxInstagramAdapter in tests via module mocking.

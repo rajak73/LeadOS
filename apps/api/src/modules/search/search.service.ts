@@ -1,3 +1,4 @@
+import { prisma } from '../../core/prisma/client.js';
 import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext } from '../../core/tenancy/context.js';
 
@@ -20,6 +21,7 @@ export class SearchService {
         contacts: [] as import('@prisma/client').Contact[],
         deals: [] as import('@prisma/client').Deal[],
         conversations: [] as unknown[],
+        members: [] as unknown[],
       };
 
       // 1. Search Leads
@@ -93,7 +95,68 @@ export class SearchService {
         });
       }
 
+      // 5. Search Members
+      if (hasPermission('team.read')) {
+        results.members = await db.organizationMember.findMany({
+          where: {
+            user: {
+              OR: [
+                { firstName: { contains: q, mode: 'insensitive' } },
+                { lastName: { contains: q, mode: 'insensitive' } },
+                { email: { contains: q, mode: 'insensitive' } },
+              ]
+            }
+          },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, email: true } },
+            role: { select: { id: true, name: true } }
+          },
+          take: 10,
+        });
+      }
+
       return results;
     });
+  }
+
+  async adminSearch(query: string): Promise<unknown> {
+    const q = query.trim();
+    if (!q) {
+      return { organizations: [], users: [], leads: [] };
+    }
+
+    const [organizations, users, leads] = await Promise.all([
+      prisma.organization.findMany({
+        where: {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { slug: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        take: 10,
+      }),
+      prisma.user.findMany({
+        where: {
+          OR: [
+            { firstName: { contains: q, mode: 'insensitive' } },
+            { lastName: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        take: 10,
+      }),
+      prisma.lead.findMany({
+        where: {
+          OR: [
+            { firstName: { contains: q, mode: 'insensitive' } },
+            { lastName: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        take: 10,
+      }),
+    ]);
+
+    return { organizations, users, leads };
   }
 }

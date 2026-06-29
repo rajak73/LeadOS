@@ -31,6 +31,7 @@ function NavLink({ href, icon, label }: NavLinkProps) {
 export function PrimaryNavLinks() {
   return (
     <>
+      <NavLink href="/customers" icon="⭐" label="Customers" />
       <NavLink href="/leads" icon="👥" label="Leads" />
       <NavLink href="/pipeline" icon="📊" label="Pipeline" />
       <NavLink href="/analytics" icon="📈" label="Analytics" />

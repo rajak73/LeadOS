@@ -108,7 +108,7 @@ export async function processInstagramSendJob(
   // Load account record (base prisma — cross-tenant lookup for decryption)
   const account = await prisma.instagramAccount.findFirst({
     where: { id: igAccountId, organizationId, deletedAt: null },
-    select: { id: true, accessToken: true, status: true },
+    select: { id: true, accessToken: true, status: true, platform: true },
   });
 
   if (!account || account.status !== 'ACTIVE') {
@@ -133,7 +133,12 @@ export async function processInstagramSendJob(
 
   let metaMid: string;
   try {
-    const result = await instagramAdapter.sendMessage(recipientIgUserId, messageContent, plainToken);
+    const result = await instagramAdapter.sendMessage(
+      recipientIgUserId, 
+      messageContent, 
+      plainToken, 
+      account.platform as 'INSTAGRAM' | 'FACEBOOK'
+    );
     metaMid = result.mid;
   } catch (err) {
     const isLastAttempt = job.attemptsMade >= ((job.opts.attempts ?? 1) - 1);

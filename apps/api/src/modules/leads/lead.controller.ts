@@ -25,6 +25,8 @@ export interface LeadController {
   listFiles(req: Request, res: Response): Promise<void>;
   importCsv(req: Request, res: Response): Promise<void>;
   getImportJob(req: Request, res: Response): Promise<void>;
+  listImportHistory(req: Request, res: Response): Promise<void>;
+  getImportHistoryById(req: Request, res: Response): Promise<void>;
   exportCsv(req: Request, res: Response): Promise<void>;
   getExportJob(req: Request, res: Response): Promise<void>;
   bulk(req: Request, res: Response): Promise<void>;
@@ -95,12 +97,34 @@ export function createLeadController(service: LeadService): LeadController {
         res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'CSV file is required' } });
         return;
       }
-      const jobId = await service.startImport(file.buffer);
-      sendSuccess(res, { jobId }, 202);
+
+      let mappings: Record<string, string> = {};
+      let assignment: { type: 'NONE' | 'SINGLE' | 'ROUND_ROBIN'; userId?: string } = { type: 'NONE' };
+      try {
+        if (req.body.mappings) mappings = JSON.parse(req.body.mappings as string);
+        if (req.body.assignment) assignment = JSON.parse(req.body.assignment as string);
+      } catch (_err) {
+        res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid mappings or assignment JSON format' } });
+        return;
+      }
+
+      const { jobId, historyId } = await service.startImport(file.buffer, file.originalname, file.size, mappings, assignment);
+      sendSuccess(res, { jobId, historyId }, 202);
     },
 
     async getImportJob(req, res) {
       const result = await service.getImportJob(req.params['jobId']!);
+      sendSuccess(res, result);
+    },
+
+    async listImportHistory(req, res) {
+      const { page, limit } = req.query as unknown as PaginationQuery;
+      const { items, total } = await service.listImportHistory(page, limit);
+      sendSuccess(res, items, 200, buildPaginationMeta(page, limit, total));
+    },
+
+    async getImportHistoryById(req, res) {
+      const result = await service.getImportHistoryById(req.params['id']!);
       sendSuccess(res, result);
     },
 

@@ -20,10 +20,13 @@ export function LeadScoreBadge({ score, className = '', onClick }: LeadScoreBadg
   }
 
   let colorClasses = 'bg-red-500/15 text-red-400 border-red-500/30';
+  let categoryLabel = 'Cold';
   if (score >= 70) {
     colorClasses = 'bg-green-500/15 text-green-400 border-green-500/30';
+    categoryLabel = 'Hot';
   } else if (score >= 40) {
     colorClasses = 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30';
+    categoryLabel = 'Warm';
   }
 
   return (
@@ -32,7 +35,7 @@ export function LeadScoreBadge({ score, className = '', onClick }: LeadScoreBadg
       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colorClasses} ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className}`}
       data-testid={`lead-score-badge-${score}`}
     >
-      AI: {score}
+      {categoryLabel}: {score}
     </span>
   );
 }

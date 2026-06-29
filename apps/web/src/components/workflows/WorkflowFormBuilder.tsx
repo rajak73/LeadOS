@@ -26,6 +26,8 @@ const TRIGGER_OPTIONS = [
   { value: 'DEAL_CREATED', label: 'Deal Created' },
   { value: 'DEAL_STAGE_MOVED', label: 'Deal Stage Moved' },
   { value: 'MESSAGE_RECEIVED', label: 'Message Received' },
+  { value: 'LEAD_SCORE_CHANGED', label: 'Lead Score Changed (AI)' },
+  { value: 'LEAD_NO_RESPONSE', label: 'Lead No Response (Inactivity)' },
 ];
 
 const FIELD_OPTIONS = [
@@ -59,6 +61,8 @@ const ACTION_OPTIONS = [
   { value: 'rescore_lead', label: 'Rescore Lead (AI)' },
   { value: 'send_whatsapp_template', label: 'Send WhatsApp Template' },
   { value: 'outbound_webhook', label: 'Outbound Webhook (POST)' },
+  { value: 'send_email', label: 'Send Email' },
+  { value: 'delay', label: 'Delay (Wait)' },
 ];
 
 const LEAD_STATUS_OPTIONS = [
@@ -147,6 +151,10 @@ export function WorkflowFormBuilder({
       config = { accountId: '', templateName: '', templateLanguage: 'en' };
     } else if (type === 'outbound_webhook') {
       config = { url: '', headers: '', body: '' };
+    } else if (type === 'send_email') {
+      config = { subject: '', body: '' };
+    } else if (type === 'delay') {
+      config = { amount: 1, unit: 'minutes' };
     }
     updated[index] = { type, config };
     setActions(updated);
@@ -259,6 +267,18 @@ export function WorkflowFormBuilder({
             rows={2}
             className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 resize-none"
           />
+        </div>
+      </div>
+
+      <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-3 items-start">
+        <span className="text-blue-400 mt-0.5">ℹ️</span>
+        <div className="text-sm text-text-secondary leading-relaxed">
+          <strong className="text-text-primary">Important Note:</strong> Workflow follow-ups and delays will automatically stop if:
+          <ul className="list-disc pl-5 mt-1 space-y-0.5">
+            <li>The lead replies to a message.</li>
+            <li>The lead status changes to WON or LOST.</li>
+            <li>The lead no longer matches the workflow conditions.</li>
+          </ul>
         </div>
       </div>
 
@@ -537,6 +557,58 @@ export function WorkflowFormBuilder({
                           placeholder='{"source": "leados"}'
                           rows={2}
                           className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 font-mono resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {act.type === 'send_email' && (
+                    <div className="max-w-lg space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-text-secondary font-medium">Email Subject</label>
+                        <input
+                          type="text"
+                          value={act.config.subject || ''}
+                          onChange={(e) => handleActionConfigChange(index, 'subject', e.target.value)}
+                          placeholder="e.g. Checking in..."
+                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-text-secondary font-medium">Email Body</label>
+                        <textarea
+                          value={act.config.body || ''}
+                          onChange={(e) => handleActionConfigChange(index, 'body', e.target.value)}
+                          placeholder="Hi there, just wanted to check if you had any questions..."
+                          rows={4}
+                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {act.type === 'delay' && (
+                    <div className="max-w-lg flex items-center gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs text-text-secondary font-medium">Wait Amount</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={act.config.amount || ''}
+                          onChange={(e) => handleActionConfigChange(index, 'amount', Number(e.target.value))}
+                          className="w-24 px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <label className="text-xs text-text-secondary font-medium">Wait Unit</label>
+                        <Select
+                          value={act.config.unit || 'minutes'}
+                          onValueChange={(val) => handleActionConfigChange(index, 'unit', val)}
+                          options={[
+                            { value: 'minutes', label: 'Minutes' },
+                            { value: 'hours', label: 'Hours' },
+                            { value: 'days', label: 'Days' }
+                          ]}
                         />
                       </div>
                     </div>

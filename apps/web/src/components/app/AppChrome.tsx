@@ -9,12 +9,14 @@ import { useEffect, useCallback, useState } from 'react';
 import { connectSocket, disconnectSocket, useSocketEvent } from '@/lib/socket/client';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { CommandPalette } from '@/components/app/CommandPalette';
+import { getAccessToken, refreshAccessToken } from '@/lib/auth/token-store';
 
 async function refreshAndConnect(active = true): Promise<void> {
   try {
-    const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
-    const json = (await res.json()) as { data?: { accessToken?: string } };
-    const token = json?.data?.accessToken;
+    let token = getAccessToken();
+    if (!token) {
+      token = await refreshAccessToken();
+    }
     if (token && active) connectSocket(token);
   } catch {
     // No socket on token failure — React Query polling still keeps data fresh.

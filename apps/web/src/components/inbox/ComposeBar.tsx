@@ -67,7 +67,10 @@ export function ComposeBar({ conversationId: _conversationId, onSend, isSending 
         />
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-text-tertiary">/ for saved replies</span>
+        <span className="text-[10px] text-text-secondary flex items-center gap-1.5 font-medium tracking-wide">
+          <span className="text-ai-start text-xs">✨</span>
+          Press <kbd className="bg-bg-subtle px-1.5 py-0.5 rounded ring-1 ring-border-strong font-mono">/</kbd> for AI replies
+        </span>
         <Button
           variant="primary"
           size="sm"

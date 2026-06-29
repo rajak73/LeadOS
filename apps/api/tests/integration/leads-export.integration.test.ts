@@ -83,6 +83,11 @@ async function importLeads(oId: string, uId: string, rows: string): Promise<void
     userId: uId,
     role: 'OWNER',
     csvBase64: Buffer.from(rows, 'utf8').toString('base64'),
+    fileName: 'test.csv',
+    fileSize: rows.length,
+    historyId: 'test-history-id',
+    mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', status: 'status' },
+    assignment: { type: 'NONE' as const }
   });
 }
 

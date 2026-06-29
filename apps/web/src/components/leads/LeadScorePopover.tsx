@@ -80,7 +80,7 @@ export function LeadScorePopover({ leadId, open, onOpenChange }: LeadScorePopove
                 </div>
                 <div>
                   <h3 className="font-semibold text-text-primary">
-                    {score !== null ? (score >= 70 ? 'High Priority' : score >= 40 ? 'Medium Priority' : 'Low Priority') : 'Unscored Lead'}
+                    {score !== null ? (score >= 70 ? 'Hot' : score >= 40 ? 'Warm' : 'Cold') : 'Unscored Lead'}
                   </h3>
                   <p className="text-xs text-text-tertiary">
                     {updatedAt ? `Last analyzed ${formatRelativeTime(updatedAt)}` : 'Never analyzed by AI'}

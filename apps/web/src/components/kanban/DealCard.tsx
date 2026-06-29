@@ -34,8 +34,8 @@ export function DealCard({ deal, onMarkWon, onMarkLost, isDragOverlay = false }:
       ref={isDragOverlay ? undefined : setNodeRef}
       style={style}
       {...(isDragOverlay ? {} : { ...attributes, ...listeners })}
-      className={`bg-bg-elevated border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing group ${
-        isDragOverlay ? 'shadow-2xl ring-1 ring-primary-500/40' : 'hover:border-border-strong'
+      className={`bg-bg-elevated border rounded-xl p-3.5 cursor-grab active:cursor-grabbing group transition-all duration-200 ${
+        isDragOverlay ? 'shadow-2xl ring-2 ring-primary-500 border-transparent z-50 scale-105' : 'border-border-strong ring-1 ring-white/5 hover:border-border-strong hover:ring-primary-500/30 hover:shadow-md'
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">

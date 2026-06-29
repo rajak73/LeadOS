@@ -35,10 +35,14 @@ import { buildInboxModule } from './modules/inbox/index.js';
 import { buildNotificationsModule } from './modules/notifications/index.js';
 import { buildWorkflowRouter } from './modules/workflow/workflow.routes.js';
 import { buildAnalyticsRouter } from './modules/analytics/analytics.routes.js';
-import { buildSearchRouter } from './modules/search/search.routes.js';
+import { buildSearchRouter, buildAdminSearchRouter } from './modules/search/search.routes.js';
 import { buildBillingRouter } from './modules/billing/billing.routes.js';
 import { billingGuard } from './modules/billing/billing.middleware.js';
 import { buildWhatsAppModule } from './modules/whatsapp/index.js';
+import { buildOrganizationModule } from './modules/organizations/index.js';
+import { buildTeamModule } from './modules/team/index.js';
+import { buildCustomersModule } from './modules/customers/index.js';
+import { requireSuperAdmin } from './core/middleware/auth.middleware.js';
 
 export function buildApp(): Express {
   const app = express();
@@ -81,7 +85,20 @@ export function buildApp(): Express {
   v1.get('/ping', rbac.requirePermission('org.read'), (req, res) => {
     sendSuccess(res, { pong: true, requestId: req.context?.requestId ?? null });
   });
+
+  const orgModule = buildOrganizationModule(rbac.requirePermission);
+
+  // Super Admin API
+  const adminRouter = Router();
+  adminRouter.use(apiRateLimit, authMiddleware, requireSuperAdmin);
+  adminRouter.use('/organizations', orgModule.adminRouter);
+  adminRouter.use('/search', buildAdminSearchRouter());
+  app.use('/api/v1/admin', adminRouter);
+
   v1.use(rbac.router); // /roles, /members/:userId/role, /members/:userId/suspend
+  v1.use('/organizations', orgModule.tenantRouter);
+  v1.use('/team', buildTeamModule(rbac.requirePermission));
+  v1.use('/customers', buildCustomersModule(rbac.requirePermission));
   v1.use('/leads', buildLeadsModule(rbac.requirePermission));
   v1.use('/contacts', buildContactsModule(rbac.requirePermission));
   v1.use('/tasks', buildTasksModule(rbac.requirePermission));

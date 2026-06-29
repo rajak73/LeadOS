@@ -11,6 +11,8 @@ import { ErrorCode } from '@leados/shared';
 export interface CreateInstagramAccountData {
   igUserId: string;
   igUsername: string | null;
+  platform?: 'INSTAGRAM' | 'FACEBOOK';
+  facebookPageId?: string | null;
   accessToken: string; // already encrypted before passing here
   tokenExpiresAt: Date;
   tokenType: string;
@@ -39,6 +41,8 @@ export class PrismaInstagramAccountRepository extends TenantRepository {
       data: asTenantCreate<Prisma.InstagramAccountUncheckedCreateInput>({
         igUserId: data.igUserId,
         igUsername: data.igUsername ?? null,
+        platform: data.platform ?? 'INSTAGRAM',
+        facebookPageId: data.facebookPageId ?? null,
         accessToken: data.accessToken,
         tokenExpiresAt: data.tokenExpiresAt,
         tokenType: data.tokenType,

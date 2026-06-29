@@ -27,6 +27,7 @@ import { EMAIL_DELIVERY_JOB, processEmailDeliveryJob } from './workers/email-del
 import { AI_SCORING_JOB, processAiScoringJob } from './workers/ai-scoring.worker.js';
 import { processWorkflowExecutionJob } from './workers/workflow-execution.worker.js';
 import { processFollowupSweepJob } from './workers/followup-sweep.worker.js';
+import { processAiScoringSweepJob } from './workers/ai-scoring-sweep.worker.js';
 import { WHATSAPP_SEND_JOB, processWhatsAppSendJob } from './workers/whatsapp-send.worker.js';
 
 const workers: Worker[] = [];
@@ -73,6 +74,9 @@ export function startWorkers(): Worker[] {
     }
     if (job.name === 'followup-sweep') {
       return processFollowupSweepJob(job);
+    }
+    if (job.name === 'ai-scoring-sweep') {
+      return processAiScoringSweepJob(job);
     }
     if (job.name === 'billing-reconciliation') {
       const { BillingService } = await import('../../modules/billing/billing.service.js');

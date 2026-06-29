@@ -39,7 +39,7 @@ export default function LoginPage() {
       const token = json.data?.accessToken;
       if (token) setAccessToken(token);
 
-      router.replace('/');
+      router.replace('/dashboard');
     } catch {
       setError('Unable to reach the server. Check that the API is running.');
     } finally {

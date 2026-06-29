@@ -56,6 +56,7 @@ const SPRINT_9_WHATSAPP_TABLES = [
 ];
 const ALL_TENANT_TABLES = [
   ...SPRINT_3_TABLES,
+  'import_history',
   'pipelines',
   'pipeline_stages',
   'deals',
@@ -69,8 +70,8 @@ const ALL_TENANT_TABLES = [
 ];
 
 describe('tenant-table registry', () => {
-  it('lists exactly 31 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram + Sprint 7 Notifications/AI Quota/Workflows + Sprint 9 WhatsApp)', () => {
-    expect(TENANT_TABLES).toHaveLength(31);
+  it('lists exactly 32 org-scoped tables (Sprint 3 + Sprint 4 CRM + Sprint 5 Pipeline/Deal + Sprint 6 Instagram + Sprint 7 Notifications/AI Quota/Workflows + Sprint 9 WhatsApp)', () => {
+    expect(TENANT_TABLES).toHaveLength(32);
     expect([...TENANT_TABLES].sort()).toEqual(ALL_TENANT_TABLES.sort());
   });
 

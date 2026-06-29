@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { AppChrome } from '@/components/app/AppChrome';
 import { BillingBanner } from '@/components/app/BillingBanner';
-import { setAccessToken } from '@/lib/auth/token-store';
+import { getAccessToken, refreshAccessToken } from '@/lib/auth/token-store';
 import { apiClient } from '@/lib/api-client';
 
 interface NavItem {
@@ -22,6 +22,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<{ firstName: string; lastName: string; email: string } | null>(null);
   const [org, setOrg] = useState<{ name: string } | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const verifyStarted = useRef(false);
 
   useEffect(() => {
@@ -30,22 +31,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     async function verifySession() {
       try {
-        const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
-        if (!res.ok) {
-          router.replace('/login');
-          return;
-        }
-        const json = await res.json();
-        const token = json?.data?.accessToken;
-        if (token) {
-          setAccessToken(token);
-          // Fetch current user details via the authenticated API client
-          const meRes = await apiClient.get('/auth/me');
-          if (meRes.data?.success) {
-            setUser(meRes.data.data.user);
-            setOrg(meRes.data.data.organization);
+        let token = getAccessToken();
+        if (!token) {
+          token = await refreshAccessToken();
+          if (!token) {
+            router.replace('/login');
+            return;
           }
         }
+        // Fetch current user details
+        const meRes = await apiClient.get('/auth/me');
+        if (meRes.data?.success) {
+          setUser(meRes.data.data);
+        }
+        
+        // Fetch organization details
+        const orgRes = await apiClient.get('/organizations');
+        if (orgRes.data?.success) {
+          const organization = orgRes.data.data.organization;
+          setOrg(organization);
+          
+          if (!organization?.industry) {
+            router.replace('/onboarding');
+            return;
+          }
+        }
+
         setCheckingAuth(false);
       } catch (err) {
         console.error('Session verification failed:', err);
@@ -57,7 +68,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f] text-text-primary">
+      <div className="flex items-center justify-center min-h-screen bg-bg-base text-text-primary">
         <div className="space-y-4 text-center">
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-text-secondary">Securing your workspace...</p>
@@ -68,7 +79,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const navItems: NavItem[] = [
     {
-      href: '/',
+      href: '/dashboard',
       label: 'Dashboard',
       icon: (active) => (
         <svg className={`w-4 h-4 ${active ? 'text-white' : 'text-text-secondary'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -91,6 +102,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       icon: (active) => (
         <svg className={`w-4 h-4 ${active ? 'text-white' : 'text-text-secondary'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-7 4h10" />
+        </svg>
+      ),
+    },
+    {
+      href: '/customers',
+      label: 'Customers',
+      icon: (active) => (
+        <svg className={`w-4 h-4 ${active ? 'text-white' : 'text-text-secondary'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
     },
@@ -188,37 +208,71 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     },
   ];
 
+  let isSuperAdmin = false;
+  try {
+    const token = getAccessToken();
+    if (token) {
+      const parts = token.split('.');
+      if (parts.length > 1 && parts[1]) {
+        const payload = JSON.parse(atob(parts[1]));
+        isSuperAdmin = payload.isSuperAdmin === true;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to parse token for admin check', e);
+  }
+
+  if (isSuperAdmin) {
+    navItems.push({
+      href: '/admin/dashboard',
+      label: 'Admin',
+      icon: (active) => (
+        <svg className={`w-4 h-4 ${active ? 'text-purple-400' : 'text-purple-400/60'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      ),
+    });
+  }
+
   const userName = user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Rohan Kumar';
   const orgName = org?.name || 'Acme Corp';
   const userInitials = user ? `${user.firstName[0]}${user.lastName ? user.lastName[0] : ''}`.toUpperCase() : 'RK';
 
   return (
-    <div className="flex min-h-screen bg-[#08080c] text-text-primary">
+    <div className="flex h-screen overflow-hidden bg-bg-base text-text-primary">
+      {/* Mobile Drawer Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar navigation */}
       <aside
-        className={`${
-          isCollapsed ? 'w-16' : 'w-64'
-        } shrink-0 border-r border-border/50 bg-[#0c0c14] flex flex-col transition-all duration-300 z-30 select-none`}
+        className={`fixed md:relative shrink-0 border-r border-border/50 bg-bg-elevated flex flex-col transition-all duration-300 z-50 select-none h-full ${
+          mobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
+        } ${isCollapsed && !mobileMenuOpen ? 'md:w-16' : 'md:w-64'}`}
       >
         {/* Brand logo header */}
-        <div className="px-5 py-5 border-b border-border/20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center shrink-0 shadow-md">
+        <div className="h-16 px-5 border-b border-border/20 flex items-center justify-between shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 overflow-hidden group">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-ai-start to-ai-end flex items-center justify-center shrink-0 shadow-lg shadow-ai-start/20 group-hover:shadow-ai-start/40 transition-shadow">
               <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
                 <path d="M12 2L2 22h20L12 2zm0 4l6.5 13H5.5L12 6z" />
               </svg>
             </div>
-            {!isCollapsed && (
+            {(!isCollapsed || mobileMenuOpen) && (
               <span className="text-base font-bold text-white tracking-wide">
                 Lead<span className="text-primary-400">OS</span>
               </span>
             )}
           </Link>
-          {!isCollapsed && <AppChrome />}
+          {(!isCollapsed || mobileMenuOpen) && <AppChrome />}
         </div>
 
         {/* Links list */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -226,16 +280,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all group ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium tracking-wide transition-all group ${
                   isActive
-                    ? 'text-white bg-gradient-to-r from-primary-600/90 to-indigo-600/90 shadow-md shadow-primary-900/10'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-[#151522]'
+                    ? 'text-white bg-bg-muted shadow-sm ring-1 ring-white/5'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-subtle'
                 }`}
                 title={item.label}
               >
                 <div className="shrink-0">{item.icon(isActive)}</div>
-                {!isCollapsed && <span className="flex-1">{item.label}</span>}
-                {!isCollapsed && item.badge !== undefined && (
+                {(!isCollapsed || mobileMenuOpen) && <span className="flex-1">{item.label}</span>}
+                {(!isCollapsed || mobileMenuOpen) && item.badge !== undefined && (
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                       isActive ? 'bg-white/20 text-white' : 'bg-primary-500/15 text-primary-400'
@@ -250,50 +304,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Trial box */}
-        {!isCollapsed && (
-          <div className="px-4 py-3 mx-3 my-2 rounded-2xl bg-[#11111e] border border-border/20 space-y-2.5">
-            <div className="space-y-1">
+        {(!isCollapsed || mobileMenuOpen) && (
+          <div className="px-4 py-3 mx-3 my-2 rounded-2xl bg-bg-overlay ring-1 ring-border-strong space-y-2.5 shrink-0 shadow-sm relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-ai-start/5 to-ai-end/5 pointer-events-none" />
+            <div className="space-y-1 relative z-10">
               <p className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Your trial ends in</p>
               <h4 className="text-xs font-bold text-white">14 days</h4>
             </div>
-            <div className="h-1.5 rounded-full bg-bg-base overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-primary-500 to-indigo-400 w-1/3" />
+            <div className="h-1.5 rounded-full bg-bg-base overflow-hidden relative z-10 ring-1 ring-inset ring-white/5">
+              <div className="h-full rounded-full bg-gradient-to-r from-ai-start to-ai-end w-1/3 shadow-[0_0_8px_rgba(168,85,247,0.4)]" />
             </div>
-            <Link href="/settings/billing" className="block">
-              <button className="w-full py-1.5 text-[10px] font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow">
+            <Link href="/settings/billing" className="block relative z-10">
+              <button className="w-full py-1.5 text-[10px] font-bold text-white bg-bg-muted hover:bg-bg-subtle ring-1 ring-border-strong rounded-lg transition-colors shadow-sm">
                 Upgrade to keep growing
               </button>
             </Link>
           </div>
         )}
 
-        {/* Profile section */}
-        <div className="p-3 border-t border-border/20">
-          {!isCollapsed ? (
-            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#151522] transition-colors cursor-pointer group">
-              <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center font-bold text-white text-xs border border-primary-500/30">
-                {userInitials}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <h4 className="text-xs font-bold text-white truncate leading-normal">{userName}</h4>
-                <p className="text-[10px] text-text-tertiary truncate leading-none">{orgName}</p>
-              </div>
-              <svg className="w-4 h-4 text-text-tertiary group-hover:text-text-secondary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center p-2">
-              <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center font-bold text-white text-xs border border-primary-500/30">
-                {userInitials}
-              </div>
-            </div>
-          )}
-
-          {/* Collapse sidebar button */}
+        {/* Collapse sidebar button */}
+        <div className="p-3 border-t border-border/20 shrink-0 hidden md:block">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="w-full flex items-center gap-3 px-3 py-2 mt-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-text-tertiary hover:text-text-primary hover:bg-[#151522] transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-text-tertiary hover:text-text-primary hover:bg-[#151522] transition-colors"
           >
             <svg
               className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
@@ -309,11 +342,64 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Main page content area */}
-      <main className="flex-1 overflow-auto p-6">
-        <BillingBanner />
-        {children}
-      </main>
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        {/* Global Header */}
+        <header className="h-16 shrink-0 bg-bg-base/80 backdrop-blur-md border-b border-border/50 flex items-center justify-between px-4 md:px-6 z-10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-2 -ml-2 text-text-secondary hover:text-white"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            {/* Global Search */}
+            <div className="relative hidden sm:block group">
+              <input
+                type="text"
+                placeholder="Search leads, deals, contacts..."
+                className="w-64 pl-9 pr-8 py-1.5 text-xs rounded-lg border border-border-strong bg-bg-elevated
+                           text-text-primary placeholder:text-text-tertiary focus:outline-none
+                           focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 transition-all shadow-sm"
+                readOnly
+              />
+              <svg className="w-4 h-4 absolute left-3 top-1.5 text-text-tertiary group-focus-within:text-primary-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span className="absolute right-2.5 top-2 text-[10px] bg-bg-muted border border-border-strong px-1.5 py-0.5 rounded text-text-tertiary font-mono leading-none">
+                ⌘ K
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* User Profile */}
+            <div className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-bg-subtle ring-1 ring-transparent hover:ring-border-strong transition-all cursor-pointer group">
+              <div className="hidden md:block text-right">
+                <h4 className="text-xs font-semibold text-white truncate leading-normal">{userName}</h4>
+                <p className="text-[10px] text-text-tertiary truncate leading-none">{orgName}</p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-bg-muted flex items-center justify-center font-bold text-white text-xs border border-border-strong group-hover:border-primary-500/50 transition-colors shadow-sm">
+                {userInitials}
+              </div>
+              <svg className="w-4 h-4 text-text-tertiary group-hover:text-text-primary transition-colors hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Main Content */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 md:p-6 relative">
+          <BillingBanner />
+          <div className="flex-1 flex flex-col min-h-0">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
