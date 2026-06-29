@@ -168,6 +168,35 @@ CREATE POLICY "tenant_isolation" ON "whatsapp_messages"
   WITH CHECK ("organizationId" = current_setting('app.current_organization_id', true)::uuid);
 
 -- ─── import_history ───────────────────────────────────────────────────────────
+
+CREATE TYPE "ImportJobStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+
+ALTER TYPE "ActivityType" ADD VALUE IF NOT EXISTS 'CSV_IMPORT_STARTED';
+ALTER TYPE "ActivityType" ADD VALUE IF NOT EXISTS 'CSV_IMPORT_COMPLETED';
+ALTER TYPE "ActivityType" ADD VALUE IF NOT EXISTS 'CSV_IMPORT_FAILED';
+
+CREATE TABLE "import_history" (
+    "id" UUID NOT NULL DEFAULT uuid_generate_v4(),
+    "organizationId" UUID NOT NULL,
+    "importedById" UUID NOT NULL,
+    "fileName" VARCHAR(255) NOT NULL,
+    "fileSize" INTEGER NOT NULL,
+    "recordsTotal" INTEGER NOT NULL DEFAULT 0,
+    "recordsImported" INTEGER NOT NULL DEFAULT 0,
+    "recordsFailed" INTEGER NOT NULL DEFAULT 0,
+    "recordsSkipped" INTEGER NOT NULL DEFAULT 0,
+    "status" "ImportJobStatus" NOT NULL DEFAULT 'PENDING',
+    "errorSummary" JSONB,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" TIMESTAMP(3),
+
+    CONSTRAINT "import_history_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "import_history_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "import_history_importedById_fkey" FOREIGN KEY ("importedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE INDEX "import_history_organizationId_startedAt_idx" ON "import_history"("organizationId", "startedAt" DESC);
+
 -- RLS patch for Sprint 8
 ALTER TABLE "import_history" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "import_history" FORCE ROW LEVEL SECURITY;
