@@ -225,9 +225,13 @@ export class InstagramService {
         }
 
         if (addedCount === 0 && (igProfile || fbPages.length > 0)) {
-           // We didn't add any because they were already connected or limit reached.
-           // In this simplified block, we don't throw limit error directly, but if user explicitly tried, we can assume ALREADY_CONNECTED.
-           // For simplicity, we just complete successfully.
+          let anyAlreadyConnected = false;
+          if (igProfile && await repo.isIgUserIdConnected(igProfile.igUserId)) anyAlreadyConnected = true;
+          for (const page of fbPages) {
+            if (await repo.isIgUserIdConnected(page.id)) anyAlreadyConnected = true;
+          }
+          if (anyAlreadyConnected) throw new OAuthCallbackError('ALREADY_CONNECTED');
+          throw new OAuthCallbackError('PLAN_LIMIT_EXCEEDED');
         }
       });
     } catch (err) {
