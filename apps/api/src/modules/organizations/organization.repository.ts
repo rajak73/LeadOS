@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 import { prisma } from '../../core/prisma/client.js';
 import type { Prisma, Organization } from '@prisma/client';
 

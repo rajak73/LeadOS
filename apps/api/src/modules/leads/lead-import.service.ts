@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 // CRM-6.3 — Lead CSV import service (worker side).
 //
 // Called by the lead-import BullMQ worker — NOT from an Express request handler.

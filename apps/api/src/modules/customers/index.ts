@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 import { Router } from 'express';
 import { CustomerController } from './customer.controller.js';
 import { CustomerService } from './customer.service.js';

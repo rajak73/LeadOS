@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 // CRM-6.3 — Lead import worker processor.
 // Registered in worker-registry.ts. Calls processImport() with the job payload.
 

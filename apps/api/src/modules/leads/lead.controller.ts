@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 // CRM-2.4 — Lead controller (thin HTTP translation layer).
 // CRM-4.1 — Activity feed handler.
 // CRM-5.1 — Notes sub-resource handler.

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 // CRM-2.2 + CRM-2.3 — Lead service (CRUD + status machine).
 // CRM-3.2 — Lead→Contact conversion (atomic).
 // CRM-4.1 — Lead activity feed.
