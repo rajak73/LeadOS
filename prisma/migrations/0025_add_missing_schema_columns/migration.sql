@@ -1,0 +1,23 @@
+-- CreateEnum
+CREATE TYPE "BillingPlanId" AS ENUM ('STARTER', 'GROWTH', 'ENTERPRISE');
+CREATE TYPE "MetaPlatform" AS ENUM ('INSTAGRAM', 'FACEBOOK');
+
+-- AlterEnum
+ALTER TYPE "LeadSource" ADD VALUE IF NOT EXISTS 'FACEBOOK_DM';
+ALTER TYPE "LeadSource" ADD VALUE IF NOT EXISTS 'FACEBOOK_COMMENT';
+
+-- AlterTable
+ALTER TABLE "instagram_accounts" ADD COLUMN IF NOT EXISTS "facebookPageId" VARCHAR(100),
+ADD COLUMN IF NOT EXISTS "platform" "MetaPlatform" NOT NULL DEFAULT 'INSTAGRAM';
+
+-- AlterTable
+ALTER TABLE "instagram_conversations" ADD COLUMN IF NOT EXISTS "platform" "MetaPlatform" NOT NULL DEFAULT 'INSTAGRAM';
+
+-- AlterTable
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "facebookPageId" VARCHAR(100),
+ADD COLUMN IF NOT EXISTS "facebookUserId" VARCHAR(100);
+
+-- AlterTable
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "cancelAtPeriodEnd" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS "planId" "BillingPlanId",
+ADD COLUMN IF NOT EXISTS "stripeCurrentPeriodEnd" TIMESTAMP(3);
