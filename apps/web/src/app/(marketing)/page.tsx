@@ -422,20 +422,23 @@ export default function MarketingPage() {
             {[
               {
                 name: 'Starter',
-                price: 'Trial mode',
+                price: '$0',
+                period: '14-day free trial',
                 desc: 'Perfect for small teams getting started.',
                 features: ['Basic CRM Profiles', 'Customer 360 View', 'Manual Lead Capture', 'Single Pipeline', '5 Team Members'],
               },
               {
                 name: 'Growth',
-                price: 'Billing pending',
+                price: '$29',
+                period: 'per month',
                 desc: 'For teams that want to automate workflows.',
                 popular: true,
                 features: ['AI Lead Scoring', 'Visual Flow sequences', 'Auto-Reply Integrations', 'Workspace Customization', '20 Team Members'],
               },
               {
                 name: 'Scale',
-                price: 'Contact sales',
+                price: '$99',
+                period: 'per month',
                 desc: 'Advanced controls for high-volume sales networks.',
                 features: ['Multi-channel auto-capture', 'Super Admin controls', 'Custom webhooks', 'Full Revenue Analytics', 'Priority Slack support'],
               },
@@ -460,8 +463,9 @@ export default function MarketingPage() {
                     <p className="text-gray-400 text-xs leading-relaxed">{plan.desc}</p>
                   </div>
 
-                  <div className="mb-6">
-                    <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
+                  <div className="mb-6 flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-gray-900">{plan.price}</span>
+                    <span className="text-xs font-medium text-gray-400">/ {plan.period}</span>
                   </div>
 
                   <ul className="space-y-3.5 mb-8">
@@ -478,6 +482,7 @@ export default function MarketingPage() {
 
                 <Link
                   href="/signup"
+
                   className={`w-full h-12 flex items-center justify-center rounded-xl font-bold text-sm transition-all duration-200 ${
                     plan.popular
                       ? 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-md hover:shadow-indigo-500/10'

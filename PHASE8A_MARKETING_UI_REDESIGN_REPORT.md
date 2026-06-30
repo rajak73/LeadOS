@@ -31,7 +31,7 @@
 *   **Social Lead Capture Walkthrough:** Interactive DM chat sequence card.
 *   **Customer 360 Workspace Mockup:** Rich details card representing customer identities and timelines.
 *   **Pipeline Forecast Visual Board:** Interactive visual column list of stages.
-*   **Pricing Grid:** Starter (Trial mode), Growth (Billing pending), Scale (Contact sales).
+*   **Pricing Grid:** Starter ($0 / 14-day free trial), Growth ($29 / month), Scale ($99 / month) with billing-pending warnings.
 *   **FAQ Block:** Simple list answering typical onboarding questions.
 *   **Footer:** 5-column navigation with brand statement.
 

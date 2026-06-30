@@ -4,7 +4,8 @@ export default function PricingPage() {
   const plans = [
     {
       name: 'Starter',
-      price: 'Trial mode',
+      price: '$0',
+      period: '14-day free trial',
       description: 'Perfect for small teams getting started.',
       features: [
         'Basic CRM Profile Manager',
@@ -17,7 +18,8 @@ export default function PricingPage() {
     },
     {
       name: 'Growth',
-      price: 'Billing pending',
+      price: '$29',
+      period: 'per month',
       popular: true,
       description: 'For teams that want to automate sequences and prioritize deals.',
       features: [
@@ -31,7 +33,8 @@ export default function PricingPage() {
     },
     {
       name: 'Scale',
-      price: 'Contact sales',
+      price: '$99',
+      period: 'per month',
       description: 'Advanced capabilities for high-volume sales networks.',
       features: [
         'WhatsApp + Facebook Inbox Sync',
@@ -88,9 +91,11 @@ export default function PricingPage() {
                     <p className="text-gray-400 text-xs leading-relaxed h-10">{plan.description}</p>
                   </div>
                   
-                  <div className="mb-8 border-y border-gray-100 py-4">
-                    <span className="text-3xl font-extrabold text-gray-900">{plan.price}</span>
+                  <div className="mb-8 border-y border-gray-100 py-4 flex items-baseline gap-1">
+                    <span className="text-4xl font-extrabold text-gray-900">{plan.price}</span>
+                    <span className="text-sm font-medium text-gray-400">/ {plan.period}</span>
                   </div>
+
                   
                   <ul className="space-y-4 mb-8">
                     {plan.features.map((feature, i) => (
