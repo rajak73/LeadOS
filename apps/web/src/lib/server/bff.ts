@@ -44,16 +44,18 @@ export async function callApi(call: ApiCall): Promise<ApiResult> {
       body = null;
     }
     return { status: res.status, body, setCookie: res.headers.get('set-cookie') };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`callApi failed to reach backend API (${API_BASE}):`, err);
     return {
       status: 502,
       body: {
         success: false,
-        error: { message: `Backend API is currently unreachable. Details: ${err.message || err}` }
+        error: { message: `Backend API is currently unreachable. Details: ${errorMsg}` }
       },
       setCookie: null
     };
   }
 }
+
 
