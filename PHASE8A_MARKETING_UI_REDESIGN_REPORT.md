@@ -20,7 +20,7 @@
 *   **`/features` (Features Overview):** Redesigned with custom icons, solution sections, and detailed feature logs.
 *   **`/pricing` (Pricing):** Redesigned with clean plan comparison blocks and billing-pending warnings.
 *   **`/customers`:** Ignored/Skipped. Pre-existing route `/customers` resolves to the dashboard private workspace customer table, causing conflict if a parallel public route is defined.
-*   **`/login` & `/signup`:** Verified paths remain working.
+*   **`/login` & `/signup`:** Fully redesigned as clean, light-mode card pages matching the off-white and indigo accents of the marketing pages.
 
 ## 5. Sections Added
 *   **Header / Navbar:** Sticky transparent/white layout with clean logo, product sections, solutions, and CTA button.
@@ -54,6 +54,10 @@
 *   [MODIFY] [page.tsx](file:///Users/rajakumar/lead_os/apps/web/src/app/(marketing)/page.tsx)
 *   [MODIFY] [features/page.tsx](file:///Users/rajakumar/lead_os/apps/web/src/app/(marketing)/features/page.tsx)
 *   [MODIFY] [pricing/page.tsx](file:///Users/rajakumar/lead_os/apps/web/src/app/(marketing)/pricing/page.tsx)
+*   [MODIFY] [layout.tsx](file:///Users/rajakumar/lead_os/apps/web/src/app/(auth)/layout.tsx)
+*   [MODIFY] [login/page.tsx](file:///Users/rajakumar/lead_os/apps/web/src/app/(auth)/login/page.tsx)
+*   [MODIFY] [signup/page.tsx](file:///Users/rajakumar/lead_os/apps/web/src/app/(auth)/signup/page.tsx)
+
 
 
 ## 8. Validation Commands
