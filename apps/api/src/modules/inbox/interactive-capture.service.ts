@@ -29,7 +29,8 @@ export class InteractiveCaptureService {
     messageText: string,
     platform: 'INSTAGRAM' | 'FACEBOOK' | 'WHATSAPP',
     accountId: string,
-    recipientUserId: string // sender from our perspective
+    recipientUserId: string, // sender from our perspective
+    isSimulation: boolean = false
   ): Promise<void> {
     const customFields = (lead.customFields as Record<string, unknown>) || {};
     const currentState = customFields[CAPTURE_STATE_KEY] as string | undefined;
@@ -39,7 +40,8 @@ export class InteractiveCaptureService {
       logger.info({ message: 'Interactive Capture: Starting capture flow', leadId: lead.id });
       await this.setCaptureState(lead.id, customFields, STATE_NEEDS_NAME_PHONE);
       await this.sendCaptureReply(conversationId, lead.organizationId, platform, accountId, recipientUserId,
-        "Thanks for reaching out. Please share your name and phone number so our team can help you faster."
+        "Thanks for reaching out. Please share your name and phone number so our team can help you faster.",
+        isSimulation
       );
       return;
     }
@@ -75,12 +77,14 @@ export class InteractiveCaptureService {
         // We have phone now, clear state.
         await this.clearCaptureState(lead.id, customFields);
         await this.sendCaptureReply(conversationId, lead.organizationId, platform, accountId, recipientUserId,
-          `Thanks ${parsed.name || lead.firstName}. Our team will contact you shortly.`
+          `Thanks ${parsed.name || lead.firstName}. Our team will contact you shortly.`,
+          isSimulation
         );
       } else {
         // Case C: Got name but no phone
         await this.sendCaptureReply(conversationId, lead.organizationId, platform, accountId, recipientUserId,
-          `Thanks ${parsed.name || lead.firstName}. Please also share your phone number so our team can contact you.`
+          `Thanks ${parsed.name || lead.firstName}. Please also share your phone number so our team can contact you.`,
+          isSimulation
         );
       }
     }
@@ -171,7 +175,8 @@ export class InteractiveCaptureService {
     platform: 'INSTAGRAM' | 'FACEBOOK' | 'WHATSAPP',
     accountId: string,
     recipientUserId: string,
-    text: string
+    text: string,
+    isSimulation: boolean
   ): Promise<void> {
     const msgRepo = new PrismaMessageRepository(this.db);
     // Create outbound message row
@@ -194,6 +199,7 @@ export class InteractiveCaptureService {
         recipientIgUserId: recipientUserId,
         content: { text },
         igAccountId: accountId,
+        isSimulation,
       });
     } else if (platform === 'WHATSAPP') {
       await enqueue(QUEUE.WHATSAPP_SEND, WHATSAPP_SEND_JOB, {
@@ -203,6 +209,7 @@ export class InteractiveCaptureService {
         toPhone: recipientUserId, // For WA, recipientUserId is the phone number
         content: { type: 'text', text },
         accountId, // For WA, this is the whatsAppAccount id
+        isSimulation,
       });
     }
   }

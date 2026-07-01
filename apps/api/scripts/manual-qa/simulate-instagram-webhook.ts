@@ -20,6 +20,7 @@ const fakePayload = {
           message: {
             mid: `mid.$cAAAAA_${Date.now()}`,
             text: process.argv[2] || 'Hello, this is a simulated Instagram message for smoke testing!',
+            is_simulation: true,
           },
         },
       ],

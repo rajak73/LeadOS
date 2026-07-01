@@ -32,6 +32,7 @@ const fakePayload = {
                 timestamp: Math.floor(Date.now() / 1000).toString(),
                 text: { body: process.argv[2] || 'Hello, this is a simulated WhatsApp message for smoke testing!' },
                 type: 'text',
+                is_simulation: true,
               },
             ],
           },

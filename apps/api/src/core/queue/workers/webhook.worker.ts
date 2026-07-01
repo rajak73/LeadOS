@@ -343,6 +343,7 @@ async function processInstagramMessage(
 
     // 4b. Execute Simulated Interactive Lead Capture
     if (lead && text) {
+      const isSimulation = message['is_simulation'] === true;
       const captureService = new InteractiveCaptureService(db);
       await captureService.handleSimulatedLeadCapture(
         lead,
@@ -350,7 +351,8 @@ async function processInstagramMessage(
         text,
         account.platform as 'INSTAGRAM' | 'FACEBOOK',
         igAccountId,
-        recipientIgUserId
+        senderIgUserId,
+        isSimulation
       );
     }
 
@@ -740,6 +742,7 @@ async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise
             // Execute Simulated Interactive Lead Capture
             if (lead && msgType === 'text') {
               const textContent = (msg['text'] as Record<string, unknown>)?.['body'] as string;
+              const isSimulation = msg['is_simulation'] === true;
               if (textContent) {
                 const captureService = new InteractiveCaptureService(db);
                 await captureService.handleSimulatedLeadCapture(
@@ -748,7 +751,8 @@ async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise
                   textContent,
                   'WHATSAPP',
                   waAccount.id,
-                  fromPhone
+                  fromPhone,
+                  isSimulation
                 );
               }
             }

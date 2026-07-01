@@ -33,7 +33,8 @@ export interface InstagramSendJobPayload {
   conversationId: string;
   messageId: string;          // UUID of the messages row (created optimistically by service)
   recipientIgUserId: string;  // customer's IG user ID
-  content: { text?: string };
+  content: { text?: string; mediaUrl?: string };
+  isSimulation?: boolean;
   igAccountId: string;
 }
 
@@ -131,15 +132,24 @@ export async function processInstagramSendJob(
     ...(content.text !== undefined ? { text: content.text } : {}),
   };
 
-  // Phase 9D: Simulation Mode bypass
-  const simulateOnly = !env.INSTAGRAM_APP_SECRET || env.FLAG_INSTAGRAM_SENDS_ENABLED === false;
-  if (simulateOnly) {
+  // Phase 9D: Simulation Mode bypass only if explicitly requested
+  if (job.data.isSimulation === true) {
     logger.info({ message: 'Simulated outbound send', igAccountId, recipientIgUserId, type: messageContent.type });
     await prisma.message.update({
       where: { id: messageId },
       data: { status: 'SENT' },
     });
     return;
+  }
+
+  // Safety constraint: If not simulation and no credentials, fail safely
+  if (!env.INSTAGRAM_APP_SECRET || env.FLAG_INSTAGRAM_SENDS_ENABLED === false) {
+    logger.error({ message: 'Missing Meta credentials or sends disabled for real production send', jobId: job.id });
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { status: 'FAILED' },
+    });
+    throw new Error('Cannot send real Instagram message: missing credentials or sends disabled');
   }
 
   let metaMid: string;
