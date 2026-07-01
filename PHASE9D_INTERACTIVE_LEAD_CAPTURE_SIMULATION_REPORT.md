@@ -17,7 +17,13 @@ Implemented the Simulated Interactive Lead Capture flow (`NEEDS_NAME_PHONE`) wit
 - Outbound responses correctly utilize the existing `Message` and `WhatsAppMessage` models.
 - The `Activity` model supported a safe fallback `NOTE` type for logging the successful capture of details, avoiding a new DB Enum constraint.
 
-## 5. Migration Avoidance Confirmation
+## 5. No AI Constraint
+As explicitly requested, **no AI APIs (OpenAI, Gemini, Groq) were used** for this flow.
+- Name and phone parsing use deterministic, rule-based heuristics (`RegEx`).
+- `FLAG_AI_SCORING_ENABLED` remains disabled for this flow.
+- If AI is desired in the future, it is documented as strictly optional (`GEMINI_API_KEY` for free tier, or `OPENAI_API_KEY`/`GROQ_API_KEY` for prod).
+
+## 6. Migration Avoidance Confirmation
 **SUCCESS.** No schema migrations were created. No new tables, columns, or enums were required.
 
 ## 6. customFields Capture State Design
