@@ -33,7 +33,7 @@ export default function CustomersPage() {
     <div className="space-y-6 max-w-6xl mx-auto h-full p-4">
       <PageHeader title="Customer 360" description="Unified view of your entire audience, from Leads to Contacts." />
       
-      <div className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Spinner />
@@ -41,21 +41,21 @@ export default function CustomersPage() {
         ) : data && data.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-bg-base">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Name</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Type</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Score</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Updated</th>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Updated</th>
               </tr>
             </thead>
             <tbody>
               {data.map((customer) => (
-                <tr key={customer.id} className="border-b border-border/50 hover:bg-bg-subtle/30 transition-colors">
+                <tr key={customer.id} className="border-b border-slate-200 hover:bg-slate-50/30 transition-colors">
                   <td className="px-5 py-3.5">
                     <Link href={`/customers/${customer.id}`} className="font-medium text-primary-400 hover:underline">
                       {customer.name || 'Unnamed Customer'}
                     </Link>
-                    <div className="text-xs text-text-tertiary mt-1">{customer.email || customer.phone || 'No contact info'}</div>
+                    <div className="text-xs text-slate-500 mt-1">{customer.email || customer.phone || 'No contact info'}</div>
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${customer.type === 'CONTACT' ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-blue-500/15 text-blue-400 border-blue-500/20'}`}>
@@ -67,7 +67,7 @@ export default function CustomersPage() {
                       <span className={`font-semibold ${customer.score >= 80 ? 'text-green-400' : customer.score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>{customer.score}</span>
                     ) : '—'}
                   </td>
-                  <td className="px-5 py-3.5 text-text-tertiary text-xs">
+                  <td className="px-5 py-3.5 text-slate-500 text-xs">
                     {new Date(customer.updatedAt).toLocaleDateString()}
                   </td>
                 </tr>
@@ -75,7 +75,7 @@ export default function CustomersPage() {
             </tbody>
           </table>
         ) : (
-          <div className="py-16 text-center text-text-tertiary text-sm">No customers found.</div>
+          <div className="py-16 text-center text-slate-500 text-sm">No customers found.</div>
         )}
       </div>
     </div>

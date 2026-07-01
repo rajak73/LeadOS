@@ -45,8 +45,8 @@ export function ViewBar() {
         onClick={handleAll}
         className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors
           ${activeView === null
-            ? 'bg-primary-500 text-white shadow-sm'
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-subtle'
+            ? 'bg-primary-500 text-slate-900 shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         data-testid="view-all"
       >
@@ -60,8 +60,8 @@ export function ViewBar() {
           className={`flex items-center gap-1 pl-3 pr-1.5 py-1 rounded-lg text-xs font-medium
                       transition-colors group
             ${activeView === preset.name
-              ? 'bg-primary-500 text-white shadow-sm'
-              : 'text-text-secondary hover:text-text-primary hover:bg-bg-subtle'
+              ? 'bg-primary-500 text-slate-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
         >
           <button
@@ -77,7 +77,7 @@ export function ViewBar() {
             aria-label={`Delete ${preset.name} view`}
             className={`opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity
                         w-4 h-4 flex items-center justify-center rounded
-              ${activeView === preset.name ? 'hover:bg-white/20' : 'hover:bg-bg-base'}`}
+              ${activeView === preset.name ? 'hover:bg-white/20' : 'hover:bg-slate-50'}`}
           >
             ×
           </button>
@@ -97,15 +97,15 @@ export function ViewBar() {
             }}
             placeholder="View name…"
             autoFocus
-            className="px-2 py-1 rounded-lg border border-border bg-bg-base text-xs
-                       text-text-primary placeholder:text-text-tertiary
+            className="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-xs
+                       text-slate-900 placeholder:text-slate-500
                        focus:outline-none focus:border-primary-500 w-32 transition-colors"
           />
           <button
             type="button"
             onClick={handleSave}
             disabled={!newViewName.trim()}
-            className="px-2 py-1 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-xs
+            className="px-2 py-1 rounded-lg bg-primary-500 hover:bg-primary-600 text-slate-900 text-xs
                        font-medium transition-colors disabled:opacity-40"
           >
             Save
@@ -113,7 +113,7 @@ export function ViewBar() {
           <button
             type="button"
             onClick={() => { setIsNaming(false); setNewViewName(''); }}
-            className="px-2 py-1 rounded-lg text-xs text-text-tertiary hover:text-text-primary transition-colors"
+            className="px-2 py-1 rounded-lg text-xs text-slate-500 hover:text-slate-900 transition-colors"
           >
             Cancel
           </button>
@@ -123,8 +123,8 @@ export function ViewBar() {
           type="button"
           onClick={() => setIsNaming(true)}
           data-testid="save-view"
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-text-tertiary
-                     hover:text-text-primary hover:bg-bg-subtle transition-colors border border-dashed border-border/50"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-slate-500
+                     hover:text-slate-900 hover:bg-slate-50 transition-colors border border-dashed border-slate-200"
         >
           <span>+</span>
           Save view

@@ -73,24 +73,24 @@ export default function WorkflowsPage() {
           {workflows.map((wf) => (
             <div
               key={wf.id}
-              className="bg-bg-elevated border border-border rounded-xl p-5 hover:border-border-strong transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-text-primary text-base">{wf.name}</h3>
+                  <h3 className="font-semibold text-slate-900 text-base">{wf.name}</h3>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
                     wf.isActive
                       ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                      : 'bg-bg-subtle text-text-tertiary border-border'
+                      : 'bg-slate-50 text-slate-500 border-slate-200'
                   }`}>
                     {wf.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-                <p className="text-sm text-text-secondary">{wf.description || 'No description provided'}</p>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-text-tertiary pt-1">
+                <p className="text-sm text-slate-600">{wf.description || 'No description provided'}</p>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
                   <span className="flex items-center gap-1">
                     <span>⚡ Trigger:</span>
-                    <code className="px-1.5 py-0.5 bg-bg-base rounded border border-border">{wf.triggerType}</code>
+                    <code className="px-1.5 py-0.5 bg-slate-50 rounded border border-slate-200">{wf.triggerType}</code>
                   </span>
                   <span>•</span>
                   <span>{wf.definition.actions.length} action(s)</span>

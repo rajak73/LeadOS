@@ -7,7 +7,7 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<string, string> = {
-  default: 'bg-bg-elevated text-text-secondary border border-border',
+  default: 'bg-white text-slate-600 border border-slate-200',
   overdue: 'bg-red-500/15 text-red-400 border border-red-500/30',
   stale: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30',
   won: 'bg-green-500/15 text-green-400 border border-green-500/30',

@@ -46,7 +46,7 @@ export function ComposeBar({ conversationId: _conversationId, onSend, isSending 
   }, []);
 
   return (
-    <div className="border-t border-border bg-bg-base p-3 flex flex-col gap-2">
+    <div className="border-t border-slate-200 bg-slate-50 p-3 flex flex-col gap-2">
       <div className="relative">
         {pickerOpen && savedReplies.length > 0 && (
           <SavedReplyPicker
@@ -63,13 +63,13 @@ export function ComposeBar({ conversationId: _conversationId, onSend, isSending 
           placeholder="Message…"
           rows={3}
           disabled={isSending}
-          className="w-full resize-none rounded-lg border border-border bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-500 transition-colors disabled:opacity-50"
+          className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-primary-500 transition-colors disabled:opacity-50"
         />
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] text-text-secondary flex items-center gap-1.5 font-medium tracking-wide">
+        <span className="text-[10px] text-slate-600 flex items-center gap-1.5 font-medium tracking-wide">
           <span className="text-ai-start text-xs">✨</span>
-          Press <kbd className="bg-bg-subtle px-1.5 py-0.5 rounded ring-1 ring-border-strong font-mono">/</kbd> for AI replies
+          Press <kbd className="bg-slate-50 px-1.5 py-0.5 rounded ring-1 ring-slate-300 font-mono">/</kbd> for AI replies
         </span>
         <Button
           variant="primary"

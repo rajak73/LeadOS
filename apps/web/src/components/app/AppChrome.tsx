@@ -62,8 +62,8 @@ export function AppChrome() {
           onClick={() => setPaletteOpen(true)}
           title="Search (⌘K)"
           data-testid="cmd-palette-trigger"
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-text-tertiary
-                     hover:text-text-primary hover:bg-bg-subtle border border-border/50
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-slate-500
+                     hover:text-slate-900 hover:bg-slate-50 border border-slate-200
                      transition-colors"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

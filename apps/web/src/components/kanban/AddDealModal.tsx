@@ -35,23 +35,23 @@ export function AddDealModal({ open, onClose, pipelineId, stageId }: AddDealModa
     <Modal open={open} onOpenChange={(o) => { if (!o) onClose(); }} title="Add Deal">
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="text-xs text-text-secondary block mb-1">Title *</label>
+          <label className="text-xs text-slate-600 block mb-1">Title *</label>
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Deal title"
-            className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+            className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
           />
         </div>
         <div>
-          <label className="text-xs text-text-secondary block mb-1">Value (INR)</label>
+          <label className="text-xs text-slate-600 block mb-1">Value (INR)</label>
           <input
             type="number"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="0"
-            className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+            className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
           />
         </div>
         <div className="flex gap-2 justify-end pt-2">

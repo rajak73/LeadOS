@@ -36,7 +36,7 @@ export function InstagramAccountCard({ account, onDisconnect, isDisconnecting }:
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-bg-elevated">
+    <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-slate-200 bg-white">
       <div className="flex items-center gap-3 min-w-0">
         {account.profilePictureUrl ? (
           <img
@@ -45,18 +45,18 @@ export function InstagramAccountCard({ account, onDisconnect, isDisconnecting }:
             className="w-8 h-8 rounded-full shrink-0 object-cover"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full shrink-0 bg-bg-subtle flex items-center justify-center text-text-tertiary text-xs">
+          <div className="w-8 h-8 rounded-full shrink-0 bg-slate-50 flex items-center justify-center text-slate-500 text-xs">
             {account.platform === 'FACEBOOK' ? 'FB' : 'IG'}
           </div>
         )}
         <div className="min-w-0 flex flex-col items-start gap-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm text-text-primary font-medium truncate">
+            <p className="text-sm text-slate-900 font-medium truncate">
               {account.platform === 'FACEBOOK' ? account.igUsername ?? account.igUserId : `@${account.igUsername ?? account.igUserId}`}
             </p>
             <Badge variant="default">{account.platform === 'FACEBOOK' ? 'Facebook Page' : 'Instagram'}</Badge>
           </div>
-          <p className="text-xs text-text-tertiary">
+          <p className="text-xs text-slate-500">
             Token expires {new Date(account.tokenExpiresAt).toLocaleDateString()}
           </p>
         </div>

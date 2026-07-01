@@ -30,8 +30,8 @@ export function KanbanColumn({ stage, deals, onAddDeal, onMarkWon, onMarkLost }:
           {stage.color && (
             <span className="inline-block w-2.5 h-2.5 rounded-full ring-2 ring-bg-base shadow-sm" style={{ backgroundColor: stage.color }} />
           )}
-          <h3 className="text-sm font-semibold text-text-primary">{stage.name}</h3>
-          <span className="text-[10px] font-bold text-text-secondary bg-bg-subtle ring-1 ring-border-strong px-2 py-0.5 rounded-full">
+          <h3 className="text-sm font-semibold text-slate-900">{stage.name}</h3>
+          <span className="text-[10px] font-bold text-slate-600 bg-slate-50 ring-1 ring-slate-300 px-2 py-0.5 rounded-full">
             {deals.length}
           </span>
         </div>
@@ -44,7 +44,7 @@ export function KanbanColumn({ stage, deals, onAddDeal, onMarkWon, onMarkLost }:
       <div
         ref={setNodeRef}
         className={`flex-1 rounded-2xl p-3 min-h-[200px] transition-all border shadow-inner ${
-          isOver ? 'bg-primary-500/5 border-primary-500/30 ring-1 ring-primary-500/20' : 'bg-bg-base/40 border-border-strong ring-1 ring-white/5'
+          isOver ? 'bg-primary-500/5 border-primary-500/30 ring-1 ring-primary-500/20' : 'bg-slate-50/40 border-slate-300 ring-1 ring-slate-200'
         }`}
       >
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
@@ -70,7 +70,7 @@ export function KanbanColumn({ stage, deals, onAddDeal, onMarkWon, onMarkLost }:
         )}
       </div>
 
-      <Button size="sm" variant="ghost" className="mt-2 w-full justify-start text-text-tertiary" onClick={() => onAddDeal(stage.id)}>
+      <Button size="sm" variant="ghost" className="mt-2 w-full justify-start text-slate-500" onClick={() => onAddDeal(stage.id)}>
         + Add Deal
       </Button>
     </div>

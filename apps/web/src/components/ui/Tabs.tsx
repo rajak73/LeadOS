@@ -18,12 +18,12 @@ interface TabsProps {
 export function Tabs({ defaultValue, tabs, className = '' }: TabsProps) {
   return (
     <RadixTabs.Root defaultValue={defaultValue} className={`flex flex-col h-full ${className}`}>
-      <RadixTabs.List className="flex gap-1 border-b border-border px-1 shrink-0">
+      <RadixTabs.List className="flex gap-1 border-b border-slate-200 px-1 shrink-0">
         {tabs.map((tab) => (
           <RadixTabs.Trigger
             key={tab.value}
             value={tab.value}
-            className="px-3 py-2 text-sm text-text-secondary data-[state=active]:text-text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary-500 -mb-px transition-colors"
+            className="px-3 py-2 text-sm text-slate-600 data-[state=active]:text-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-primary-500 -mb-px transition-colors"
           >
             {tab.label}
           </RadixTabs.Trigger>

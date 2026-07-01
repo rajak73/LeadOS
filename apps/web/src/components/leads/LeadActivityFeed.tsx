@@ -40,7 +40,7 @@ export function LeadActivityFeed({ leadId }: LeadActivityFeedProps) {
   const activities = data?.pages.flatMap((p) => p.data) ?? [];
 
   if (activities.length === 0) {
-    return <div className="py-8 text-center text-sm text-text-tertiary">No activity yet</div>;
+    return <div className="py-8 text-center text-sm text-slate-500">No activity yet</div>;
   }
 
   return (

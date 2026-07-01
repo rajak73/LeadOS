@@ -39,13 +39,13 @@ export default function ImportHistoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-text-primary">Import History</h2>
-        <p className="text-sm text-text-tertiary mt-0.5">
+        <h2 className="text-lg font-semibold text-slate-900">Import History</h2>
+        <p className="text-sm text-slate-500 mt-0.5">
           View the history of CSV imports and their status.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
         {isLoading && (
           <div className="flex items-center justify-center py-16">
             <Spinner />
@@ -54,13 +54,13 @@ export default function ImportHistoryPage() {
 
         {error && (
           <div className="py-16 text-center">
-            <p className="text-text-tertiary text-sm">Could not load import history.</p>
+            <p className="text-slate-500 text-sm">Could not load import history.</p>
           </div>
         )}
 
         {data && data.data.length === 0 && (
           <div className="py-16 text-center">
-            <p className="text-text-tertiary text-sm">No imports found.</p>
+            <p className="text-slate-500 text-sm">No imports found.</p>
           </div>
         )}
 
@@ -68,20 +68,20 @@ export default function ImportHistoryPage() {
           <>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-bg-base">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     File Name
                   </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Imported By
                   </th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Imported / Failed / Skipped
                   </th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
                 </tr>
@@ -90,9 +90,9 @@ export default function ImportHistoryPage() {
                 {data.data.map((h) => (
                   <tr
                     key={h.id}
-                    className="border-b border-border/50 last:border-0 hover:bg-bg-subtle/30 transition-colors"
+                    className="border-b border-slate-200 last:border-0 hover:bg-slate-50/30 transition-colors"
                   >
-                    <td className="px-5 py-3.5 font-medium text-text-primary">
+                    <td className="px-5 py-3.5 font-medium text-slate-900">
                       {h.fileName}
                     </td>
                     <td className="px-5 py-3.5">
@@ -109,13 +109,13 @@ export default function ImportHistoryPage() {
                         {h.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-text-secondary">
+                    <td className="px-5 py-3.5 text-slate-600">
                       {h.importedBy ? `${h.importedBy.firstName} ${h.importedBy.lastName}` : 'System'}
                     </td>
-                    <td className="px-5 py-3.5 text-right text-text-secondary">
-                      <span className="text-green-400">{h.recordsImported}</span> / <span className="text-red-400">{h.recordsFailed}</span> / <span className="text-text-tertiary">{h.recordsSkipped}</span>
+                    <td className="px-5 py-3.5 text-right text-slate-600">
+                      <span className="text-green-400">{h.recordsImported}</span> / <span className="text-red-400">{h.recordsFailed}</span> / <span className="text-slate-500">{h.recordsSkipped}</span>
                     </td>
-                    <td className="px-5 py-3.5 text-right text-text-tertiary">
+                    <td className="px-5 py-3.5 text-right text-slate-500">
                       {new Date(h.startedAt).toLocaleString()}
                     </td>
                   </tr>
@@ -123,11 +123,11 @@ export default function ImportHistoryPage() {
               </tbody>
             </table>
             {data.meta.total > 10 && (
-              <div className="border-t border-border px-5 py-3 flex items-center justify-between">
+              <div className="border-t border-slate-200 px-5 py-3 flex items-center justify-between">
                 <div className="flex gap-2 text-sm">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 bg-bg-subtle rounded disabled:opacity-50">Prev</button>
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 bg-slate-50 rounded disabled:opacity-50">Prev</button>
                   <span className="px-2 py-1">Page {page}</span>
-                  <button onClick={() => setPage(p => p + 1)} disabled={page * 10 >= data.meta.total} className="px-3 py-1 bg-bg-subtle rounded disabled:opacity-50">Next</button>
+                  <button onClick={() => setPage(p => p + 1)} disabled={page * 10 >= data.meta.total} className="px-3 py-1 bg-slate-50 rounded disabled:opacity-50">Next</button>
                 </div>
               </div>
             )}

@@ -52,9 +52,9 @@ export function InboxPage({ currentUserId }: InboxPageProps) {
   return (
     <div className="-m-6 flex flex-col lg:flex-row h-[calc(100svh-0px)] gap-0">
       {/* Left panel — conversation list */}
-      <aside className="w-full lg:w-72 flex flex-col border-r border-border bg-bg-base shrink-0">
+      <aside className="w-full lg:w-72 flex flex-col border-r border-slate-200 bg-slate-50 shrink-0">
         {/* Tab bar */}
-        <div className="flex gap-0 border-b border-border shrink-0">
+        <div className="flex gap-0 border-b border-slate-200 shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -62,8 +62,8 @@ export function InboxPage({ currentUserId }: InboxPageProps) {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 px-3 py-2.5 text-sm transition-colors ${
                 activeTab === tab
-                  ? 'text-text-primary border-b-2 border-primary-500 -mb-px font-medium'
-                  : 'text-text-secondary hover:text-text-primary'
+                  ? 'text-slate-900 border-b-2 border-primary-500 -mb-px font-medium'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {TAB_LABELS[tab]}

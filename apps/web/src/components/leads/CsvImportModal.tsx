@@ -174,7 +174,7 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
       <div className="space-y-4" data-testid="csv-import-modal">
         {phase === 'idle' && (
           <>
-            <p className="text-sm text-text-secondary">
+            <p className="text-sm text-slate-600">
               Upload a CSV file containing your leads. We'll map the columns in the next step.
             </p>
             <label htmlFor="csv-upload" className="sr-only">CSV file</label>
@@ -185,7 +185,7 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
               accept=".csv,text/csv"
               onChange={handleFileChange}
               data-testid="file-input"
-              className="block w-full text-sm text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-border file:bg-bg-elevated file:text-text-primary file:text-xs hover:file:border-border/80 file:transition-colors"
+              className="block w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-slate-200 file:bg-white file:text-slate-900 file:text-xs hover:file:border-slate-200/80 file:transition-colors"
             />
             <div className="flex gap-2 pt-1">
               <Button variant="secondary" onClick={handleClose}>
@@ -197,14 +197,14 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
 
         {phase === 'mapping' && (
           <>
-            <h3 className="text-sm font-medium text-text-primary">Step 2: Map Columns</h3>
+            <h3 className="text-sm font-medium text-slate-900">Step 2: Map Columns</h3>
             <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
               {LEAD_FIELDS.map(field => (
                 <div key={field.key} className="flex items-center gap-4">
-                  <div className="w-1/3 text-sm text-text-secondary">{field.label} {field.key === 'firstName' && '*'}</div>
+                  <div className="w-1/3 text-sm text-slate-600">{field.label} {field.key === 'firstName' && '*'}</div>
                   <div className="w-2/3">
                     <select
-                      className="w-full rounded-md border border-border bg-bg-base px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                      className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                       value={mappings[field.key] || ''}
                       onChange={(e) => setMappings({ ...mappings, [field.key]: e.target.value })}
                     >
@@ -230,12 +230,12 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
 
         {phase === 'assignment' && (
           <>
-            <h3 className="text-sm font-medium text-text-primary">Step 3: Assignment</h3>
+            <h3 className="text-sm font-medium text-slate-900">Step 3: Assignment</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-text-secondary mb-1">Assignment Type</label>
+                <label className="block text-sm text-slate-600 mb-1">Assignment Type</label>
                 <select
-                  className="w-full rounded-md border border-border bg-bg-base px-3 py-1.5 text-sm"
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm"
                   value={assignmentType}
                   onChange={(e) => setAssignmentType(e.target.value as 'NONE' | 'SINGLE' | 'ROUND_ROBIN')}
                 >
@@ -247,12 +247,12 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
 
               {assignmentType === 'SINGLE' && (
                 <div>
-                  <label className="block text-sm text-text-secondary mb-1">Select User</label>
+                  <label className="block text-sm text-slate-600 mb-1">Select User</label>
                   {isLoadingTeam ? (
                     <Spinner size="sm" />
                   ) : (
                     <select
-                      className="w-full rounded-md border border-border bg-bg-base px-3 py-1.5 text-sm"
+                      className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm"
                       value={assigneeId}
                       onChange={(e) => setAssigneeId(e.target.value)}
                     >
@@ -281,11 +281,11 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
         {(phase === 'submitting' || phase === 'polling') && (
           <div className="flex flex-col items-center gap-3 py-6">
             <Spinner size="lg" />
-            <p className="text-sm text-text-secondary">
+            <p className="text-sm text-slate-600">
               {phase === 'submitting' ? 'Submitting import job...' : 'Processing import…'}
             </p>
             {jobStatus && (
-              <p className="text-xs text-text-tertiary">
+              <p className="text-xs text-slate-500">
                 {jobStatus.recordsImported + jobStatus.recordsSkipped + jobStatus.recordsFailed} / {jobStatus.recordsTotal} rows processed
               </p>
             )}
@@ -308,7 +308,7 @@ export function CsvImportModal({ open, onClose }: CsvImportModalProps) {
 
             {jobStatus.errorSummary && jobStatus.errorSummary.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-text-tertiary mb-2" data-testid="error-rows-header">
+                <p className="text-xs font-medium text-slate-500 mb-2" data-testid="error-rows-header">
                   {jobStatus.recordsFailed} row{jobStatus.recordsFailed !== 1 ? 's' : ''} had errors:
                 </p>
                 <div className="max-h-48 overflow-y-auto space-y-2" data-testid="error-rows-list">

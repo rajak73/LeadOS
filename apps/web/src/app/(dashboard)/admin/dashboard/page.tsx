@@ -10,14 +10,14 @@ export default function AdminDashboardPage() {
       <PageHeader title="Super Admin Dashboard" description="Platform overview and quick links." />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/admin/organizations" className="p-6 border border-border bg-bg-elevated rounded-2xl hover:border-primary-500 transition-colors group">
-          <h3 className="text-lg font-semibold text-white group-hover:text-primary-400">Organizations</h3>
-          <p className="text-sm text-text-tertiary mt-2">Manage all tenant organizations across the platform.</p>
+        <Link href="/admin/organizations" className="p-6 border border-slate-200 bg-white rounded-2xl hover:border-primary-500 transition-colors group">
+          <h3 className="text-lg font-semibold text-slate-900 group-hover:text-primary-400">Organizations</h3>
+          <p className="text-sm text-slate-500 mt-2">Manage all tenant organizations across the platform.</p>
         </Link>
 
-        <Link href="/admin/users" className="p-6 border border-border bg-bg-elevated rounded-2xl hover:border-primary-500 transition-colors group">
-          <h3 className="text-lg font-semibold text-white group-hover:text-primary-400">Platform Users</h3>
-          <p className="text-sm text-text-tertiary mt-2">View and manage global user accounts.</p>
+        <Link href="/admin/users" className="p-6 border border-slate-200 bg-white rounded-2xl hover:border-primary-500 transition-colors group">
+          <h3 className="text-lg font-semibold text-slate-900 group-hover:text-primary-400">Platform Users</h3>
+          <p className="text-sm text-slate-500 mt-2">View and manage global user accounts.</p>
         </Link>
       </div>
     </div>

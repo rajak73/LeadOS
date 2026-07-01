@@ -44,7 +44,7 @@ function SortButton({
       type="button"
       onClick={() => onSort(col)}
       data-testid={`sort-${col}`}
-      className="flex items-center gap-1 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+      className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 transition-colors"
     >
       {label}
       {active && <span className="text-primary-400">{order === 'asc' ? '↑' : '↓'}</span>}
@@ -69,7 +69,7 @@ function InlineStatusEdit({ lead }: { lead: Lead }) {
       onChange={handleChange}
       aria-label={`Status for ${lead.firstName}`}
       data-testid={`status-select-${lead.id}`}
-      className="text-xs rounded-md px-1.5 py-0.5 border border-border bg-bg-base text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
+      className="text-xs rounded-md px-1.5 py-0.5 border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
     >
       <option value={lead.status}>{lead.status}</option>
       {ALL_LEAD_STATUSES.filter((s) => allowed.includes(s)).map((s) => (
@@ -127,7 +127,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
     <div className="space-y-4" data-testid="lead-table">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-text-tertiary">
+        <p className="text-sm text-slate-500">
           {meta ? `${meta.total} lead${meta.total !== 1 ? 's' : ''}` : '—'}
         </p>
         <div className="flex gap-2">
@@ -151,10 +151,10 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-border-strong rounded-xl bg-bg-base ring-1 ring-white/5 shadow-sm max-h-[70vh] relative">
+      <div className="overflow-x-auto border border-slate-300 rounded-xl bg-slate-50 ring-1 ring-slate-200 shadow-sm max-h-[70vh] relative">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 shadow-sm">
-            <tr className="border-b border-border-strong bg-bg-elevated/95 backdrop-blur-md">
+            <tr className="border-b border-slate-300 bg-white/95 backdrop-blur-md">
               {/* Select-all checkbox */}
               <th scope="col" className="w-10 px-4 py-3">
                 <input
@@ -165,7 +165,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                   }}
                   onChange={toggleSelectAll}
                   aria-label="Select all leads"
-                  className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-500 cursor-pointer"
+                  className="w-4 h-4 rounded border-slate-200 text-primary-500 focus:ring-primary-500 cursor-pointer"
                 />
               </th>
               <th scope="col" className="text-left px-4 py-3">
@@ -177,9 +177,9 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                   onSort={handleSort}
                 />
               </th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-text-tertiary font-medium">Email</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-text-tertiary font-medium">Source</th>
-              <th scope="col" className="text-left px-4 py-3 text-xs text-text-tertiary font-medium">Status</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-slate-500 font-medium">Email</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-slate-500 font-medium">Source</th>
+              <th scope="col" className="text-left px-4 py-3 text-xs text-slate-500 font-medium">Status</th>
               <th scope="col" className="text-left px-4 py-3">
                 <SortButton
                   label="AI Score"
@@ -205,7 +205,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
               <tr>
                 <td colSpan={7} className="p-0">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-6 px-4 py-4 border-b border-border/30">
+                    <div key={i} className="flex items-center gap-6 px-4 py-4 border-b border-slate-200/30">
                        <Skeleton className="w-4 h-4 rounded" />
                        <Skeleton className="w-32 h-4" />
                        <Skeleton className="w-40 h-4 hidden sm:block" />
@@ -230,8 +230,8 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
               return (
                 <tr
                   key={lead.id}
-                  className={`border-b border-border/50 last:border-0 transition-colors
-                    ${isSelected ? 'bg-primary-500/10' : 'hover:bg-bg-subtle/80'}`}
+                  className={`border-b border-slate-200 last:border-0 transition-colors
+                    ${isSelected ? 'bg-primary-500/10' : 'hover:bg-slate-50/80'}`}
                   data-testid={`lead-row-${lead.id}`}
                 >
                   <td className="w-10 px-4 py-3">
@@ -240,7 +240,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                       checked={isSelected}
                       onChange={() => toggleSelectOne(lead.id)}
                       aria-label={`Select ${getLeadDisplayName(lead)}`}
-                      className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-200 text-primary-500 focus:ring-primary-500 cursor-pointer"
                     />
                   </td>
                   <td className="px-4 py-3">
@@ -249,7 +249,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                       <div className="min-w-0">
                         <Link
                           href={`/leads/${lead.id}`}
-                          className="font-medium text-text-primary hover:text-primary-400 transition-colors"
+                          className="font-medium text-slate-900 hover:text-primary-400 transition-colors"
                         >
                           {getLeadDisplayName(lead)}
                         </Link>
@@ -265,8 +265,8 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-text-secondary text-xs">{lead.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-text-secondary text-xs">{formatLeadSource(lead.source)}</td>
+                  <td className="px-4 py-3 text-slate-600 text-xs">{lead.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-600 text-xs">{formatLeadSource(lead.source)}</td>
                   <td className="px-4 py-3">
                     <InlineStatusEdit lead={lead} />
                   </td>
@@ -276,7 +276,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
                       onClick={() => setSelectedLeadScoreId(lead.id)}
                     />
                   </td>
-                  <td className="px-4 py-3 text-text-tertiary text-xs">{formatRelativeTime(lead.createdAt)}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{formatRelativeTime(lead.createdAt)}</td>
                 </tr>
               );
             })}
@@ -286,7 +286,7 @@ export function LeadTable({ onImport, onExport }: LeadTableProps) {
 
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between text-xs text-text-tertiary" data-testid="pagination">
+        <div className="flex items-center justify-between text-xs text-slate-500" data-testid="pagination">
           <span>
             Page {meta.page} of {meta.totalPages}
           </span>

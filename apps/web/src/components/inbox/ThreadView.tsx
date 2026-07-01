@@ -36,7 +36,7 @@ export function ThreadView({ conversation, currentUserId }: ThreadViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-base">
+    <div className="flex flex-col h-full bg-slate-50">
       <ConversationHeader conversation={conversation} currentUserId={currentUserId ?? null} />
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -46,7 +46,7 @@ export function ThreadView({ conversation, currentUserId }: ThreadViewProps) {
               type="button"
               onClick={() => void fetchNextPage()}
               disabled={isFetchingNextPage}
-              className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+              className="text-xs text-slate-600 hover:text-slate-900 transition-colors"
             >
               {isFetchingNextPage ? 'Loading…' : 'Load older messages'}
             </button>

@@ -85,7 +85,7 @@ export default function TasksPage() {
         return 'text-blue-400 bg-blue-500/10 border-blue-500/25';
       case 'LOW':
       default:
-        return 'text-text-tertiary bg-bg-subtle border-border';
+        return 'text-slate-500 bg-slate-50 border-slate-200';
     }
   };
 
@@ -121,11 +121,11 @@ export default function TasksPage() {
           {pendingTasks.map((task) => (
             <div
               key={task.id}
-              className="bg-bg-elevated border border-border rounded-xl p-5 hover:border-border-strong transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
             >
               <div className="space-y-1.5 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold text-text-primary text-base">{task.title}</h3>
+                  <h3 className="font-semibold text-slate-900 text-base">{task.title}</h3>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getPriorityColor(task.priority)}`}>
                     {task.priority}
                   </span>
@@ -136,9 +136,9 @@ export default function TasksPage() {
                   )}
                 </div>
                 {task.description && (
-                  <p className="text-sm text-text-secondary leading-relaxed">{task.description}</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">{task.description}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   {task.dueDate && (
                     <span>
                       📅 Due: {new Date(task.dueDate).toLocaleDateString()}
@@ -172,25 +172,25 @@ export default function TasksPage() {
                   <Button variant="secondary" size="sm">
                     🕒 Snooze ▾
                   </Button>
-                  <div className="absolute right-0 bottom-full mb-1 hidden group-hover:block hover:block z-50 bg-bg-elevated border border-border rounded-lg shadow-xl py-1 min-w-[120px]">
+                  <div className="absolute right-0 bottom-full mb-1 hidden group-hover:block hover:block z-50 bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-[120px]">
                     <button
                       type="button"
                       onClick={() => handleSnooze(task, 1)}
-                      className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-subtle"
+                      className="w-full text-left px-3 py-1.5 text-xs text-slate-900 hover:bg-slate-50"
                     >
                       1 Day
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSnooze(task, 3)}
-                      className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-subtle"
+                      className="w-full text-left px-3 py-1.5 text-xs text-slate-900 hover:bg-slate-50"
                     >
                       3 Days
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSnooze(task, 7)}
-                      className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-subtle"
+                      className="w-full text-left px-3 py-1.5 text-xs text-slate-900 hover:bg-slate-50"
                     >
                       1 Week
                     </button>
@@ -205,12 +205,12 @@ export default function TasksPage() {
       {/* AI Suggestion Dialog Modal */}
       {suggestionOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-bg-elevated border border-border rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-border/50 pb-3">
-              <h3 className="text-lg font-semibold text-text-primary">AI Follow-up Suggestion</h3>
+          <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+              <h3 className="text-lg font-semibold text-slate-900">AI Follow-up Suggestion</h3>
               <button
                 onClick={() => setSuggestionOpen(false)}
-                className="text-text-secondary hover:text-text-primary text-xl"
+                className="text-slate-600 hover:text-slate-900 text-xl"
               >
                 ✕
               </button>
@@ -226,12 +226,12 @@ export default function TasksPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                <div className="p-3 bg-bg-base border border-border rounded-lg text-xs space-y-1">
-                  <div className="font-semibold text-text-secondary">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                  <div className="font-semibold text-slate-600">
                     Recommended Channel: <span className="text-primary-400 font-bold">{suggestion.channel}</span>
                   </div>
                 </div>
-                <div className="p-4 bg-bg-base border border-border rounded-lg text-sm text-text-primary font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
                   {suggestion.draft}
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
