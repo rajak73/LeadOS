@@ -88,7 +88,7 @@ export default function MarketingPage() {
   return (
     <div className="bg-slate-50 overflow-hidden">
       {/* 1. Hero Section */}
-      <section className="relative pt-24 pb-20 md:pt-36 md:pb-32 bg-gradient-to-b from-bg-base via-bg-elevated to-transparent">
+      <section className="relative pt-24 pb-20 md:pt-36 md:pb-32 bg-gradient-to-b from-white via-slate-50 to-transparent">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-primary-500/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/3 right-10 w-[500px] h-[500px] bg-orange-400/5 rounded-full blur-[100px] pointer-events-none" />
 
@@ -243,7 +243,7 @@ export default function MarketingPage() {
       </section>
 
       {/* 5. Social Lead Capture Section */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-bg-elevated to-bg-base">
+      <section className="py-24 md:py-32 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -447,7 +447,7 @@ export default function MarketingPage() {
                 key={plan.name}
                 className={`p-8 rounded-3xl border flex flex-col justify-between ${
                   plan.popular
-                    ? 'bg-gradient-to-b from-primary-900/30 to-bg-elevated border-primary-500/40 shadow-[0_0_30px_rgba(99,102,241,0.15)] relative'
+                    ? 'bg-gradient-to-b from-primary-50 to-white border-primary-500/40 shadow-[0_0_30px_rgba(99,102,241,0.15)] relative'
                     : 'bg-white border-slate-200'
                 }`}
               >
