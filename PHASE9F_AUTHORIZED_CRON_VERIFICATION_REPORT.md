@@ -34,7 +34,8 @@ Please confirm your cron-job.org configuration matches the following required se
 - [ ] **Header:** `Authorization: Bearer <CRON_SECRET>`
 
 ## 6. cron-job.org Last Execution Status
-How to interpret the execution history in your cron-job.org dashboard:
+**PENDING FOUNDER VERIFICATION.** Please check your cron-job.org dashboard and confirm the last execution status.
+How to interpret the execution history:
 - **Status 200:** PASS — The job ran successfully and drained queues.
 - **Status 401:** FAIL — The Authorization header is missing or the secret is wrong.
 - **Status 404:** FAIL — The URL is incorrect.
@@ -45,9 +46,11 @@ How to interpret the execution history in your cron-job.org dashboard:
 - We did not run manual QA scripts in production.
 - We did not insert any fake data into the production database.
 
-## 8. Real Meta Blockers
-- Real Instagram/Facebook/WhatsApp APIs cannot be called without valid credentials.
-- The system is currently running in a safe, strict "Simulation Mode" fallback if no real credentials exist.
+## 8. Remaining Limitations
+- **Real Meta credentials not configured:** Cannot call real Instagram/Facebook/WhatsApp APIs.
+- **Real Instagram/WhatsApp messages not tested:** Simulated mode only.
+- **Worker still skipped in free mode:** The continuous background worker remains disabled to stay within Render's free tier.
+- **Cron workaround reliability:** The 5-minute cron drain workaround has lower reliability and higher latency compared to a dedicated paid worker.
 
 ## 9. Safety Confirmations
 - ✅ No secrets printed
