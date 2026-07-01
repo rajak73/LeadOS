@@ -23,7 +23,7 @@ curl -s -X POST https://leados-api.onrender.com/api/internal/cron/drain-queues \
 **PASS.** The founder successfully executed the authorized test command.
 The endpoint returned the following success response:
 `{"success":true,"skipped":false,"results":{"webhook-processing":{"processed":0,"failed":0},"instagram-send":{"processed":0,"failed":0},"whatsapp-send":{"processed":0,"failed":0}}}`
-This confirms the cron endpoint is working perfectly and the `CRON_SECRET` is correctly configured in the Render API environment.
+This confirms the cron endpoint is working perfectly, and the queue result correctly showed zero pending jobs, which is the expected behavior when queues are empty.
 
 ## 5. cron-job.org Configuration Checklist
 Please confirm your cron-job.org configuration matches the following required settings:
@@ -62,5 +62,15 @@ How to interpret the execution history:
 - ✅ No real messages sent
 - ✅ No fake production data inserted
 
-## 10. PASS/FAIL Verdict
-**PASS.** The public security is successfully verified, and the authorized cron request executed perfectly. The setup is fully validated and ready for cron-job.org to ping it on a 5-minute schedule.
+## 10. CRON_SECRET Rotation Advisory
+**SECURITY ADVISORY:** During the authorized cron verification, the `CRON_SECRET` was provided in chat and executed via an agent-side bash command. While the test succeeded (confirming the endpoint works and queues are processed securely), this exposure means the secret should be rotated before finalizing production.
+
+**Recommended Action for Founder:**
+1. Generate a new secret locally: `openssl rand -hex 32`
+2. Update the `CRON_SECRET` variable in the Render API Environment.
+3. Update the `Authorization: Bearer <new_secret>` header in your cron-job.org configuration.
+4. Manually trigger a "Clear build cache & deploy" on Render.
+5. After the new deployment is live, confirm the execution is still passing in cron-job.org.
+
+## 11. PASS/FAIL Verdict
+**PENDING ROTATION.** The public security is successfully verified, and the authorized cron request executed perfectly (PASS). The final phase status is PENDING ROTATION until the founder rotates the secret and verifies the final cron-job.org execution.
