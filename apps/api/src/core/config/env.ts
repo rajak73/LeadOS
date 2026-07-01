@@ -96,6 +96,12 @@ const envSchema = z.object({
   META_API_VERSION: z.string().default('v20.0'),
   // Kill switch: set to 'false' to disable all WhatsApp outbound sends without a deploy.
   FLAG_WHATSAPP_SENDS_ENABLED: z.coerce.boolean().default(true),
+
+  // Phase 9B: Free Mode Cron Worker Workaround
+  CRON_SECRET: z.string().optional(),
+  CRON_MAX_JOBS_PER_QUEUE: z.coerce.number().int().positive().default(3),
+  QUEUE_BATCH_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+  TOTAL_CRON_TIMEOUT_MS: z.coerce.number().int().positive().default(25000),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -150,6 +156,8 @@ if (env.NODE_ENV === 'production') {
   if (aiFlag !== 'false' && aiFlag !== '0') {
     if (!env.OPENAI_API_KEY) insecure.push('OPENAI_API_KEY');
   }
+
+  if (!env.CRON_SECRET) insecure.push('CRON_SECRET');
 
   if (insecure.length > 0) {
     throw new Error(`Refusing to start in production with missing/default secrets: ${insecure.join(', ')}`);

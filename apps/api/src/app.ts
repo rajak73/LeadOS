@@ -21,6 +21,7 @@ import { healthRouter } from './core/health/health.routes.js';
 import { notFoundHandler, errorHandler } from './core/errors/error-handler.js';
 import { sendSuccess } from './core/http/envelope.js';
 import { authRouter } from './modules/auth/index.js';
+import { CronController } from './modules/system/cron.controller.js';
 import { buildRbacModule } from './modules/rbac/index.js';
 import { buildLeadsModule } from './modules/leads/index.js';
 import { buildContactsModule } from './modules/contacts/index.js';
@@ -77,6 +78,11 @@ export function buildApp(): Express {
   // the authenticated chain so it terminates auth requests (each route carries its own
   // rate limit).
   app.use('/api/v1/auth', authRouter);
+
+  // INTERNAL cron workaround routes (Phase 9B). Has its own Bearer auth.
+  const cronController = new CronController();
+  app.post('/api/internal/cron/drain-queues', (req, res) => cronController.drainQueues(req, res));
+
 
   // Versioned API surface (authenticated). RBAC (real requirePermission + role admin) is wired
   // here via the rbac module composition.
