@@ -86,7 +86,7 @@ export default function MarketingPage() {
   ];
 
   return (
-    <div className="bg-bg-base overflow-hidden">
+    <div className="bg-slate-50 overflow-hidden">
       {/* 1. Hero Section */}
       <section className="relative pt-24 pb-20 md:pt-36 md:pb-32 bg-gradient-to-b from-bg-base via-bg-elevated to-transparent">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-primary-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -98,7 +98,7 @@ export default function MarketingPage() {
             <span className="text-xs font-semibold text-primary-400 tracking-wide uppercase">AI Revenue Operations</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-text-primary mb-8 max-w-4xl mx-auto leading-[1.1]">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-8 max-w-4xl mx-auto leading-[1.1]">
             Where revenue teams turn{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-primary-400 to-indigo-400 drop-shadow-sm">
               conversations
@@ -106,7 +106,7 @@ export default function MarketingPage() {
             into customers.
           </h1>
 
-          <p className="text-lg md:text-xl text-text-secondary mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
             LeadOS unifies customer profiles, social conversations, AI lead scoring, pipeline tracking, and automated
             follow-ups for every organization in one secure workspace.
           </p>
@@ -120,21 +120,21 @@ export default function MarketingPage() {
             </Link>
             <Link
               href="#platform"
-              className="w-full sm:w-auto h-14 px-8 flex items-center justify-center rounded-xl bg-bg-elevated border border-border-strong text-text-primary font-bold hover:bg-bg-subtle transition-all duration-200"
+              className="w-full sm:w-auto h-14 px-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-900 font-bold hover:bg-slate-50 transition-all duration-200"
             >
               See how it works
             </Link>
           </div>
 
-          <p className="text-xs text-text-tertiary mt-6 font-medium">
+          <p className="text-xs text-slate-500 mt-6 font-medium">
             No credit card required. Built for modern sales teams.
           </p>
         </div>
 
         {/* Product Visual Mockup */}
         <div className="max-w-6xl mx-auto px-6 mt-20 relative z-10">
-          <div className="rounded-2xl border border-border-strong bg-bg-elevated p-3 shadow-2xl shadow-primary-900/20">
-            <div className="rounded-xl overflow-hidden border border-border-default bg-bg-overlay aspect-video relative flex flex-col items-center justify-center p-8">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl shadow-primary-900/20">
+            <div className="rounded-xl overflow-hidden border border-slate-200 bg-white aspect-video relative flex flex-col items-center justify-center p-8">
               <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-orange-500/5" />
               <div className="relative text-center max-w-md">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-primary-600 mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)]">
@@ -142,8 +142,8 @@ export default function MarketingPage() {
                     <path d="M12 2L2 22h20L12 2zm0 4l6.5 13H5.5L12 6z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-text-primary">Beautiful, fast, inside and out.</h3>
-                <p className="text-text-secondary mt-2">Sign in to experience the visual dashboard.</p>
+                <h3 className="text-2xl font-bold text-slate-900">Beautiful, fast, inside and out.</h3>
+                <p className="text-slate-600 mt-2">Sign in to experience the visual dashboard.</p>
                 <div className="mt-8 flex justify-center gap-2">
                   <div className="w-3.5 h-3.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
                   <div className="w-3.5 h-3.5 rounded-full bg-primary-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
@@ -156,18 +156,18 @@ export default function MarketingPage() {
       </section>
 
       {/* 2. Generic Segments / Social Proof Section */}
-      <section className="py-16 border-y border-border-default bg-bg-base">
+      <section className="py-16 border-y border-slate-200 bg-slate-50">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-xs font-semibold text-text-tertiary uppercase tracking-widest mb-10">
+          <p className="text-center text-xs font-semibold text-slate-500 uppercase tracking-widest mb-10">
             Trusted by modern sales networks and growing industries
           </p>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
             {genericSegments.map((seg, i) => (
               <div
                 key={i}
-                className="flex flex-col items-center justify-center p-4 rounded-xl border border-border-subtle hover:border-primary-500/30 hover:bg-primary-500/10 transition-all text-center group bg-bg-elevated/50"
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 hover:border-primary-500/30 hover:bg-primary-500/10 transition-all text-center group bg-white/50"
               >
-                <span className="text-sm font-bold text-text-secondary group-hover:text-primary-400 transition-colors">
+                <span className="text-sm font-bold text-slate-600 group-hover:text-primary-400 transition-colors">
                   {seg.name}
                 </span>
               </div>
@@ -180,10 +180,10 @@ export default function MarketingPage() {
       <section id="platform" className="py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-text-primary mb-6">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
               Everything your revenue team needs in one operating system.
             </h2>
-            <p className="text-lg md:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
               Consolidate tools, automate repetitive flows, and build rich intelligence with our modular architecture.
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function MarketingPage() {
             {platforms.map((plat, i) => (
               <div
                 key={i}
-                className="bg-bg-elevated p-8 rounded-2xl border border-border-default shadow-sm hover:shadow-lg hover:shadow-primary-500/5 hover:border-border-strong transition-all duration-200 flex flex-col justify-between"
+                className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:shadow-primary-500/5 hover:border-slate-200 transition-all duration-200 flex flex-col justify-between"
               >
                 <div>
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${plat.color} text-white flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(99,102,241,0.2)]`}>
@@ -200,8 +200,8 @@ export default function MarketingPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-text-primary mb-3">{plat.title}</h3>
-                  <p className="text-text-secondary text-sm leading-relaxed">{plat.desc}</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">{plat.title}</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed">{plat.desc}</p>
                 </div>
               </div>
             ))}
@@ -210,13 +210,13 @@ export default function MarketingPage() {
       </section>
 
       {/* 4. AI Agents Section */}
-      <section className="py-24 md:py-32 bg-bg-elevated border-y border-border-default">
+      <section className="py-24 md:py-32 bg-white border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-text-primary mb-6">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
               Built-in AI agents that work for your team 24/7.
             </h2>
-            <p className="text-lg md:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
               Enable secure, tenant-isolated AI agents designed to automate customer interactions, qualify deals, and analyze data safely.
             </p>
           </div>
@@ -225,16 +225,16 @@ export default function MarketingPage() {
             {aiAgents.map((agent, i) => (
               <div
                 key={i}
-                className="bg-bg-subtle/50 p-8 rounded-2xl border border-border-subtle flex flex-col justify-between hover:bg-bg-overlay hover:shadow-lg hover:shadow-primary-500/10 hover:border-primary-500/30 transition-all duration-300"
+                className="bg-slate-50/50 p-8 rounded-2xl border border-slate-200 flex flex-col justify-between hover:bg-white hover:shadow-lg hover:shadow-primary-500/10 hover:border-primary-500/30 transition-all duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <span className="text-lg font-bold text-text-primary">{agent.role}</span>
+                    <span className="text-lg font-bold text-slate-900">{agent.role}</span>
                     <span className="px-2.5 py-1 text-xs font-bold text-primary-400 bg-primary-500/10 border border-primary-500/20 rounded-full">
                       {agent.badge}
                     </span>
                   </div>
-                  <p className="text-text-secondary text-sm leading-relaxed">{agent.desc}</p>
+                  <p className="text-slate-600 text-sm leading-relaxed">{agent.desc}</p>
                 </div>
               </div>
             ))}
@@ -247,10 +247,10 @@ export default function MarketingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-text-primary mb-6 leading-tight">
+              <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
                 Capture and convert leads from Instagram, WhatsApp, and Facebook.
               </h2>
-              <p className="text-lg text-text-secondary mb-10 leading-relaxed">
+              <p className="text-lg text-slate-600 mb-10 leading-relaxed">
                 Connect your social accounts securely. Automate keyword responses, collect visitor emails in real time, and route conversions straight to CRM pipelines.
               </p>
 
@@ -263,8 +263,8 @@ export default function MarketingPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm text-text-primary">{feat.title}</h4>
-                      <p className="text-xs text-text-tertiary mt-0.5 leading-relaxed">{feat.desc}</p>
+                      <h4 className="font-semibold text-sm text-slate-900">{feat.title}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{feat.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -273,14 +273,14 @@ export default function MarketingPage() {
 
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-primary-500/20 to-orange-500/20 rounded-3xl blur-2xl pointer-events-none" />
-              <div className="bg-bg-overlay rounded-2xl border border-border-strong p-8 shadow-2xl relative z-10 backdrop-blur-xl">
-                <div className="flex items-center gap-3 border-b border-border-default pb-6 mb-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-2xl relative z-10 backdrop-blur-xl">
+                <div className="flex items-center gap-3 border-b border-slate-200 pb-6 mb-6">
                   <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 font-bold">
                     IG
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-text-primary">Instagram Automation</h4>
-                    <p className="text-xs text-text-tertiary">Activity State: Auto-reply Active</p>
+                    <h4 className="font-bold text-sm text-slate-900">Instagram Automation</h4>
+                    <p className="text-xs text-slate-500">Activity State: Auto-reply Active</p>
                   </div>
                 </div>
 
@@ -291,7 +291,7 @@ export default function MarketingPage() {
                     </div>
                   </div>
                   <div className="flex justify-start">
-                    <div className="bg-bg-subtle text-text-secondary rounded-2xl rounded-tl-none px-4 py-2.5 text-sm max-w-xs leading-relaxed border border-border-subtle">
+                    <div className="bg-slate-50 text-slate-600 rounded-2xl rounded-tl-none px-4 py-2.5 text-sm max-w-xs leading-relaxed border border-slate-200">
                       "Hi there! Sure thing. Can we get your email to send the details?"
                     </div>
                   </div>
@@ -314,12 +314,12 @@ export default function MarketingPage() {
       </section>
 
       {/* 6. Customer 360 Section */}
-      <section className="py-24 md:py-32 bg-bg-base border-y border-border-default">
+      <section className="py-24 md:py-32 bg-slate-50 border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-12 gap-16 items-center">
-            <div className="lg:col-span-7 bg-bg-elevated rounded-2xl border border-border-strong p-8 shadow-lg">
-              <div className="flex justify-between items-center mb-8 border-b border-border-default pb-4">
-                <span className="font-bold text-text-primary">Customer 360 Profile</span>
+            <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-8 shadow-lg">
+              <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-4">
+                <span className="font-bold text-slate-900">Customer 360 Profile</span>
                 <span className="px-3 py-1 bg-rose-500/10 text-rose-400 rounded-full text-xs font-bold uppercase shadow-[0_0_10px_rgba(244,63,94,0.2)]">
                   Hot Lead
                 </span>
@@ -327,17 +327,17 @@ export default function MarketingPage() {
 
               <div className="grid sm:grid-cols-2 gap-8 text-sm">
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">Identity</h4>
-                  <p className="font-bold text-text-primary">Sarah Jenkins</p>
-                  <p className="text-text-secondary text-xs mt-0.5">sarah@jenkinsgroup.com</p>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Identity</h4>
+                  <p className="font-bold text-slate-900">Sarah Jenkins</p>
+                  <p className="text-slate-600 text-xs mt-0.5">sarah@jenkinsgroup.com</p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">Assigned Agent</h4>
-                  <p className="font-bold text-text-primary">Alex Rivera</p>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Assigned Agent</h4>
+                  <p className="font-bold text-slate-900">Alex Rivera</p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">Recent Timeline</h4>
-                  <ul className="space-y-2 mt-2 text-xs text-text-secondary">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Recent Timeline</h4>
+                  <ul className="space-y-2 mt-2 text-xs text-slate-600">
                     <li className="flex gap-2">
                       <span className="text-primary-500 font-bold">•</span> Inbound Instagram DM received
                     </li>
@@ -350,17 +350,17 @@ export default function MarketingPage() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">Next Scheduled Action</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Next Scheduled Action</h4>
                   <p className="font-bold text-orange-400">Follow-up Call (Tomorrow, 10 AM)</p>
                 </div>
               </div>
             </div>
 
             <div className="lg:col-span-5">
-              <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-text-primary mb-6 leading-tight">
+              <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
                 Know every customer before you reply.
               </h2>
-              <p className="text-lg text-text-secondary leading-relaxed">
+              <p className="text-lg text-slate-600 leading-relaxed">
                 Empower your agents with the complete historical customer context. View message histories, active deals, timeline logs, and custom fields in one central dashboard.
               </p>
             </div>
@@ -369,12 +369,12 @@ export default function MarketingPage() {
       </section>
 
       {/* 7. Pipeline Section */}
-      <section className="py-24 md:py-32 bg-bg-elevated">
+      <section className="py-24 md:py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-text-primary mb-6">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
             Track every deal from first message to won revenue.
           </h2>
-          <p className="text-lg text-text-secondary max-w-3xl mx-auto mb-16 leading-relaxed">
+          <p className="text-lg text-slate-600 max-w-3xl mx-auto mb-16 leading-relaxed">
             Drag and drop leads through stages, automatically trigger webhook events, and watch your pipeline grow.
           </p>
 
@@ -389,12 +389,12 @@ export default function MarketingPage() {
             ].map((col, i) => (
               <div
                 key={i}
-                className={`bg-bg-subtle p-5 rounded-xl border border-border-default border-l-4 ${col.color} text-left shadow-sm`}
+                className={`bg-slate-50 p-5 rounded-xl border border-slate-200 border-l-4 ${col.color} text-left shadow-sm`}
               >
-                <h4 className="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-2">{col.stage}</h4>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{col.stage}</h4>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-bold text-text-primary">{col.count}</span>
-                  <span className="text-xs text-text-tertiary font-medium">Deals</span>
+                  <span className="text-2xl font-bold text-slate-900">{col.count}</span>
+                  <span className="text-xs text-slate-500 font-medium">Deals</span>
                 </div>
               </div>
             ))}
@@ -403,13 +403,13 @@ export default function MarketingPage() {
       </section>
 
       {/* 8. Pricing Section */}
-      <section id="pricing" className="py-24 md:py-32 bg-bg-base border-y border-border-default">
+      <section id="pricing" className="py-24 md:py-32 bg-slate-50 border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-text-primary mb-6">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
               Simple, transparent plans.
             </h2>
-            <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-8">
+            <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-8">
               Start on our free trial and grow. Billing integrations are currently pending.
             </p>
             <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-semibold">
@@ -448,7 +448,7 @@ export default function MarketingPage() {
                 className={`p-8 rounded-3xl border flex flex-col justify-between ${
                   plan.popular
                     ? 'bg-gradient-to-b from-primary-900/30 to-bg-elevated border-primary-500/40 shadow-[0_0_30px_rgba(99,102,241,0.15)] relative'
-                    : 'bg-bg-elevated border-border-default'
+                    : 'bg-white border-slate-200'
                 }`}
               >
                 {plan.popular && (
@@ -459,18 +459,18 @@ export default function MarketingPage() {
 
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-xl font-extrabold text-text-primary mb-1">{plan.name}</h3>
-                    <p className="text-text-tertiary text-xs leading-relaxed">{plan.desc}</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-1">{plan.name}</h3>
+                    <p className="text-slate-500 text-xs leading-relaxed">{plan.desc}</p>
                   </div>
 
                   <div className="mb-6 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-text-primary">{plan.price}</span>
-                    <span className="text-xs font-medium text-text-tertiary">/ {plan.period}</span>
+                    <span className="text-3xl font-extrabold text-slate-900">{plan.price}</span>
+                    <span className="text-xs font-medium text-slate-500">/ {plan.period}</span>
                   </div>
 
                   <ul className="space-y-3.5 mb-8">
                     {plan.features.map((feat, i) => (
-                      <li key={i} className="flex gap-2.5 items-start text-xs text-text-secondary">
+                      <li key={i} className="flex gap-2.5 items-start text-xs text-slate-600">
                         <svg className="w-4.5 h-4.5 text-primary-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -486,7 +486,7 @@ export default function MarketingPage() {
                   className={`w-full h-12 flex items-center justify-center rounded-xl font-bold text-sm transition-all duration-200 ${
                     plan.popular
                       ? 'bg-primary-600 hover:bg-primary-500 text-white hover:shadow-md hover:shadow-primary-500/20'
-                      : 'bg-bg-subtle hover:bg-bg-overlay text-text-primary border border-border-default'
+                      : 'bg-slate-50 hover:bg-white text-slate-900 border border-slate-200'
                   }`}
                 >
                   Start Free Trial
@@ -498,13 +498,13 @@ export default function MarketingPage() {
       </section>
 
       {/* 9. Final CTA */}
-      <section className="py-24 md:py-32 relative text-center bg-bg-base">
+      <section className="py-24 md:py-32 relative text-center bg-slate-50">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary-900/10" />
         <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight text-text-primary mb-6 leading-tight">
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
             Ready to turn more conversations into revenue?
           </h2>
-          <p className="text-lg text-text-secondary mb-10 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 mb-10 max-w-2xl mx-auto">
             Get started today on our trial mode. Invite your team, connect your channels, and close deals faster.
           </p>
 
@@ -517,7 +517,7 @@ export default function MarketingPage() {
             </Link>
             <Link
               href="/login"
-              className="w-full sm:w-auto h-14 px-10 flex items-center justify-center rounded-xl bg-bg-elevated border border-border-strong text-text-primary font-bold text-lg hover:bg-bg-subtle transition-all duration-200"
+              className="w-full sm:w-auto h-14 px-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-900 font-bold text-lg hover:bg-slate-50 transition-all duration-200"
             >
               Sign In
             </Link>
