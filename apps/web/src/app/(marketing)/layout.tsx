@@ -1,7 +1,11 @@
 import { type ReactNode } from 'react';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { SESSION_COOKIE_NAME } from '@/lib/server/cookies';
 
-export default function MarketingLayout({ children }: { children: ReactNode }) {
+export default async function MarketingLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const hasSession = cookieStore.has(SESSION_COOKIE_NAME);
   return (
     <div className="min-h-screen bg-bg-base text-text-primary selection:bg-primary-500/20 font-sans antialiased">
       {/* Sticky Top Navbar */}
@@ -28,18 +32,29 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-6">
-            <Link 
-              href="/login" 
-              className="text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link 
-              href="/signup" 
-              className="text-sm font-semibold bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-500 transition-all hover:shadow-lg hover:shadow-primary-500/15 duration-200"
-            >
-              Get Started Free
-            </Link>
+            {hasSession ? (
+              <Link 
+                href="/dashboard" 
+                className="text-sm font-semibold bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-500 transition-all hover:shadow-lg hover:shadow-primary-500/15 duration-200"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link 
+                  href="/login" 
+                  className="text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link 
+                  href="/signup" 
+                  className="text-sm font-semibold bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-500 transition-all hover:shadow-lg hover:shadow-primary-500/15 duration-200"
+                >
+                  Get Started Free
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
