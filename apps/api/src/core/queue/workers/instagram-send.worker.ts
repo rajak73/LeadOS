@@ -131,6 +131,17 @@ export async function processInstagramSendJob(
     ...(content.text !== undefined ? { text: content.text } : {}),
   };
 
+  // Phase 9D: Simulation Mode bypass
+  const simulateOnly = !env.INSTAGRAM_APP_SECRET || env.FLAG_INSTAGRAM_SENDS_ENABLED === false;
+  if (simulateOnly) {
+    logger.info({ message: 'Simulated outbound send', igAccountId, recipientIgUserId, type: messageContent.type });
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { status: 'SENT' },
+    });
+    return;
+  }
+
   let metaMid: string;
   try {
     const result = await instagramAdapter.sendMessage(

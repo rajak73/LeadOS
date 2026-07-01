@@ -30,7 +30,7 @@ const fakePayload = {
                 from: '12345678901',
                 id: `wamid.${Date.now()}`,
                 timestamp: Math.floor(Date.now() / 1000).toString(),
-                text: { body: 'Hello, this is a simulated WhatsApp message for smoke testing!' },
+                text: { body: process.argv[2] || 'Hello, this is a simulated WhatsApp message for smoke testing!' },
                 type: 'text',
               },
             ],

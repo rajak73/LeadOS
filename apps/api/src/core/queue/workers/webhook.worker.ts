@@ -20,6 +20,7 @@ import {
   PrismaMessageRepository,
 } from '../../../modules/inbox/inbox.repository.js';
 import type { WebhookSource } from '@leados/shared';
+import { InteractiveCaptureService, type LeadWithCustomFields } from '../../../modules/inbox/interactive-capture.service.js';
 
 export const WEBHOOK_JOB = 'webhook-event';
 export const INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB = 'instagram-webhook-subscribe';
@@ -340,6 +341,19 @@ async function processInstagramMessage(
       await convRepo.update(conversation.id, { leadId: lead.id });
     }
 
+    // 4b. Execute Simulated Interactive Lead Capture
+    if (lead && text) {
+      const captureService = new InteractiveCaptureService(db);
+      await captureService.handleSimulatedLeadCapture(
+        lead,
+        conversation.id,
+        text,
+        account.platform as 'INSTAGRAM' | 'FACEBOOK',
+        igAccountId,
+        recipientIgUserId
+      );
+    }
+
     // 5. Update conversation's lastInboundAt (tracks 24h messaging window)
     await convRepo.update(conversation.id, { lastInboundAt: sentAt });
 
@@ -460,6 +474,9 @@ async function processMetaComment(
     if (!conversation.leadId && lead) {
       await convRepo.update(conversation.id, { leadId: lead.id });
     }
+    
+    // We don't trigger capture flow for comments in this simulation, only DMs.
+    
     await convRepo.update(conversation.id, { lastInboundAt: sentAt });
   });
 
@@ -480,13 +497,23 @@ async function findOrCreateLead(
   systemUserId: string,
   platform: 'INSTAGRAM' | 'FACEBOOK',
   pageId?: string
-): Promise<{ id: string } | null> {
+): Promise<LeadWithCustomFields | null> {
   const isFb = platform === 'FACEBOOK';
   
+  const selectFields = {
+    id: true,
+    firstName: true,
+    lastName: true,
+    phone: true,
+    email: true,
+    organizationId: true,
+    customFields: true,
+  };
+
   // 1. Try to find existing non-deleted lead
   const existing = await db.lead.findFirst({
     where: isFb ? { facebookUserId: senderId, deletedAt: null } : { instagramUserId: senderId, deletedAt: null },
-    select: { id: true },
+    select: selectFields,
   });
   if (existing) return existing;
 
@@ -504,14 +531,14 @@ async function findOrCreateLead(
         customFields: {} as Prisma.InputJsonValue,
         createdById: systemUserId,
       }),
-      select: { id: true },
+      select: selectFields,
     });
   } catch (err) {
     if (isPrismaP2002(err)) {
       // Concurrent create
       return db.lead.findFirst({
         where: isFb ? { facebookUserId: senderId } : { instagramUserId: senderId },
-        select: { id: true },
+        select: selectFields,
       });
     }
     throw err;
@@ -660,14 +687,26 @@ async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise
           // Find or create lead by phone number
           if (systemUserId) {
             const { asTenantCreate } = await import('../../tenancy/tenant-repository.js');
-            const existingLead = await db.lead.findFirst({
+            
+            const selectFields = {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true,
+              organizationId: true,
+              customFields: true,
+            };
+            
+            let lead: LeadWithCustomFields | null = await db.lead.findFirst({
               where: { phone: fromPhone, deletedAt: null },
-              select: { id: true },
+              select: selectFields,
             });
-            if (!existingLead) {
+            
+            if (!lead) {
               try {
                 const lastName = senderName.split(' ').slice(1).join(' ');
-                const newLead = await db.lead.create({
+                lead = await db.lead.create({
                   data: asTenantCreate<import('@prisma/client').Prisma.LeadUncheckedCreateInput>({
                     firstName: senderName.split(' ')[0] ?? fromPhone,
                     ...(lastName ? { lastName } : {}),
@@ -678,16 +717,39 @@ async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise
                     customFields: {} as import('@prisma/client').Prisma.InputJsonValue,
                     createdById: systemUserId,
                   }),
-                  select: { id: true },
+                  select: selectFields,
                 });
                 // Link lead to conversation
-                await convRepo.update(conv.id, { leadId: newLead.id });
+                await convRepo.update(conv.id, { leadId: lead.id });
               } catch {
-                // P2002 concurrent create — ignore
+                // P2002 concurrent create — try fetching again
+                lead = await db.lead.findFirst({
+                  where: { phone: fromPhone, deletedAt: null },
+                  select: selectFields,
+                });
+                if (lead) {
+                  await convRepo.update(conv.id, { leadId: lead.id });
+                }
               }
             } else {
               if (!conv.leadId) {
-                await convRepo.update(conv.id, { leadId: existingLead.id });
+                await convRepo.update(conv.id, { leadId: lead.id });
+              }
+            }
+            
+            // Execute Simulated Interactive Lead Capture
+            if (lead && msgType === 'text') {
+              const textContent = (msg['text'] as Record<string, unknown>)?.['body'] as string;
+              if (textContent) {
+                const captureService = new InteractiveCaptureService(db);
+                await captureService.handleSimulatedLeadCapture(
+                  lead,
+                  conv.id,
+                  textContent,
+                  'WHATSAPP',
+                  waAccount.id,
+                  fromPhone
+                );
               }
             }
           }
