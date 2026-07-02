@@ -1,125 +1,86 @@
-import { PrismaClient, LeadStatus, LeadSource, TaskType, TaskPriority, TaskStatus, DealStatus, ActivityType, WorkflowRunStatus, SubscriptionPlan } from '@prisma/client';
+import { PrismaClient, LeadStatus, LeadSource, TaskType, TaskPriority, TaskStatus, DealStatus, ActivityType, WorkflowRunStatus, SubscriptionPlan, MessageDirection, MessageStatus } from '@prisma/client';
 import { OrganizationRepository } from '../src/modules/organizations/organization.repository.js';
 import { faker } from '@faker-js/faker';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// --- ANTI-PRODUCTION GUARDRAILS ---
+if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
+  console.error('Demo seed refused: production environment detected.');
+  process.exit(1);
+}
 
+if (process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.error('Demo seed refused: set ALLOW_DEMO_SEED=true for local/staging only.');
+  process.exit(1);
+}
+
+const dbUrl = process.env.DATABASE_URL || '';
+if (dbUrl.includes('neon.tech') && dbUrl.includes('production')) {
+  console.error('Demo seed refused: DATABASE_URL appears to target production Neon.');
+  process.exit(1);
+}
+// ----------------------------------
+
+const prisma = new PrismaClient();
 const DEMO_PASSWORD = 'LeadOS@123';
 
 const ORGS = [
   {
-    name: 'TechNova Solutions',
-    slug: 'technova',
+    name: 'TechNova Realty',
+    slug: 'technova-realty-demo',
     users: [
-      { email: 'owner@technova.demo', role: 'OWNER', firstName: 'Sarah', lastName: 'Connor' },
-      { email: 'admin@technova.demo', role: 'ADMIN', firstName: 'John', lastName: 'Smith' },
-      { email: 'manager@technova.demo', role: 'MANAGER', firstName: 'Emily', lastName: 'Chen' },
-      { email: 'sales1@technova.demo', role: 'SALES_EXECUTIVE', firstName: 'Michael', lastName: 'Jordan' },
-      { email: 'sales2@technova.demo', role: 'SALES_EXECUTIVE', firstName: 'David', lastName: 'Kim' },
-      { email: 'support@technova.demo', role: 'SUPPORT', firstName: 'Lisa', lastName: 'Wong' },
+      { email: 'owner@technova.example.com', role: 'OWNER', firstName: 'Sarah', lastName: 'Connor' },
+      { email: 'admin@technova.example.com', role: 'ADMIN', firstName: 'John', lastName: 'Smith' },
+      { email: 'sales1@technova.example.com', role: 'SALES_EXECUTIVE', firstName: 'Michael', lastName: 'Jordan' },
     ]
   },
   {
-    name: 'GrowthBridge Marketing',
-    slug: 'growthbridge',
+    name: 'GrowthBridge Agency',
+    slug: 'growthbridge-agency-demo',
     users: [
-      { email: 'owner@growthbridge.demo', role: 'OWNER', firstName: 'Robert', lastName: 'Fox' },
-      { email: 'admin@growthbridge.demo', role: 'ADMIN', firstName: 'Emma', lastName: 'Watson' },
-      { email: 'manager@growthbridge.demo', role: 'MANAGER', firstName: 'James', lastName: 'Bond' },
-      { email: 'sales1@growthbridge.demo', role: 'SALES_EXECUTIVE', firstName: 'William', lastName: 'Tell' },
-      { email: 'sales2@growthbridge.demo', role: 'SALES_EXECUTIVE', firstName: 'Oliver', lastName: 'Twist' },
-      { email: 'support@growthbridge.demo', role: 'SUPPORT', firstName: 'Sophia', lastName: 'Loren' },
+      { email: 'owner@growthbridge.example.com', role: 'OWNER', firstName: 'Robert', lastName: 'Fox' },
+      { email: 'admin@growthbridge.example.com', role: 'ADMIN', firstName: 'Emma', lastName: 'Watson' },
+      { email: 'sales1@growthbridge.example.com', role: 'SALES_EXECUTIVE', firstName: 'William', lastName: 'Tell' },
     ]
   },
   {
-    name: 'Ayurda Clinics',
-    slug: 'ayurda',
+    name: 'CureCare Clinic',
+    slug: 'curecare-clinic-demo',
     users: [
-      { email: 'owner@ayurda.demo', role: 'OWNER', firstName: 'Dr. Arjun', lastName: 'Reddy' },
-      { email: 'admin@ayurda.demo', role: 'ADMIN', firstName: 'Priya', lastName: 'Sharma' },
-      { email: 'manager@ayurda.demo', role: 'MANAGER', firstName: 'Rahul', lastName: 'Gupta' },
-      { email: 'sales1@ayurda.demo', role: 'SALES_EXECUTIVE', firstName: 'Neha', lastName: 'Singh' },
-      { email: 'support@ayurda.demo', role: 'SUPPORT', firstName: 'Amit', lastName: 'Patel' },
+      { email: 'owner@curecare.example.com', role: 'OWNER', firstName: 'Dr. Arjun', lastName: 'Reddy' },
+      { email: 'admin@curecare.example.com', role: 'ADMIN', firstName: 'Priya', lastName: 'Sharma' },
+      { email: 'sales1@curecare.example.com', role: 'SALES_EXECUTIVE', firstName: 'Neha', lastName: 'Singh' },
     ]
   }
 ];
 
 const LEAD_STATUS_DISTRIBUTION = [
-  ...Array(25).fill(LeadStatus.NEW),
-  ...Array(20).fill(LeadStatus.CONTACTED),
-  ...Array(20).fill(LeadStatus.QUALIFIED),
-  ...Array(15).fill(LeadStatus.PROPOSAL),
-  ...Array(10).fill(LeadStatus.NEGOTIATION),
-  ...Array(5).fill(LeadStatus.WON),
-  ...Array(5).fill(LeadStatus.LOST),
+  LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, 
+  LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION, LeadStatus.WON, LeadStatus.LOST
 ];
 
 function getRandomAiScore() {
   const rand = Math.random();
-  if (rand < 0.2) return faker.number.int({ min: 90, max: 100 }); // High
-  if (rand < 0.5) return faker.number.int({ min: 70, max: 89 }); // Medium
-  if (rand < 0.8) return faker.number.int({ min: 40, max: 69 }); // Low
-  return faker.number.int({ min: 0, max: 39 }); // Very Low
+  if (rand < 0.2) return faker.number.int({ min: 90, max: 100 });
+  if (rand < 0.5) return faker.number.int({ min: 70, max: 89 });
+  if (rand < 0.8) return faker.number.int({ min: 40, max: 69 });
+  return faker.number.int({ min: 0, max: 39 });
+}
+
+function getFakeIndianPhone(index: number) {
+  return `99999${String(index).padStart(5, '0')}`;
 }
 
 async function main() {
-  console.log('[demo-seed] Starting rich demo data generation...');
+  console.log('[demo-seed] Starting safe demo data generation...');
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  // 1. Super Admin
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@leados.demo' },
-    update: { isSuperAdmin: true, passwordHash },
-    create: {
-      email: 'superadmin@leados.demo',
-      passwordHash,
-      firstName: 'Demo',
-      lastName: 'Superadmin',
-      status: 'ACTIVE',
-      emailVerifiedAt: new Date(),
-      isSuperAdmin: true,
-      lastLoginAt: new Date(),
-    },
-  });
-  console.log(`[demo-seed] Verified superadmin@leados.demo`);
-
   const repo = new OrganizationRepository();
-
-  // 1.5 System Organization
-  console.log(`\n[demo-seed] Setting up LeadOS System organization...`);
-  let systemOrg = await prisma.organization.findUnique({ where: { slug: 'leados-system' } });
-  if (!systemOrg) {
-    systemOrg = await repo.createOrganizationWithDefaults('LeadOS System', superAdmin.id, {
-      industry: 'Software',
-      timezone: 'UTC',
-    });
-    systemOrg = await prisma.organization.update({
-      where: { id: systemOrg.id },
-      data: { slug: 'leados-system' }
-    });
-  } else {
-    // Ensure membership exists
-    const roles = await prisma.role.findMany({ where: { organizationId: systemOrg.id } });
-    const ownerRole = roles.find(r => r.name === 'OWNER');
-    if (ownerRole) {
-      await prisma.organizationMember.upsert({
-        where: { organizationId_userId: { organizationId: systemOrg.id, userId: superAdmin.id } },
-        update: {},
-        create: {
-          organizationId: systemOrg.id,
-          userId: superAdmin.id,
-          roleId: ownerRole.id,
-          status: 'ACTIVE'
-        }
-      });
-    }
-  }
-  console.log(`[demo-seed] Assigned superadmin@leados.demo to LeadOS System`);
 
   for (const orgData of ORGS) {
     console.log(`\n[demo-seed] Setting up ${orgData.name}...`);
     
+    // Create Owner first
     const ownerData = orgData.users.find(u => u.role === 'OWNER')!;
     const owner = await prisma.user.upsert({
       where: { email: ownerData.email },
@@ -141,13 +102,11 @@ async function main() {
         industry: 'Technology',
         timezone: 'UTC',
       });
-      // Force slug to what we want
       org = await prisma.organization.update({
         where: { id: org.id },
         data: { slug: orgData.slug }
       });
       
-      // Upsert subscription to SCALE for full features
       await prisma.subscription.upsert({
         where: { organizationId: org.id },
         update: { plan: SubscriptionPlan.SCALE, status: 'ACTIVE' },
@@ -159,9 +118,23 @@ async function main() {
       });
     }
 
+    // IDEMPOTENCY: Clear existing dynamic data for this demo org before re-seeding
+    console.log(`[demo-seed] Cleaning existing data for idempotency...`);
+    await prisma.activity.deleteMany({ where: { organizationId: org.id } });
+    await prisma.task.deleteMany({ where: { organizationId: org.id } });
+    await prisma.deal.deleteMany({ where: { organizationId: org.id } });
+    await prisma.message.deleteMany({ where: { organizationId: org.id } });
+    await prisma.instagramConversation.deleteMany({ where: { organizationId: org.id } });
+    await prisma.instagramAccount.deleteMany({ where: { organizationId: org.id } });
+    await prisma.aiScore.deleteMany({ where: { organizationId: org.id } });
+    await prisma.contact.deleteMany({ where: { organizationId: org.id } });
+    await prisma.lead.deleteMany({ where: { organizationId: org.id } });
+    await prisma.workflowRun.deleteMany({ where: { organizationId: org.id } });
+    await prisma.workflow.deleteMany({ where: { organizationId: org.id } });
+    await prisma.note.deleteMany({ where: { organizationId: org.id } });
+
     const orgRoles = await prisma.role.findMany({ where: { organizationId: org.id } });
     
-    // Create users & assign to org
     const orgUsers = [];
     for (const u of orgData.users) {
       if (u.role === 'OWNER') {
@@ -200,7 +173,6 @@ async function main() {
     const salesUsers = orgUsers.filter(u => u.email.includes('sales'));
     if (salesUsers.length === 0) salesUsers.push(owner);
 
-    // Create Pipeline
     let pipeline = await prisma.pipeline.findFirst({ where: { organizationId: org.id } });
     if (!pipeline) {
       pipeline = await prisma.pipeline.create({
@@ -210,7 +182,6 @@ async function main() {
           isDefault: true,
         }
       });
-      
       const stages = ['Lead In', 'Contact Made', 'Needs Defined', 'Proposal Made', 'Negotiations Started'];
       for (let i = 0; i < stages.length; i++) {
         await prisma.pipelineStage.create({
@@ -225,34 +196,35 @@ async function main() {
     }
     const stages = await prisma.pipelineStage.findMany({ where: { pipelineId: pipeline.id }, orderBy: { order: 'asc' } });
 
-    // CREATE LEADS (100)
-    console.log(`[demo-seed] Creating 100 Leads for ${org.name}...`);
+    // CREATE LEADS (15)
+    console.log(`[demo-seed] Creating Leads...`);
     const leadIds: string[] = [];
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 15; i++) {
       const assignee = salesUsers[i % salesUsers.length];
-      const status = LEAD_STATUS_DISTRIBUTION[i % 100];
+      const status = LEAD_STATUS_DISTRIBUTION[i % LEAD_STATUS_DISTRIBUTION.length];
       const score = getRandomAiScore();
+      const createdAt = faker.date.recent({ days: 30 });
       
       const lead = await prisma.lead.create({
         data: {
           organizationId: org.id,
           firstName: faker.person.firstName(),
           lastName: faker.person.lastName(),
-          email: faker.internet.email(),
-          phone: faker.phone.number().substring(0, 20),
-          source: i % 5 === 0 ? LeadSource.IMPORT : LeadSource.MANUAL,
+          email: `lead${i}@example.com`,
+          phone: getFakeIndianPhone(i),
+          source: LeadSource.MANUAL,
           status,
           assignedToId: assignee.id,
           createdById: owner.id,
           aiScore: score,
           aiScoreUpdatedAt: new Date(),
           pipelineStageId: stages[Math.floor(Math.random() * stages.length)]?.id,
-          lastActivityAt: faker.date.recent({ days: 30 })
+          lastActivityAt: createdAt,
+          createdAt
         }
       });
       leadIds.push(lead.id);
       
-      // AiScore history
       await prisma.aiScore.create({
         data: {
           organizationId: org.id,
@@ -264,26 +236,27 @@ async function main() {
       });
     }
 
-    // CREATE CONTACTS (50)
-    console.log(`[demo-seed] Creating 50 Contacts for ${org.name}...`);
+    // CREATE CONTACTS (10)
+    console.log(`[demo-seed] Creating Contacts...`);
     const contactIds: string[] = [];
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 10; i++) {
       const assignee = salesUsers[i % salesUsers.length];
-      // Tie some contacts back to leads for Customer360
-      const fromLeadId = i < 20 ? leadIds[i] : null; 
+      const fromLeadId = i < 5 ? leadIds[i] : null; 
+      const createdAt = faker.date.recent({ days: 30 });
       
       const contact = await prisma.contact.create({
         data: {
           organizationId: org.id,
           firstName: faker.person.firstName(),
           lastName: faker.person.lastName(),
-          email: faker.internet.email(),
+          email: `contact${i}@example.com`,
           company: faker.company.name(),
           jobTitle: faker.person.jobTitle(),
           assignedToId: assignee.id,
           createdById: owner.id,
           createdFromLeadId: fromLeadId,
-          lastActivityAt: faker.date.recent({ days: 30 })
+          lastActivityAt: createdAt,
+          createdAt
         }
       });
       contactIds.push(contact.id);
@@ -296,37 +269,35 @@ async function main() {
       }
     }
 
-    // CREATE DEALS (25)
-    console.log(`[demo-seed] Creating 25 Deals for ${org.name}...`);
+    // CREATE DEALS (8)
+    console.log(`[demo-seed] Creating Deals...`);
     const dealIds: string[] = [];
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 8; i++) {
       const assignee = salesUsers[i % salesUsers.length];
       const stage = stages[Math.floor(Math.random() * stages.length)];
-      // Tie deals to Customer360 core targets
-      const cId = i < 20 ? contactIds[i] : contactIds[Math.floor(Math.random() * contactIds.length)];
-      const lId = i < 20 ? leadIds[i] : null;
+      const cId = i < 8 ? contactIds[i] : contactIds[Math.floor(Math.random() * contactIds.length)];
 
       const deal = await prisma.deal.create({
         data: {
           organizationId: org.id,
           pipelineId: pipeline.id,
           stageId: stage.id,
-          title: `${faker.company.name()} - ${faker.commerce.productName()} Deal`,
+          title: `${faker.company.name()} Deal`,
           value: faker.number.int({ min: 1000, max: 50000 }),
           currency: 'USD',
           status: DealStatus.OPEN,
           assignedToId: assignee.id,
           createdById: owner.id,
           contactId: cId,
-          leadId: lId
+          createdAt: faker.date.recent({ days: 30 })
         }
       });
       dealIds.push(deal.id);
     }
 
-    // CREATE TASKS (30)
-    console.log(`[demo-seed] Creating 30 Tasks for ${org.name}...`);
-    for (let i = 0; i < 30; i++) {
+    // CREATE TASKS (10)
+    console.log(`[demo-seed] Creating Tasks...`);
+    for (let i = 0; i < 10; i++) {
       const assignee = salesUsers[i % salesUsers.length];
       const types = Object.values(TaskType);
       
@@ -336,86 +307,87 @@ async function main() {
           title: `Follow up task ${i}`,
           type: types[Math.floor(Math.random() * types.length)],
           priority: TaskPriority.HIGH,
-          status: i % 3 === 0 ? TaskStatus.COMPLETED : TaskStatus.PENDING,
+          status: i % 2 === 0 ? TaskStatus.COMPLETED : TaskStatus.PENDING,
           dueDate: faker.date.soon({ days: 14 }),
           assignedToId: assignee.id,
           createdById: owner.id,
-          relatedLeadId: i < 20 ? leadIds[i] : null,
-          relatedContactId: i < 20 ? contactIds[i] : null,
-          relatedDealId: i < 20 ? dealIds[i] : null,
+          relatedLeadId: i < 5 ? leadIds[i] : null,
+          relatedContactId: i >= 5 ? contactIds[i - 5] : null,
+          createdAt: faker.date.recent({ days: 30 })
         }
       });
     }
 
-    // CREATE NOTES (100)
-    console.log(`[demo-seed] Creating 100 Notes for ${org.name}...`);
-    for (let i = 0; i < 100; i++) {
-      await prisma.note.create({
-        data: {
-          organizationId: org.id,
-          content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: faker.lorem.paragraph() }] }] },
-          createdById: owner.id,
-          relatedLeadId: i < 50 ? leadIds[i % 50] : null,
-        }
-      });
-    }
-
-    // CREATE ACTIVITIES (1000)
-    console.log(`[demo-seed] Creating 1000 Activities for ${org.name}...`);
+    // CREATE ACTIVITIES (20)
+    console.log(`[demo-seed] Creating Activities...`);
     const activitiesToCreate = [];
     const activityTypesList = Object.values(ActivityType);
-    for (let i = 0; i < 1000; i++) {
-      const leadId = leadIds[i % leadIds.length];
+    for (let i = 0; i < 20; i++) {
       activitiesToCreate.push({
         organizationId: org.id,
         type: activityTypesList[Math.floor(Math.random() * activityTypesList.length)],
         description: `Automated demo activity ${i}`,
         performedById: owner.id,
-        relatedLeadId: leadId,
-        createdAt: faker.date.recent({ days: 60 })
+        relatedLeadId: leadIds[i % leadIds.length],
+        createdAt: faker.date.recent({ days: 30 })
       });
     }
-    // Batch insert activities
-    const batchSize = 250;
-    for (let i = 0; i < activitiesToCreate.length; i += batchSize) {
-      await prisma.activity.createMany({ data: activitiesToCreate.slice(i, i + batchSize) });
-    }
+    await prisma.activity.createMany({ data: activitiesToCreate });
 
-    // CREATE WORKFLOWS & RUNS (50)
-    console.log(`[demo-seed] Creating Workflows & Runs for ${org.name}...`);
-    const wf1 = await prisma.workflow.create({
+    // CREATE CONVERSATIONS/MESSAGES (4)
+    console.log(`[demo-seed] Creating Dummy Conversations/Messages...`);
+    const igAccount = await prisma.instagramAccount.create({
       data: {
         organizationId: org.id,
-        name: 'Lead Score Follow-up',
-        triggerType: 'LEAD_SCORE_CHANGED',
-        definition: { triggerConfig: { minScore: 80 } },
+        accountId: `sim_ig_${org.slug}_001`,
+        username: `${org.slug}_official`,
+        name: org.name,
         isActive: true,
       }
     });
 
-    const wf2 = await prisma.workflow.create({
-      data: {
-        organizationId: org.id,
-        name: 'No Response WhatsApp',
-        triggerType: 'LEAD_NO_RESPONSE',
-        definition: { triggerConfig: { daysInactivity: 3 } },
-        isActive: true,
-      }
-    });
-
-    for (let i = 0; i < 50; i++) {
-      await prisma.workflowRun.create({
+    for (let i = 0; i < 4; i++) {
+      const leadId = leadIds[i % leadIds.length];
+      const createdAt = faker.date.recent({ days: 30 });
+      const convo = await prisma.instagramConversation.create({
         data: {
           organizationId: org.id,
-          workflowId: i % 2 === 0 ? wf1.id : wf2.id,
-          status: WorkflowRunStatus.COMPLETED,
-          triggerEvent: { source: 'seed', event: 'demo' },
-          createdAt: faker.date.recent({ days: 10 }),
-          actionLogs: [{ message: 'Executed action CREATE_TASK successfully' }]
+          instagramAccountId: igAccount.id,
+          instagramScopingId: `sim_scope_${i}`,
+          participantId: `sim_user_${i}`,
+          participantUsername: `user_${i}`,
+          leadId: leadId,
+          status: 'OPEN',
+          lastMessageAt: new Date()
+        }
+      });
+
+      await prisma.message.create({
+        data: {
+          organizationId: org.id,
+          conversationId: convo.id,
+          mid: `sim_mid_${convo.id}_1`,
+          direction: MessageDirection.INBOUND,
+          content: { text: "Hello, I am interested in your services." },
+          status: MessageStatus.DELIVERED,
+          sentAt: new Date(),
+          createdAt
+        }
+      });
+
+      await prisma.message.create({
+        data: {
+          organizationId: org.id,
+          conversationId: convo.id,
+          mid: `sim_mid_${convo.id}_2`,
+          direction: MessageDirection.OUTBOUND,
+          content: { text: "Thanks for reaching out! How can we help you?" },
+          status: MessageStatus.DELIVERED,
+          sentAt: new Date(),
+          createdAt
         }
       });
     }
-
   }
 
   console.log('\n[demo-seed] Demo Seeding Completed!');
