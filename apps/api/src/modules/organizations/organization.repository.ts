@@ -21,11 +21,43 @@ export class OrganizationRepository {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: {
+              members: true,
+              leads: { where: { deletedAt: null } },
+              contacts: { where: { deletedAt: null } },
+              deals: { where: { deletedAt: null } },
+              instagramConversations: true,
+              whatsappConversations: true,
+              messages: true,
+              whatsappMessages: true,
+              tasks: { where: { deletedAt: null } },
+            },
+          },
+        },
       }),
       prisma.organization.count({ where }),
     ]);
 
-    return { items, total };
+    const mappedItems = items.map((org) => ({
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      createdAt: org.createdAt,
+      status: org.status,
+      counts: {
+        members: org._count.members,
+        leads: org._count.leads,
+        customers: org._count.contacts,
+        deals: org._count.deals,
+        conversations: org._count.instagramConversations + org._count.whatsappConversations,
+        messages: org._count.messages + org._count.whatsappMessages,
+        tasks: org._count.tasks,
+      },
+    }));
+
+    return { items: mappedItems, total };
   }
 
   async createOrganizationWithDefaults(name: string, ownerId: string, data: Partial<Organization>) {
