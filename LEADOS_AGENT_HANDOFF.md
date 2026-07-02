@@ -4,74 +4,83 @@
 * **Project name:** LeadOS
 * **Repo:** https://github.com/rajak73/LeadOS
 * **Branch:** sprint8-10-review
-* **Current deployment target:** Render frontend + Render backend API + Render worker
+* **Live URLs:**
+  * **API:** https://leados-api.onrender.com
+  * **Frontend:** https://leados-web.onrender.com
+* **Current deployment target:** Render frontend + Render backend API + cron-job.org
 * **Database target:** Neon Postgres
 * **Redis target:** Upstash Redis
 
-## 2. Current Status
-* GitHub Actions are now green on sprint8-10-review.
-* Latest verified green checks:
-  * CI
-  * Migration Check
-  * Tenant Isolation Suite
-  * Preview Deploy
-* Latest known fix commit: `eb4c421` (including enum parity, migration, table, and constraint fixes).
-* Phase 7B can now start.
-* Cloud connection remains pending.
+## 2. Infrastructure & Phase 8 Status
+* Render API is live.
+* Render Frontend is live.
+* Neon is connected.
+* Upstash Redis is connected.
+* Background worker is skipped because it is paid.
+* cron-job.org is active and triggering every 5 minutes.
+* **Phase 8A:** Marketing UI completed.
+* **Phase 8C:** Dashboard light UI implemented.
+* **Phase 8D:** QA/deploy report exists (`PHASE8D_DASHBOARD_UI_DEPLOYMENT_VERIFICATION_REPORT.md` confirms successful deployment).
 
-## 3. What Has Been Completed
-* Super Admin UI
-* Social routing/Facebook webhook fix
-* Lead scoring QA
-* Workflow stop-condition fix
-* create_task UUID fix
-* Lead scoring UI polish
-* Marketing/features/pricing/onboarding
-* Render deployment docs
-* Commit/push to GitHub
+## 3. Phase 9 Final Status: PHASE 9 CLOSED
+* **Phase 9 cron final verification:**
+  * API health: PASS
+  * no-auth cron: 401 PASS
+  * wrong-auth cron: 401 PASS
+  * authorized cron: PASS
+  * cron-job.org Last Execution Status: 200 PASS
+  * `CRON_SECRET` rotated successfully.
+  * No secret committed.
+  * No production migration run.
+  * No real Meta API calls made.
+* **Social automation truth:**
+  * Simulation mode works.
+  * Interactive capture simulation works.
+  * Real Meta credentials are **NOT** configured.
+  * Real Instagram/WhatsApp/Facebook automation is **NOT** production-ready.
+  * No real social messages sent.
+* **Phase 9D Safety:**
+  * Simulation bypass requires `isSimulation: true`.
+  * Missing Meta credentials do **NOT** mark real messages SENT.
+  * Real sends without credentials fail safely.
+  * `captureState` stored in `Lead.customFields` as `NEEDS_NAME_PHONE`.
 
-## 4. Critical Safety Rules
-* Do not ask for production secrets unless Phase 7B is approved.
-* Do not print secrets.
-* Do not run production migration until CI green.
-* Do not deploy until approved.
-* Do not scan whole repo unless file-specific context is insufficient.
-* It is now okay to ask for Neon/Upstash/Render public/config values for Phase 7B.
-* Do not ask for Meta/Gemini/Stripe keys unless required later.
-* Do not run demo seed in production.
-* Do not run migrate reset/db push on production.
-* Do not print database/Redis URLs or secrets.
+## 4. Remaining Blockers
+* Real Meta credentials missing.
+* Meta App Review/Advanced Access missing.
+* Background worker skipped due to free mode.
+* Cron has up to 5-minute latency.
 
 ## 5. Current Next Task
-**Current next task:** Phase 7B — Cloud Connection Verification + Production Migration + Render Deployment Smoke Test
+**Recommended next phase:** Phase 10 — Organization Data Assignment + Admin Visibility Review
 
-**Goal:** Use Founder-provided Neon, Upstash, and Render URLs/config values to verify production connectivity safely, run Prisma migrate deploy only with explicit approval, verify API health, frontend response, CORS, worker status, and signup/auth smoke tests. Mask all secrets and do not print any secret values.
+**Goal:**
+* Superadmin can see all organizations.
+* Superadmin can see org summaries safely.
+* Org admin only sees own organization data.
+* Leads/customers/deals/messages/tasks are correctly organization-scoped.
+* No cross-tenant leakage.
+* No production seed/migration without approval.
 
-## 6. Files to Read First
-In future sessions, read only:
-* `LEADOS_AGENT_HANDOFF.md`
-
-Then, only if needed:
-* `PHASE7B_CLOUD_CONNECTION_VERIFICATION_REPORT.md`
-* `PHASE7A_MANUAL_CLOUD_SETUP_GUIDE.md`
-* `RENDER_DEPLOYMENT_RUNBOOK.md`
-
-**Do not read every file.**
+## 6. Critical Safety Rules
+* Do not print secrets.
+* Do not commit `.env` files.
+* Do not run production migration without explicit approval.
+* Do not run `prisma migrate reset` or `prisma db push`.
+* Do not call real Meta APIs.
+* Do not send real social messages.
+* Do not weaken tenant isolation.
+* Do not run demo seed on production.
+* Do not delete production data.
+* Do not create paid worker or paid service.
+* Do not insert fake production data without approval.
+* Do not modify auth/session logic without approval.
+* Do not modify Prisma schema/migrations without approval.
 
 ## 7. Useful Commands
 * `git branch --show-current`
 * `git log --oneline -5`
 * `git status --short`
-* `gh run list --branch sprint8-10-review` (if gh is available)
-* `gh run view <id> --log-failed` (if needed)
 
-## 8. What Not To Do
-* Do not run full repo grep unless needed.
-* Do not run all tests unless needed.
-* Do not run browser automation.
-* Do not deploy.
-* Do not use production URLs.
-* Do not request Meta/Gemini/Stripe keys unless logs prove missing required envs.
-
-## 9. Resume Instruction
+## 8. Resume Instruction
 Future agent: Start by reading this file only. Do not scan the repo. Continue from the Current Next Task section.
