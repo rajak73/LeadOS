@@ -26,10 +26,15 @@ const config: Config = {
           tertiary: 'var(--color-text-tertiary)',
         },
         primary: {
+          400: 'var(--color-primary-400)',
           500: 'var(--color-primary-500)',
           600: 'var(--color-primary-600)',
           700: 'var(--color-primary-700)',
         },
+        ai: {
+          start: 'var(--color-ai-start)',
+          end: 'var(--color-ai-end)',
+        }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -38,6 +43,7 @@ const config: Config = {
       borderRadius: {
         lg: 'var(--radius-lg)',
         xl: 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
       },
     },
   },

@@ -8,6 +8,7 @@ export interface InstagramAccount {
   organizationId: string;
   igUserId: string;
   igUsername: string | null;
+  platform: 'INSTAGRAM' | 'FACEBOOK';
   status: InstagramAccountStatus;
   tokenExpiresAt: string;
   webhookSubscribed: boolean;
@@ -138,6 +139,8 @@ export type LeadStatus =
 export type LeadSource =
   | 'INSTAGRAM_DM'
   | 'INSTAGRAM_COMMENT'
+  | 'FACEBOOK_DM'
+  | 'FACEBOOK_COMMENT'
   | 'WHATSAPP'
   | 'MANUAL'
   | 'IMPORT'
@@ -160,7 +163,7 @@ export const ALL_LEAD_STATUSES: LeadStatus[] = [
 ];
 
 export const ALL_LEAD_SOURCES: LeadSource[] = [
-  'INSTAGRAM_DM', 'INSTAGRAM_COMMENT', 'WHATSAPP', 'MANUAL', 'IMPORT', 'REFERRAL', 'WEB_FORM', 'OTHER',
+  'INSTAGRAM_DM', 'INSTAGRAM_COMMENT', 'FACEBOOK_DM', 'FACEBOOK_COMMENT', 'WHATSAPP', 'MANUAL', 'IMPORT', 'REFERRAL', 'WEB_FORM', 'OTHER',
 ];
 
 export interface Lead {
@@ -249,6 +252,8 @@ export function formatLeadSource(source: LeadSource): string {
   const labels: Record<LeadSource, string> = {
     INSTAGRAM_DM: 'Instagram DM',
     INSTAGRAM_COMMENT: 'Instagram Comment',
+    FACEBOOK_DM: 'Facebook DM',
+    FACEBOOK_COMMENT: 'Facebook Comment',
     WHATSAPP: 'WhatsApp',
     MANUAL: 'Manual',
     IMPORT: 'Import',

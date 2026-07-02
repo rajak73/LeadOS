@@ -8,16 +8,25 @@
 -- The platform admin role (leados_platform_admin) has BYPASSRLS — no grants needed.
 -- ============================================================
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON "leads"                    TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "contacts"                 TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "tasks"                    TO leados_app;
-GRANT SELECT, INSERT            ON "activities"               TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "notes"                    TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "files"                    TO leados_app;
-GRANT SELECT, INSERT               ON "ai_scores"             TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "custom_field_definitions" TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "team_invites"             TO leados_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "saved_replies"            TO leados_app;
+DO $$
+BEGIN
+  BEGIN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "leads"                    TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "contacts"                 TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "tasks"                    TO leados_app;
+    GRANT SELECT, INSERT            ON "activities"               TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "notes"                    TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "files"                    TO leados_app;
+    GRANT SELECT, INSERT               ON "ai_scores"             TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "custom_field_definitions" TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "team_invites"             TO leados_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON "saved_replies"            TO leados_app;
+  EXCEPTION WHEN OTHERS THEN
+    -- Ignore errors on managed databases where roles do not exist
+    NULL;
+  END;
+END $$;
+
 
 -- ============================================================
 -- LEADS

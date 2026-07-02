@@ -3,6 +3,7 @@ import type { LeadContext, ScoreResult, AiUsageStatus } from '@leados/shared';
 import { ErrorCode, PLAN_LIMITS } from '@leados/shared';
 import { AppError } from '../../core/errors/app-error.js';
 import { cacheRedis } from '../../core/redis/client.js';
+import { logger } from '../../core/observability/logger.js';
 import type { TenantTransactionClient } from '../../core/tenancy/with-tenant.js';
 import type { AiAdapter } from './ai.adapter.js';
 
@@ -123,12 +124,34 @@ export class AiService {
 
     // 7. Execute provider call using circuit breaker tracking
     let result: ScoreResult;
+    const startTime = Date.now();
     try {
       result = await this.adapter.scoreLead(context);
+      const duration = Date.now() - startTime;
+      
+      logger.info({
+        message: 'AI Lead scored successfully',
+        leadId,
+        org: organizationId,
+        provider: result.modelVersion,
+        durationMs: duration,
+        score: result.score
+      });
+      
       await cacheRedis.del('ai:circuit_breaker:failures');
     } catch (err) {
       const failuresKey = 'ai:circuit_breaker:failures';
       const failures = await cacheRedis.incr(failuresKey);
+      
+      logger.error({
+        message: 'AI provider call failed',
+        leadId,
+        org: organizationId,
+        durationMs: Date.now() - startTime,
+        failureCount: failures,
+        error: err instanceof Error ? err.message : String(err)
+      });
+      
       if (failures >= 5) {
         await cacheRedis.set(breakerOpenKey, 'true', 'EX', 300); // open breaker for 5 mins
         await cacheRedis.del(failuresKey);

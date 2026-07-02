@@ -39,3 +39,15 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
   }
   next();
 };
+
+export const requireSuperAdmin: RequestHandler = (req, _res, next) => {
+  if (!req.auth) {
+    next(AppError.unauthorized('Authentication required'));
+    return;
+  }
+  if (!req.auth.isSuperAdmin) {
+    next(AppError.forbidden('Super Admin privileges required'));
+    return;
+  }
+  next();
+};

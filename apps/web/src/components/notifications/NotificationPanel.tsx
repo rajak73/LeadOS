@@ -19,14 +19,14 @@ export function NotificationPanel({ onClose, onNavigate }: NotificationPanelProp
   }
 
   return (
-    <div className="w-80 bg-bg-elevated border border-border rounded-xl shadow-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <span className="text-sm font-medium text-text-primary">Notifications</span>
+    <div className="w-80 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+        <span className="text-sm font-medium text-slate-900">Notifications</span>
         {unreadCount > 0 && (
           <button
             type="button"
             onClick={() => markAllRead()}
-            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+            className="text-xs text-slate-600 hover:text-slate-900 transition-colors"
           >
             Mark all read
           </button>
@@ -39,17 +39,17 @@ export function NotificationPanel({ onClose, onNavigate }: NotificationPanelProp
             <Spinner size="md" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="py-10 text-center text-sm text-text-tertiary">You&apos;re all caught up</div>
+          <div className="py-10 text-center text-sm text-slate-500">You&apos;re all caught up</div>
         ) : (
           notifications.map((n) => <NotificationRow key={n.id} notification={n} onClick={handleClick} />)
         )}
       </div>
 
-      <div className="border-t border-border px-4 py-2.5 text-center">
+      <div className="border-t border-slate-200 px-4 py-2.5 text-center">
         <Link
           href="/notifications"
           onClick={onClose}
-          className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+          className="text-xs text-slate-600 hover:text-slate-900 transition-colors"
         >
           View all notifications
         </Link>

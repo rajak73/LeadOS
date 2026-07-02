@@ -70,8 +70,8 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Conversion Funnel */}
-            <div className="bg-bg-elevated border border-border rounded-xl p-5 space-y-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
                 Leads Conversion Funnel
               </h3>
               <div className="space-y-3 pt-2">
@@ -86,12 +86,12 @@ export default function AnalyticsPage() {
                   return (
                     <div key={item.label} className="space-y-1">
                       <div className="flex justify-between text-xs font-medium">
-                        <span className="text-text-secondary">{item.label}</span>
-                        <span className="text-text-primary font-semibold">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className="text-slate-900 font-semibold">
                           {item.count} ({percent.toFixed(0)}%)
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-bg-base rounded-full overflow-hidden border border-border/30">
+                      <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-200/30">
                         <div
                           className={`h-full ${item.color.split(' ')[0]} transition-all duration-500`}
                           style={{ width: `${percent}%` }}
@@ -104,12 +104,12 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Lead Growth Timeline */}
-            <div className="bg-bg-elevated border border-border rounded-xl p-5 space-y-4 shadow-sm flex flex-col justify-between">
-              <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm flex flex-col justify-between">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
                 Lead Growth (Last 30 Days)
               </h3>
               {growthData.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-text-tertiary italic">
+                <div className="flex-1 flex items-center justify-center text-xs text-slate-500 italic">
                   No historical growth data available.
                 </div>
               ) : (
@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
                       <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2.5" />
                     )}
                   </svg>
-                  <div className="flex justify-between text-[10px] text-text-tertiary pt-2">
+                  <div className="flex justify-between text-[10px] text-slate-500 pt-2">
                     <span>{growthData[0]?.date}</span>
                     <span>{growthData[growthData.length - 1]?.date}</span>
                   </div>
@@ -141,24 +141,24 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Lead Source Breakdown */}
-            <div className="bg-bg-elevated border border-border rounded-xl p-5 space-y-4 shadow-sm md:col-span-2">
-              <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm md:col-span-2">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
                 Leads by Source Breakdown
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
                 {analytics.sourceBreakdown.length === 0 ? (
-                  <p className="text-xs text-text-tertiary italic col-span-full text-center py-4">
+                  <p className="text-xs text-slate-500 italic col-span-full text-center py-4">
                     No lead source distribution data available.
                   </p>
                 ) : (
                   analytics.sourceBreakdown.map((item) => (
                     <div
                       key={item.source}
-                      className="border border-border/50 rounded-lg p-3 bg-bg-base/40 flex justify-between items-center"
+                      className="border border-slate-200 rounded-lg p-3 bg-slate-50/40 flex justify-between items-center"
                     >
                       <div>
-                        <p className="text-xs text-text-secondary uppercase font-semibold">{item.source || 'Unknown'}</p>
-                        <p className="text-lg font-bold text-text-primary mt-1">{item.count}</p>
+                        <p className="text-xs text-slate-600 uppercase font-semibold">{item.source || 'Unknown'}</p>
+                        <p className="text-lg font-bold text-slate-900 mt-1">{item.count}</p>
                       </div>
                       <span className="text-2xl" aria-hidden="true">
                         {item.source === 'INSTAGRAM_DM' ? '💬' : item.source === 'MANUAL' ? '✍️' : '🔗'}

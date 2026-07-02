@@ -9,5 +9,10 @@ export function createSearchController(service: SearchService) {
       const results = await service.search(q);
       sendSuccess(res, results);
     },
+    async adminSearch(req: Request, res: Response): Promise<void> {
+      const q = typeof req.query['q'] === 'string' ? req.query['q'] : '';
+      const results = await service.adminSearch(q);
+      sendSuccess(res, results);
+    },
   };
 }

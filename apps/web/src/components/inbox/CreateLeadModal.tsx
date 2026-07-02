@@ -73,18 +73,18 @@ export function CreateLeadModal({ conversation, open, onOpenChange }: CreateLead
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
         {/* IG identifier — read-only, pre-filled (R-2: may be user ID until enrichment runs) */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-secondary">Instagram User ID / Handle</label>
+          <label className="text-xs font-medium text-slate-600">Instagram User ID / Handle</label>
           <input
             type="text"
             value={igDisplayValue}
             readOnly
-            className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-text-primary opacity-60 cursor-not-allowed"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 opacity-60 cursor-not-allowed"
           />
         </div>
 
         {/* First name — required (R-3 correction) */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-secondary">
+          <label className="text-xs font-medium text-slate-600">
             First Name <span className="text-red-400">*</span>
           </label>
           <input
@@ -93,20 +93,20 @@ export function CreateLeadModal({ conversation, open, onOpenChange }: CreateLead
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="Enter first name"
             autoFocus
-            className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
           />
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
 
         {/* Last name — optional */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-secondary">Last Name</label>
+          <label className="text-xs font-medium text-slate-600">Last Name</label>
           <input
             type="text"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             placeholder="Enter last name (optional)"
-            className="w-full rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
           />
         </div>
 

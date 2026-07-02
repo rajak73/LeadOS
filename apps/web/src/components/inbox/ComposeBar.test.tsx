@@ -89,6 +89,6 @@ describe('ComposeBar', () => {
     setup();
     const textarea = screen.getByRole('textbox');
     await user.type(textarea, '/');
-    expect(screen.getByRole('dialog', { name: /saved replies/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /AI Suggested replies/i })).toBeInTheDocument();
   });
 });

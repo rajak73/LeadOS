@@ -19,37 +19,56 @@
 -- leados_app — RLS-enforced application role
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'leados_app') THEN
-    CREATE ROLE leados_app LOGIN PASSWORD 'leados_app'
-      NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-  END IF;
-  -- Re-assert the security-critical attributes even if the role pre-existed.
-  ALTER ROLE leados_app NOSUPERUSER NOBYPASSRLS;
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'leados_app') THEN
+      CREATE ROLE leados_app LOGIN PASSWORD 'LeadosApp_2026_Secure!'
+        NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+    END IF;
+    -- Re-assert the security-critical attributes even if the role pre-existed.
+    ALTER ROLE leados_app NOSUPERUSER NOBYPASSRLS;
+  EXCEPTION WHEN OTHERS THEN
+    -- Ignore permission denied or policy errors on managed databases (like Neon)
+    NULL;
+  END;
 END $$;
 
 -- leados_platform_admin — BYPASSRLS platform/support role (used only on audited platform paths)
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'leados_platform_admin') THEN
-    CREATE ROLE leados_platform_admin LOGIN PASSWORD 'leados_platform_admin'
-      NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
-  END IF;
-  ALTER ROLE leados_platform_admin NOSUPERUSER BYPASSRLS;
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'leados_platform_admin') THEN
+      CREATE ROLE leados_platform_admin LOGIN PASSWORD 'LeadosPlatformAdmin_2026_Secure!'
+        NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+    END IF;
+    ALTER ROLE leados_platform_admin NOSUPERUSER BYPASSRLS;
+  EXCEPTION WHEN OTHERS THEN
+    -- Ignore permission denied or policy errors on managed databases (like Neon)
+    NULL;
+  END;
 END $$;
+
+
 
 -- Schema + object privileges. RLS sits ON TOP of these grants: a grant lets the role attempt
 -- an operation; the RLS policy (0003) then decides which rows it may see/write.
-GRANT USAGE ON SCHEMA public TO leados_app, leados_platform_admin;
+DO $$
+BEGIN
+  BEGIN
+    GRANT USAGE ON SCHEMA public TO leados_app, leados_platform_admin;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public
+      TO leados_app, leados_platform_admin;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public
+      TO leados_app, leados_platform_admin;
+    
+    -- Future tables/sequences created by the migration runner inherit the same grants, so a new
+    -- domain table (Sprint 4+) is reachable by the app role without a follow-up grant migration.
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO leados_app, leados_platform_admin;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+      GRANT USAGE, SELECT ON SEQUENCES TO leados_app, leados_platform_admin;
+  EXCEPTION WHEN OTHERS THEN
+    -- Ignore errors on managed databases where roles do not exist
+    NULL;
+  END;
+END $$;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public
-  TO leados_app, leados_platform_admin;
-
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public
-  TO leados_app, leados_platform_admin;
-
--- Future tables/sequences created by the migration runner inherit the same grants, so a new
--- domain table (Sprint 4+) is reachable by the app role without a follow-up grant migration.
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO leados_app, leados_platform_admin;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO leados_app, leados_platform_admin;

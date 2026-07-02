@@ -26,7 +26,7 @@ export function LinkedDealsPanel({ leadId }: LinkedDealsPanelProps) {
   return (
     <div className="space-y-2" data-testid="linked-deals-panel">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text-primary">Linked Deals</h3>
+        <h3 className="text-sm font-medium text-slate-900">Linked Deals</h3>
         <Link
           href={`/pipeline?createDeal=1&leadId=${leadId}`}
           className="text-xs text-primary-400 hover:underline"
@@ -43,18 +43,18 @@ export function LinkedDealsPanel({ leadId }: LinkedDealsPanelProps) {
       )}
 
       {!isLoading && (!deals || deals.length === 0) && (
-        <p className="text-xs text-text-tertiary py-2">No open deals linked to this lead</p>
+        <p className="text-xs text-slate-500 py-2">No open deals linked to this lead</p>
       )}
 
       {deals?.map((deal) => (
         <Link
           key={deal.id}
           href={`/pipeline/deals/${deal.id}`}
-          className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:border-border/80 hover:bg-bg-elevated/50 transition-colors"
+          className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 hover:border-slate-200/80 hover:bg-white/50 transition-colors"
           data-testid={`linked-deal-${deal.id}`}
         >
-          <span className="text-sm text-text-primary truncate">{deal.title}</span>
-          <span className="text-xs text-text-tertiary shrink-0 ml-2">
+          <span className="text-sm text-slate-900 truncate">{deal.title}</span>
+          <span className="text-xs text-slate-500 shrink-0 ml-2">
             {formatCurrency(deal.value, deal.currency)}
           </span>
         </Link>

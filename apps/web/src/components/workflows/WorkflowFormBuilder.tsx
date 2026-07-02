@@ -26,6 +26,8 @@ const TRIGGER_OPTIONS = [
   { value: 'DEAL_CREATED', label: 'Deal Created' },
   { value: 'DEAL_STAGE_MOVED', label: 'Deal Stage Moved' },
   { value: 'MESSAGE_RECEIVED', label: 'Message Received' },
+  { value: 'LEAD_SCORE_CHANGED', label: 'Lead Score Changed (AI)' },
+  { value: 'LEAD_NO_RESPONSE', label: 'Lead No Response (Inactivity)' },
 ];
 
 const FIELD_OPTIONS = [
@@ -59,6 +61,8 @@ const ACTION_OPTIONS = [
   { value: 'rescore_lead', label: 'Rescore Lead (AI)' },
   { value: 'send_whatsapp_template', label: 'Send WhatsApp Template' },
   { value: 'outbound_webhook', label: 'Outbound Webhook (POST)' },
+  { value: 'send_email', label: 'Send Email' },
+  { value: 'delay', label: 'Delay (Wait)' },
 ];
 
 const LEAD_STATUS_OPTIONS = [
@@ -147,6 +151,10 @@ export function WorkflowFormBuilder({
       config = { accountId: '', templateName: '', templateLanguage: 'en' };
     } else if (type === 'outbound_webhook') {
       config = { url: '', headers: '', body: '' };
+    } else if (type === 'send_email') {
+      config = { subject: '', body: '' };
+    } else if (type === 'delay') {
+      config = { amount: 1, unit: 'minutes' };
     }
     updated[index] = { type, config };
     setActions(updated);
@@ -215,7 +223,7 @@ export function WorkflowFormBuilder({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl bg-bg-elevated border border-border rounded-xl p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
       {error && (
         <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg">
           {error}
@@ -225,25 +233,25 @@ export function WorkflowFormBuilder({
       {/* General Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Workflow Name</label>
+          <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Workflow Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Auto assign form leads"
-            className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+            className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Status</label>
+          <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</label>
           <div className="flex items-center gap-4 mt-2">
-            <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-text-primary">
+            <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-900">
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="w-4 h-4 text-primary-600 border-border bg-bg-base rounded focus:ring-primary-500 focus:ring-2 focus:ring-offset-0 focus:outline-none"
+                className="w-4 h-4 text-primary-600 border-slate-200 bg-slate-50 rounded focus:ring-primary-500 focus:ring-2 focus:ring-offset-0 focus:outline-none"
               />
               Active (Triggers will execute)
             </label>
@@ -251,23 +259,35 @@ export function WorkflowFormBuilder({
         </div>
 
         <div className="space-y-1.5 md:col-span-2">
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Description</label>
+          <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the purpose of this automation workflow..."
             rows={2}
-            className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 resize-none"
+            className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500 resize-none"
           />
         </div>
       </div>
 
-      <hr className="border-border/50" />
+      <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-3 items-start">
+        <span className="text-blue-400 mt-0.5">ℹ️</span>
+        <div className="text-sm text-slate-600 leading-relaxed">
+          <strong className="text-slate-900">Important Note:</strong> Workflow follow-ups and delays will automatically stop if:
+          <ul className="list-disc pl-5 mt-1 space-y-0.5">
+            <li>The lead replies to a message.</li>
+            <li>The lead status changes to WON or LOST.</li>
+            <li>The lead no longer matches the workflow conditions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <hr className="border-slate-200" />
 
       {/* Trigger selection */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary">1. When this event occurs</h3>
+          <h3 className="text-sm font-semibold text-slate-900">1. When this event occurs</h3>
         </div>
         <div className="w-72">
           <Select
@@ -278,23 +298,23 @@ export function WorkflowFormBuilder({
         </div>
       </div>
 
-      <hr className="border-border/50" />
+      <hr className="border-slate-200" />
 
       {/* Conditions Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary">2. If these conditions are met (optional)</h3>
+          <h3 className="text-sm font-semibold text-slate-900">2. If these conditions are met (optional)</h3>
           <Button type="button" variant="secondary" size="sm" onClick={handleAddCondition}>
             + Add Condition
           </Button>
         </div>
 
         {conditions.length === 0 ? (
-          <p className="text-xs text-text-tertiary italic">No conditions configured. Runs for all triggers.</p>
+          <p className="text-xs text-slate-500 italic">No conditions configured. Runs for all triggers.</p>
         ) : (
           <div className="space-y-3">
             {conditions.map((cond, index) => (
-              <div key={index} className="flex flex-wrap items-center gap-3 p-3 bg-bg-base rounded-lg border border-border">
+              <div key={index} className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="w-44">
                   <Select
                     value={cond.field}
@@ -322,7 +342,7 @@ export function WorkflowFormBuilder({
                       value={cond.value}
                       onChange={(e) => handleConditionChange(index, 'value', e.target.value)}
                       placeholder="Enter value"
-                      className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                     />
                   )}
                 </div>
@@ -341,12 +361,12 @@ export function WorkflowFormBuilder({
         )}
       </div>
 
-      <hr className="border-border/50" />
+      <hr className="border-slate-200" />
 
       {/* Actions Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary">3. Perform these actions</h3>
+          <h3 className="text-sm font-semibold text-slate-900">3. Perform these actions</h3>
           <Button type="button" variant="secondary" size="sm" onClick={handleAddAction}>
             + Add Action
           </Button>
@@ -357,7 +377,7 @@ export function WorkflowFormBuilder({
         ) : (
           <div className="space-y-3">
             {actions.map((act, index) => (
-              <div key={index} className="space-y-3 p-4 bg-bg-base rounded-lg border border-border">
+              <div key={index} className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="w-64">
                     <Select
@@ -378,10 +398,10 @@ export function WorkflowFormBuilder({
                 </div>
 
                 {/* Dynamic configurations */}
-                <div className="pl-4 border-l-2 border-border/80 space-y-3">
+                <div className="pl-4 border-l-2 border-slate-200/80 space-y-3">
                   {act.type === 'update_lead_status' && (
                     <div className="w-56 space-y-1">
-                      <label className="text-xs text-text-secondary font-medium">New Status</label>
+                      <label className="text-xs text-slate-600 font-medium">New Status</label>
                       <Select
                         value={act.config.status || 'NEW'}
                         onValueChange={(val) => handleActionConfigChange(index, 'status', val)}
@@ -392,26 +412,26 @@ export function WorkflowFormBuilder({
 
                   {act.type === 'assign_lead' && (
                     <div className="max-w-md space-y-1">
-                      <label className="text-xs text-text-secondary font-medium">User ID to Assign</label>
+                      <label className="text-xs text-slate-600 font-medium">User ID to Assign</label>
                       <input
                         type="text"
                         value={act.config.userId || ''}
                         onChange={(e) => handleActionConfigChange(index, 'userId', e.target.value)}
                         placeholder="UUID of user"
-                        className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                       />
                     </div>
                   )}
 
                   {act.type === 'add_tag' && (
                     <div className="max-w-md space-y-1">
-                      <label className="text-xs text-text-secondary font-medium">Tag Name</label>
+                      <label className="text-xs text-slate-600 font-medium">Tag Name</label>
                       <input
                         type="text"
                         value={act.config.tag || ''}
                         onChange={(e) => handleActionConfigChange(index, 'tag', e.target.value)}
                         placeholder="e.g. cold-lead"
-                        className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                       />
                     </div>
                   )}
@@ -419,23 +439,23 @@ export function WorkflowFormBuilder({
                   {act.type === 'create_task' && (
                     <div className="max-w-lg space-y-3">
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Task Title</label>
+                        <label className="text-xs text-slate-600 font-medium">Task Title</label>
                         <input
                           type="text"
                           value={act.config.title || ''}
                           onChange={(e) => handleActionConfigChange(index, 'title', e.target.value)}
                           placeholder="e.g. Call lead back"
-                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Due in Days (optional)</label>
+                        <label className="text-xs text-slate-600 font-medium">Due in Days (optional)</label>
                         <input
                           type="number"
                           value={act.config.dueInDays || ''}
                           onChange={(e) => handleActionConfigChange(index, 'dueInDays', Number(e.target.value))}
                           placeholder="e.g. 2"
-                          className="w-24 px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                          className="w-24 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                         />
                       </div>
                     </div>
@@ -443,64 +463,64 @@ export function WorkflowFormBuilder({
 
                   {act.type === 'send_notification' && (
                     <div className="max-w-lg space-y-1">
-                      <label className="text-xs text-text-secondary font-medium">Notification Message</label>
+                      <label className="text-xs text-slate-600 font-medium">Notification Message</label>
                       <input
                         type="text"
                         value={act.config.message || ''}
                         onChange={(e) => handleActionConfigChange(index, 'message', e.target.value)}
                         placeholder="e.g. A new lead was created from the website"
-                        className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                       />
                     </div>
                   )}
 
                   {act.type === 'send_instagram_message' && (
                     <div className="max-w-lg space-y-1">
-                      <label className="text-xs text-text-secondary font-medium">Instagram Message Body</label>
+                      <label className="text-xs text-slate-600 font-medium">Instagram Message Body</label>
                       <textarea
                         value={act.config.body || ''}
                         onChange={(e) => handleActionConfigChange(index, 'body', e.target.value)}
                         placeholder="Write the message text here..."
                         rows={3}
-                        className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 resize-none"
+                        className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500 resize-none"
                       />
                     </div>
                   )}
 
                   {act.type === 'rescore_lead' && (
-                    <p className="text-xs text-text-tertiary italic">No configuration needed. Automatically triggers AI rescoring on the lead.</p>
+                    <p className="text-xs text-slate-500 italic">No configuration needed. Automatically triggers AI rescoring on the lead.</p>
                   )}
 
                   {act.type === 'send_whatsapp_template' && (
                     <div className="max-w-lg space-y-3">
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">WhatsApp Account ID</label>
+                        <label className="text-xs text-slate-600 font-medium">WhatsApp Account ID</label>
                         <input
                           type="text"
                           value={act.config.accountId || ''}
                           onChange={(e) => handleActionConfigChange(index, 'accountId', e.target.value)}
                           placeholder="UUID of the connected WABA account"
-                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Template Name</label>
+                        <label className="text-xs text-slate-600 font-medium">Template Name</label>
                         <input
                           type="text"
                           value={act.config.templateName || ''}
                           onChange={(e) => handleActionConfigChange(index, 'templateName', e.target.value)}
                           placeholder="e.g. welcome_message"
-                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Language Code</label>
+                        <label className="text-xs text-slate-600 font-medium">Language Code</label>
                         <input
                           type="text"
                           value={act.config.templateLanguage || 'en'}
                           onChange={(e) => handleActionConfigChange(index, 'templateLanguage', e.target.value)}
                           placeholder="e.g. en, en_US, pt_BR"
-                          className="w-32 px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                          className="w-32 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                         />
                       </div>
                     </div>
@@ -509,34 +529,86 @@ export function WorkflowFormBuilder({
                   {act.type === 'outbound_webhook' && (
                     <div className="max-w-lg space-y-3">
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Webhook URL (HTTPS only)</label>
+                        <label className="text-xs text-slate-600 font-medium">Webhook URL (HTTPS only)</label>
                         <input
                           type="url"
                           value={act.config.url || ''}
                           onChange={(e) => handleActionConfigChange(index, 'url', e.target.value)}
                           placeholder="https://hooks.example.com/lead-notify"
-                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
                         />
-                        <p className="text-xs text-text-tertiary">Private/loopback IPs are blocked for security (SSRF guard).</p>
+                        <p className="text-xs text-slate-500">Private/loopback IPs are blocked for security (SSRF guard).</p>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Custom Headers (JSON, optional)</label>
+                        <label className="text-xs text-slate-600 font-medium">Custom Headers (JSON, optional)</label>
                         <textarea
                           value={act.config.headers || ''}
                           onChange={(e) => handleActionConfigChange(index, 'headers', e.target.value)}
                           placeholder='{"X-Secret": "my-token"}'
                           rows={2}
-                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 font-mono resize-none"
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500 font-mono resize-none"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-text-secondary font-medium">Body Override (JSON, optional)</label>
+                        <label className="text-xs text-slate-600 font-medium">Body Override (JSON, optional)</label>
                         <textarea
                           value={act.config.body || ''}
                           onChange={(e) => handleActionConfigChange(index, 'body', e.target.value)}
                           placeholder='{"source": "leados"}'
                           rows={2}
-                          className="w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 font-mono resize-none"
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500 font-mono resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {act.type === 'send_email' && (
+                    <div className="max-w-lg space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-600 font-medium">Email Subject</label>
+                        <input
+                          type="text"
+                          value={act.config.subject || ''}
+                          onChange={(e) => handleActionConfigChange(index, 'subject', e.target.value)}
+                          placeholder="e.g. Checking in..."
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-600 font-medium">Email Body</label>
+                        <textarea
+                          value={act.config.body || ''}
+                          onChange={(e) => handleActionConfigChange(index, 'body', e.target.value)}
+                          placeholder="Hi there, just wanted to check if you had any questions..."
+                          rows={4}
+                          className="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500 resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {act.type === 'delay' && (
+                    <div className="max-w-lg flex items-center gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-600 font-medium">Wait Amount</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={act.config.amount || ''}
+                          onChange={(e) => handleActionConfigChange(index, 'amount', Number(e.target.value))}
+                          className="w-24 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <label className="text-xs text-slate-600 font-medium">Wait Unit</label>
+                        <Select
+                          value={act.config.unit || 'minutes'}
+                          onValueChange={(val) => handleActionConfigChange(index, 'unit', val)}
+                          options={[
+                            { value: 'minutes', label: 'Minutes' },
+                            { value: 'hours', label: 'Hours' },
+                            { value: 'days', label: 'Days' }
+                          ]}
                         />
                       </div>
                     </div>
@@ -548,7 +620,7 @@ export function WorkflowFormBuilder({
         )}
       </div>
 
-      <hr className="border-border/50" />
+      <hr className="border-slate-200" />
 
       {/* Buttons */}
       <div className="flex justify-end gap-3">

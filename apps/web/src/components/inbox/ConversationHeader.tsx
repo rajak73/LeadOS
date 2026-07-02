@@ -39,10 +39,10 @@ export function ConversationHeader({ conversation, currentUserId }: Conversation
 
   return (
     <>
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg-base shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-text-primary truncate">{leadName}</p>
-          {igHandle && <p className="text-xs text-text-tertiary truncate">@{igHandle}</p>}
+          <p className="text-sm font-medium text-slate-900 truncate">{leadName}</p>
+          {igHandle && <p className="text-xs text-slate-500 truncate">@{igHandle}</p>}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -59,7 +59,7 @@ export function ConversationHeader({ conversation, currentUserId }: Conversation
           )}
 
           {assigneeName ? (
-            <span className="text-xs text-text-secondary">{isMine ? 'Mine' : assigneeName}</span>
+            <span className="text-xs text-slate-600">{isMine ? 'Mine' : assigneeName}</span>
           ) : currentUserId ? (
             <Button variant="secondary" size="sm" onClick={handleAssignToMe} disabled={isPending}>
               Assign to me

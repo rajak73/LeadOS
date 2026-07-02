@@ -1,3 +1,6 @@
+import { GoogleGenAI } from '@google/genai';
+import { env } from '../../core/config/env.js';
+import { logger } from '../../core/observability/logger.js';
 import type { LeadContext, ScoreResult } from '@leados/shared';
 import { compileScoringPrompt } from './ai.prompts.js';
 
@@ -28,7 +31,6 @@ export class MockAiAdapter implements AiAdapter {
       factors.push({ type: 'POSITIVE', description: 'Connected via Instagram DM (+15)' });
     }
 
-    // Clamp score between 0 and 100
     score = Math.max(0, Math.min(100, score));
 
     return {
@@ -53,16 +55,82 @@ export class MockAiAdapter implements AiAdapter {
 }
 
 export class OpenAiAdapter implements AiAdapter {
-  // apiKey stored for future use when live OpenAI calls are wired in Phase C.
   constructor(_apiKey?: string) {}
 
   async scoreLead(_context: LeadContext): Promise<ScoreResult> {
-    compileScoringPrompt(_context); // validates the prompt compiler, no-op in skeleton
-    // OpenAI calls are out of scope for Phase B
+    compileScoringPrompt(_context); 
     throw new Error('OpenAiAdapter.scoreLead is not implemented yet.');
   }
 
   async draftFollowup(_context: LeadContext): Promise<{ channel: 'EMAIL' | 'INSTAGRAM_DM'; draft: string }> {
     throw new Error('OpenAiAdapter.draftFollowup is not implemented yet.');
   }
+}
+
+export class GeminiAdapter implements AiAdapter {
+  constructor(private readonly apiKey: string) {}
+
+  async scoreLead(context: LeadContext): Promise<ScoreResult> {
+    const ai = new GoogleGenAI({ apiKey: this.apiKey });
+    const prompt = compileScoringPrompt(context);
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              score: { type: 'INTEGER' },
+              confidence: { type: 'NUMBER' },
+              positiveFactors: { type: 'ARRAY', items: { type: 'STRING' } },
+              negativeFactors: { type: 'ARRAY', items: { type: 'STRING' } },
+              recommendation: { type: 'STRING' }
+            },
+            required: ['score', 'positiveFactors', 'negativeFactors', 'recommendation']
+          }
+        }
+      });
+
+      if (!response.text) {
+         throw new Error("Empty response from Gemini");
+      }
+
+      const parsed = JSON.parse(response.text);
+      const factors: Array<{ type: 'POSITIVE' | 'NEGATIVE'; description: string }> = [];
+      
+      if (Array.isArray(parsed.positiveFactors)) {
+        parsed.positiveFactors.forEach((f: string) => factors.push({ type: 'POSITIVE', description: f }));
+      }
+      if (Array.isArray(parsed.negativeFactors)) {
+        parsed.negativeFactors.forEach((f: string) => factors.push({ type: 'NEGATIVE', description: f }));
+      }
+
+      return {
+        score: parsed.score,
+        factors,
+        recommendation: parsed.recommendation,
+        modelVersion: 'gemini-2.5-flash',
+      };
+    } catch (err) {
+      logger.error({ message: 'Gemini scoreLead failed', error: err instanceof Error ? err.message : String(err) });
+      throw err;
+    }
+  }
+
+  async draftFollowup(_context: LeadContext): Promise<{ channel: 'EMAIL' | 'INSTAGRAM_DM'; draft: string }> {
+    throw new Error('GeminiAdapter.draftFollowup is not implemented yet.');
+  }
+}
+
+export function getAiAdapter(): AiAdapter {
+  if (process.env.GEMINI_API_KEY) {
+    return new GeminiAdapter(process.env.GEMINI_API_KEY);
+  }
+  if (env.OPENAI_API_KEY && env.NODE_ENV !== 'test') {
+    return new OpenAiAdapter(env.OPENAI_API_KEY);
+  }
+  return new MockAiAdapter();
 }

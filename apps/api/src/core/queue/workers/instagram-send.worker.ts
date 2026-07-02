@@ -33,7 +33,8 @@ export interface InstagramSendJobPayload {
   conversationId: string;
   messageId: string;          // UUID of the messages row (created optimistically by service)
   recipientIgUserId: string;  // customer's IG user ID
-  content: { text?: string };
+  content: { text?: string; mediaUrl?: string };
+  isSimulation?: boolean;
   igAccountId: string;
 }
 
@@ -108,7 +109,7 @@ export async function processInstagramSendJob(
   // Load account record (base prisma — cross-tenant lookup for decryption)
   const account = await prisma.instagramAccount.findFirst({
     where: { id: igAccountId, organizationId, deletedAt: null },
-    select: { id: true, accessToken: true, status: true },
+    select: { id: true, accessToken: true, status: true, platform: true },
   });
 
   if (!account || account.status !== 'ACTIVE') {
@@ -131,9 +132,34 @@ export async function processInstagramSendJob(
     ...(content.text !== undefined ? { text: content.text } : {}),
   };
 
+  // Phase 9D: Simulation Mode bypass only if explicitly requested
+  if (job.data.isSimulation === true) {
+    logger.info({ message: 'Simulated outbound send', igAccountId, recipientIgUserId, type: messageContent.type });
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { status: 'SENT' },
+    });
+    return;
+  }
+
+  // Safety constraint: If not simulation and no credentials, fail safely
+  if (!env.INSTAGRAM_APP_SECRET || env.FLAG_INSTAGRAM_SENDS_ENABLED === false) {
+    logger.error({ message: 'Missing Meta credentials or sends disabled for real production send', jobId: job.id });
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { status: 'FAILED' },
+    });
+    throw new Error('Cannot send real Instagram message: missing credentials or sends disabled');
+  }
+
   let metaMid: string;
   try {
-    const result = await instagramAdapter.sendMessage(recipientIgUserId, messageContent, plainToken);
+    const result = await instagramAdapter.sendMessage(
+      recipientIgUserId, 
+      messageContent, 
+      plainToken, 
+      account.platform as 'INSTAGRAM' | 'FACEBOOK'
+    );
     metaMid = result.mid;
   } catch (err) {
     const isLastAttempt = job.attemptsMade >= ((job.opts.attempts ?? 1) - 1);

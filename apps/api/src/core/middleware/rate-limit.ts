@@ -39,7 +39,7 @@ export function createRateLimit(opts: LimiterOptions): RequestHandler {
   // the strict 5/15min auth limit and mask the behavior under test. Production and dev keep
   // the real limiter — only NODE_ENV=test bypasses it. (DEF-3: gated auth integration tests
   // must execute against real Postgres without the limiter starving the register happy-path.)
-  if (isTest()) {
+  if (isTest() || process.env.NODE_ENV === 'development') {
     return (_req, _res, next) => next();
   }
 

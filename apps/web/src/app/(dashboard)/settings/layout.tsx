@@ -5,15 +5,15 @@ const NAV_ITEMS = [
   { href: '/settings/profile', label: 'Profile', icon: '👤' },
   { href: '/settings/team', label: 'Team & Roles', icon: '👥' },
   { href: '/settings/billing', label: 'Billing', icon: '💳' },
-  { href: '/settings/integrations/instagram', label: 'Instagram', icon: '📸' },
+  { href: '/settings/integrations/instagram', label: 'Meta (IG & FB)', icon: '💬' },
 ];
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
-        <p className="text-sm text-text-tertiary mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <p className="text-sm text-slate-500 mt-1">
           Manage your account, team, and integrations
         </p>
       </div>
@@ -27,7 +27,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                           text-text-secondary hover:text-text-primary hover:bg-bg-subtle
+                           text-slate-600 hover:text-slate-900 hover:bg-slate-50
                            transition-colors group"
               >
                 <span className="text-base">{item.icon}</span>

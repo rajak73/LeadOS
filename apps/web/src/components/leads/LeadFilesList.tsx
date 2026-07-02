@@ -30,23 +30,23 @@ export function LeadFilesList({ leadId }: LeadFilesListProps) {
   return (
     <div className="space-y-3" data-testid="lead-files-list">
       {/* Upload placeholder — presigned URL flow requires backend storage config */}
-      <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-text-tertiary">
+      <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
         File upload coming soon — requires presigned URL infrastructure
       </div>
 
       {files.length === 0 && (
-        <p className="text-sm text-text-tertiary text-center py-2">No files attached</p>
+        <p className="text-sm text-slate-500 text-center py-2">No files attached</p>
       )}
 
       {files.map((file) => (
         <div
           key={file.id}
-          className="flex items-center justify-between p-3 bg-bg-elevated border border-border rounded-lg"
+          className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg"
           data-testid={`file-${file.id}`}
         >
           <div>
-            <p className="text-sm text-text-primary font-medium">{file.filename}</p>
-            <p className="text-xs text-text-tertiary">
+            <p className="text-sm text-slate-900 font-medium">{file.filename}</p>
+            <p className="text-xs text-slate-500">
               {formatBytes(file.sizeBytes)} · {formatRelativeTime(file.createdAt)}
             </p>
           </div>

@@ -23,6 +23,13 @@ export const CRON_REGISTRY: CronDefinition[] = [
       'Instagram access tokens expire ~60 days after connection. If not refreshed within 7 days of expiry the account moves to EXPIRED status and agents lose inbox access until the admin reconnects.',
   },
   {
+    id: 'ai-scoring-sweep',
+    cron: '0 4 * * *', // 04:00 UTC daily
+    owner: 'system',
+    idempotency: 'BullMQ jobId = id; repeat key ensures a single scheduled job per id',
+    failureImpact: 'Stale leads will not have updated AI scores, potentially missing high-intent conversion signals.',
+  },
+  {
     id: 'followup-sweep',
     cron: '0 * * * *', // hourly
     owner: 'tasks-module',

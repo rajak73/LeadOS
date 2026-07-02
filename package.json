@@ -25,10 +25,12 @@
     "db:studio": "pnpm --filter @leados/api db:studio",
     "openapi:generate": "echo 'openapi generation lands with the first domain schemas (S2)'",
     "check:enum-parity": "node scripts/check-enum-parity.mjs",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "db:seed:demo": "pnpm --filter @leados/api db:seed:demo"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@faker-js/faker": "^10.5.0",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.1.6",

@@ -128,74 +128,116 @@ export class InstagramService {
     // 4. Single-use: delete nonce immediately after retrieval
     await cacheRedis.del(oauthStateKey(nonce));
 
-    const { orgId } = JSON.parse(raw) as OAuthStateData;
+    const { orgId, userId: internalUserId } = JSON.parse(raw) as OAuthStateData;
 
     // 5. Exchange code for tokens
     const shortLived = await instagramAdapter.exchangeCodeForToken(code);
     const longLived = await instagramAdapter.getLongLivedToken(shortLived.accessToken);
 
     // 6. Fetch IG user profile via adapter ('me' resolves to the OAuth user in Meta's API).
-    const profile = await instagramAdapter.getUserProfile('me', longLived.accessToken);
-    const igUserId = profile.igUserId;
-    const igUsername = profile.username;
-    const profilePictureUrl = profile.profilePictureUrl;
+    let igProfile: { igUserId: string; username: string; profilePictureUrl?: string } | null = null;
+    try {
+      igProfile = await instagramAdapter.getUserProfile('me', longLived.accessToken);
+    } catch (err) {
+      logger.warn(`Failed to fetch IG user profile, proceeding to FB pages: ${String(err)}`);
+    }
+
+    const fbPages = await instagramAdapter.getFacebookPages(longLived.accessToken);
+
+    if (!igProfile && fbPages.length === 0) {
+      throw new OAuthCallbackError('ACCESS_DENIED');
+    }
 
     const tokenExpiresAt = new Date(Date.now() + longLived.expiresIn * 1000);
-    const encryptedToken = encryptField(longLived.accessToken);
 
     // 7. Persist account inside tenant context
     try {
       await withTenant(orgId, async (db) => {
         const repo = new PrismaInstagramAccountRepository(db);
 
-        // Duplicate check first — more specific than plan limit
-        const alreadyConnected = await repo.isIgUserIdConnected(igUserId);
-        if (alreadyConnected) {
-          throw new OAuthCallbackError('ALREADY_CONNECTED');
-        }
-
         // Plan limit check
         const sub = await db.subscription.findFirst({ select: { plan: true } });
         const plan = (sub?.plan ?? 'TRIAL') as keyof typeof PLAN_LIMITS;
         const limit = PLAN_LIMITS[plan].instagramAccounts;
         const current = await repo.count();
-        if (current >= limit) {
+        let addedCount = 0;
+
+        const processAccount = async (
+          userId: string,
+          username: string,
+          platform: 'INSTAGRAM' | 'FACEBOOK',
+          token: string,
+          picUrl?: string
+        ) => {
+          const alreadyConnected = await repo.isIgUserIdConnected(userId);
+          if (!alreadyConnected && current + addedCount < limit) {
+            const account = await repo.create({
+              igUserId: userId,
+              igUsername: username,
+              platform,
+              facebookPageId: platform === 'FACEBOOK' ? userId : null,
+              accessToken: encryptField(token),
+              tokenExpiresAt,
+              tokenType: 'bearer',
+              webhookSubscribed: false,
+              ...(picUrl ? { profilePictureUrl: picUrl } : {}),
+            });
+            addedCount++;
+
+            // 8. Subscribe webhook (fire-and-forget with retry queue on failure)
+            try {
+              if (platform === 'FACEBOOK') {
+                await instagramAdapter.subscribeFacebookWebhook(userId, token);
+              } else {
+                await instagramAdapter.subscribeWebhook(userId, token);
+              }
+              await repo.update(account.id, { webhookSubscribed: true });
+            } catch (subscribeErr) {
+              logger.warn({ message: 'Webhook subscription failed, enqueuing retry', igUserId: userId, error: String(subscribeErr) });
+              // Retry via WEBHOOK_PROCESSING queue per signoff A13
+              await enqueue(QUEUE.WEBHOOK_PROCESSING, 'instagram-webhook-subscribe', {
+                igUserId: userId,
+                igAccountId: account.id,
+                orgId,
+              });
+            }
+
+            logger.info({ message: `${platform} account connected`, orgId, igUserId: userId, accountId: account.id });
+            // Activity Log
+            await db.activity.create({
+              data: {
+                organizationId: orgId,
+                type: platform === 'FACEBOOK' ? 'FACEBOOK_PAGE_CONNECTED' : 'META_ACCOUNT_CONNECTED',
+                description: platform === 'FACEBOOK' ? 'Facebook page connected' : 'Instagram account connected',
+                metadata: { accountId: account.id, igUserId: userId, username },
+                performedById: internalUserId,
+              }
+            }).catch(err => logger.error(`Failed to log activity: ${String(err)}`));
+          }
+        };
+
+        if (igProfile) {
+          await processAccount(igProfile.igUserId, igProfile.username, 'INSTAGRAM', longLived.accessToken, igProfile.profilePictureUrl);
+        }
+
+        for (const page of fbPages) {
+          await processAccount(page.id, page.name, 'FACEBOOK', page.access_token, page.picture?.data?.url);
+        }
+
+        if (addedCount === 0 && (igProfile || fbPages.length > 0)) {
+          let anyAlreadyConnected = false;
+          if (igProfile && await repo.isIgUserIdConnected(igProfile.igUserId)) anyAlreadyConnected = true;
+          for (const page of fbPages) {
+            if (await repo.isIgUserIdConnected(page.id)) anyAlreadyConnected = true;
+          }
+          if (anyAlreadyConnected) throw new OAuthCallbackError('ALREADY_CONNECTED');
           throw new OAuthCallbackError('PLAN_LIMIT_EXCEEDED');
         }
-
-        const createData: import('./instagram.repository.js').CreateInstagramAccountData = {
-          igUserId,
-          igUsername,
-          accessToken: encryptedToken,
-          tokenExpiresAt,
-          tokenType: 'bearer',
-          webhookSubscribed: false,
-        };
-        if (profilePictureUrl !== undefined) {
-          createData.profilePictureUrl = profilePictureUrl;
-        }
-        const account = await repo.create(createData);
-
-        // 8. Subscribe webhook (fire-and-forget with retry queue on failure)
-        try {
-          await instagramAdapter.subscribeWebhook(igUserId, longLived.accessToken);
-          await repo.update(account.id, { webhookSubscribed: true });
-        } catch (subscribeErr) {
-          logger.warn({ message: 'Webhook subscription failed, enqueuing retry', igUserId, error: String(subscribeErr) });
-          // Retry via WEBHOOK_PROCESSING queue per signoff A13
-          await enqueue(QUEUE.WEBHOOK_PROCESSING, 'instagram-webhook-subscribe', {
-            igUserId,
-            igAccountId: account.id,
-            orgId,
-          });
-        }
-
-        logger.info({ message: 'Instagram account connected', orgId, igUserId, accountId: account.id });
       });
     } catch (err) {
       // Re-throw OAuthCallbackErrors so the controller can redirect correctly
       if (err instanceof OAuthCallbackError) throw err;
-      logger.error({ message: 'OAuth callback DB error', orgId, igUserId, error: String(err) });
+      logger.error({ message: 'OAuth callback DB error', orgId, igUserId: igProfile?.igUserId, error: String(err) });
       throw new OAuthCallbackError('ACCESS_DENIED');
     }
 
@@ -225,13 +267,27 @@ export class InstagramService {
       // Decrypt token to call Meta API for unsubscribe (best-effort)
       try {
         const plainToken = decryptField(account.accessToken);
-        await instagramAdapter.unsubscribeWebhook(account.igUserId, plainToken);
+        if (account.platform === 'FACEBOOK') {
+          await instagramAdapter.unsubscribeFacebookWebhook(account.igUserId, plainToken);
+        } else {
+          await instagramAdapter.unsubscribeWebhook(account.igUserId, plainToken);
+        }
       } catch (err) {
         logger.warn({ message: 'Webhook unsubscribe failed during disconnect', id, error: String(err) });
       }
 
       await repo.update(id, { status: 'DISCONNECTED', deletedAt: new Date(), webhookSubscribed: false });
-      logger.info({ message: 'Instagram account disconnected', orgId: ctx.organizationId, accountId: id });
+      await db.activity.create({
+        data: {
+          organizationId: ctx.organizationId,
+          type: account.platform === 'FACEBOOK' ? 'FACEBOOK_PAGE_DISCONNECTED' : 'META_ACCOUNT_DISCONNECTED',
+          description: account.platform === 'FACEBOOK' ? 'Facebook page disconnected' : 'Instagram account disconnected',
+          metadata: { accountId: id, igUserId: account.igUserId },
+          performedById: ctx.userId,
+        }
+      }).catch(err => logger.error(`Failed to log disconnect activity: ${String(err)}`));
+
+      logger.info({ message: `${account.platform} account disconnected`, orgId: ctx.organizationId, accountId: id });
     });
   }
 

@@ -12,17 +12,20 @@ export function EmptyState({ icon, title, description, action, className = '' }:
   return (
     <div className={`flex flex-col items-center justify-center py-12 px-6 text-center ${className}`}>
       {icon && (
-        <span className="text-3xl mb-3 select-none" aria-hidden="true">
-          {icon}
-        </span>
+        <div className="w-12 h-12 rounded-full bg-white ring-1 ring-slate-300 flex items-center justify-center mb-4 shadow-sm relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-ai-start/10 to-ai-end/10" />
+          <span className="text-xl select-none relative z-10" aria-hidden="true">
+            {icon}
+          </span>
+        </div>
       )}
-      <p className="text-sm font-medium text-text-secondary">{title}</p>
+      <h3 className="text-sm font-semibold text-slate-900 tracking-wide">{title}</h3>
       {description && (
-        <p className="mt-1 text-xs text-text-tertiary max-w-xs leading-relaxed">{description}</p>
+        <p className="mt-1.5 text-xs text-slate-600 max-w-sm leading-relaxed">{description}</p>
       )}
       {action && (
-        <div className="mt-4">
-          <Button variant="secondary" size="sm" onClick={action.onClick}>
+        <div className="mt-5">
+          <Button variant="secondary" size="sm" onClick={action.onClick} className="ring-1 ring-slate-300 shadow-sm hover:ring-slate-300/80 bg-slate-100 hover:bg-slate-50 text-slate-900">
             {action.label}
           </Button>
         </div>
