@@ -8,9 +8,14 @@ export interface AdminOrganization {
   status: string;
   industry: string | null;
   createdAt: string;
-  _count?: {
-    users?: number;
-    leads?: number;
+  counts?: {
+    members: number;
+    leads: number;
+    customers: number;
+    deals: number;
+    conversations: number;
+    messages: number;
+    tasks: number;
   };
 }
 
