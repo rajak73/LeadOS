@@ -55,6 +55,8 @@ export function CreateLeadModal({ conversation, open, onOpenChange }: CreateLead
         onError: (err) => {
           if (err.message === 'CONFLICT') {
             toast('A lead for this conversation already exists', 'error');
+          } else if (err.message === 'PLAN_LIMIT_EXCEEDED') {
+            toast('Plan limit exceeded. Please upgrade your subscription to add more leads.', 'error');
           } else {
             toast('Failed to create lead', 'error');
           }

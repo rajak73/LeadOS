@@ -93,10 +93,10 @@ export default function BillingPage() {
 
   // Dynamic usage metrics
   const USAGE_METRICS = [
-    { label: 'Leads', used: 342, limit: subscription?.billingPlan?.maxLeads ?? null },
-    { label: 'Deals', used: 87, limit: null },
-    { label: 'Users', used: 4, limit: subscription?.billingPlan?.maxUsers ?? null },
-    { label: 'Workflows', used: 3, limit: currentPlanId === 'STARTER' ? 5 : currentPlanId === 'GROWTH' ? 20 : null },
+    { label: 'Leads', used: subscription?.usage?.leads || 0, limit: subscription?.billingPlan?.maxLeads ?? null },
+    { label: 'Deals', used: subscription?.usage?.deals || 0, limit: null },
+    { label: 'Users', used: subscription?.usage?.users || 0, limit: subscription?.billingPlan?.maxUsers ?? null },
+    { label: 'Workflows', used: subscription?.usage?.workflows || 0, limit: currentPlanId === 'STARTER' ? 5 : currentPlanId === 'GROWTH' ? 20 : null },
   ];
 
   return (

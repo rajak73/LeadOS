@@ -106,12 +106,31 @@ export class BillingService {
     return { url: session.url };
   }
 
-  /** Get the current subscription for an org. */
+  /** Get the current subscription and usage metrics for an org. */
   async getSubscription(organizationId: string) {
-    return this.db.subscription.findUnique({
+    const sub = await this.db.subscription.findUnique({
       where: { organizationId },
       include: { billingPlan: true },
     });
+    const usage = await this.getOrganizationUsage(organizationId);
+    return { ...sub, usage };
+  }
+
+  /** Calculate current usage counts for the organization. */
+  async getOrganizationUsage(organizationId: string) {
+    const [leads, deals, users, workflows] = await Promise.all([
+      this.db.lead.count({ where: { organizationId } }),
+      this.db.deal.count({ where: { organizationId } }),
+      this.db.organizationMember.count({ where: { organizationId } }),
+      this.db.workflow.count({ where: { organizationId, isActive: true, deletedAt: null } }),
+    ]);
+
+    return {
+      leads,
+      deals,
+      users,
+      workflows,
+    };
   }
 
   /** Process a parsed Stripe event directly — idempotent. Returns true if newly processed. */
