@@ -114,30 +114,19 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (!infra) return;
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM instagram_accounts WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-    orgId, orgTrialId,
-  );
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM organization_members WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-    orgId, orgTrialId,
-  );
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM roles WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-    orgId, orgTrialId,
-  );
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM subscriptions WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-    orgId, orgTrialId,
-  );
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM organizations WHERE id IN ($1::uuid, $2::uuid)`,
-    orgId, orgTrialId,
-  );
-  await prisma.$executeRawUnsafe(
-    `DELETE FROM users WHERE id = $1::uuid`,
-    ownerUserId,
-  );
+  await prisma.$transaction(async (tx) => {
+    const oId = orgId || '00000000-0000-0000-0000-000000000000';
+    const oTId = orgTrialId || '00000000-0000-0000-0000-000000000000';
+    await tx.$executeRawUnsafe(`SET LOCAL session_replication_role = replica`);
+    await tx.$executeRawUnsafe(`DELETE FROM instagram_accounts WHERE "organizationId" IN ($1::uuid, $2::uuid)`, oId, oTId);
+    await tx.$executeRawUnsafe(`DELETE FROM roles WHERE "organizationId" IN ($1::uuid, $2::uuid)`, oId, oTId);
+    await tx.$executeRawUnsafe(`DELETE FROM organization_members WHERE "organizationId" IN ($1::uuid, $2::uuid)`, oId, oTId);
+    await tx.$executeRawUnsafe(`DELETE FROM subscriptions WHERE "organizationId" IN ($1::uuid, $2::uuid)`, oId, oTId);
+    await tx.$executeRawUnsafe(`DELETE FROM organizations WHERE id IN ($1::uuid, $2::uuid)`, oId, oTId);
+    if (ownerUserId) {
+        await tx.$executeRawUnsafe(`DELETE FROM users WHERE id = $1::uuid`, ownerUserId);
+    }
+  });
   await cacheRedis.quit().catch(() => undefined);
 });
 

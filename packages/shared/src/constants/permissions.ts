@@ -36,7 +36,7 @@ export type Action = (typeof ACTIONS)[number];
 
 export type PermissionKey = `${Resource}.${Action}`;
 
-export const SYSTEM_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SALES_EXECUTIVE'] as const;
+export const SYSTEM_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SALES_EXECUTIVE', 'SUPPORT'] as const;
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
 // Manager default permission set (doc 11 §11.5). Owner/Admin are derived in the seeding
@@ -103,6 +103,21 @@ export const SALES_EXECUTIVE_PERMISSIONS: readonly string[] = [
   'org.read',
 ];
 
+export const SUPPORT_PERMISSIONS: readonly string[] = [
+  'leads.read',
+  'contacts.read',
+  'deals.read',
+  'pipelines.read',
+  'team.read',
+  'inbox.read',
+  'inbox.reply',
+  'inbox.assign',
+  'inbox.close',
+  'tasks.read',
+  'files.read',
+  'org.read',
+];
+
 // Full permission catalog (doc 11 §11.2). Some keys (e.g. team.invite, org.connect_social,
 // analytics.read_all) do not fit the generic `${Resource}.${Action}` shape, so the catalog
 // is typed as plain strings. This is the single source of truth for role SEEDING (S2) and
@@ -151,4 +166,5 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly string[]> = {
   ADMIN: ADMIN_PERMISSIONS,
   MANAGER: MANAGER_PERMISSIONS,
   SALES_EXECUTIVE: SALES_EXECUTIVE_PERMISSIONS,
+  SUPPORT: SUPPORT_PERMISSIONS,
 };

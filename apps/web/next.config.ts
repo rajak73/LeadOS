@@ -2,6 +2,10 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+  },
   // Bundle the workspace shared package.
   transpilePackages: ['@leados/shared'],
   // The API is reached via the BFF (server-side) or directly with the in-memory bearer

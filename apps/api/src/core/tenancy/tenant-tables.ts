@@ -42,6 +42,8 @@ export const TENANT_TABLES = [
   'subscriptions',
   'refresh_tokens',
   'audit_logs',
+  // Sprint 4 — import
+  'import_history',
   // Sprint 4 M1 — CRM foundation
   'leads',
   'contacts',
@@ -91,6 +93,8 @@ export const TENANT_MODELS = [
   'Subscription',
   'RefreshToken',
   'AuditLog',
+  // Sprint 4
+  'ImportHistory',
   // Sprint 4 M1 — CRM
   'Lead',
   'Contact',

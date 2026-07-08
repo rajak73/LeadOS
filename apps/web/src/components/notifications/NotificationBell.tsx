@@ -43,7 +43,7 @@ export function NotificationBell() {
         type="button"
         aria-label="Notifications"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex items-center justify-center h-9 w-9 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
+        className="relative flex items-center justify-center h-9 w-9 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
       >
         <span aria-hidden>🔔</span>
         {unreadCount > 0 && (

@@ -9,6 +9,7 @@ import type { Prisma } from '@prisma/client';
 import { logger } from '../../observability/logger.js';
 import { withTenant } from '../../tenancy/with-tenant.js';
 import { decryptField } from '../../crypto/field-encryption.js';
+import { env } from '../../config/env.js';
 import { whatsappAdapter, type WaMessageContent } from '../../../modules/whatsapp/whatsapp.adapter.js';
 import {
   PrismaWhatsAppAccountRepository,
@@ -26,6 +27,7 @@ export interface WhatsAppSendPayload {
   templateName?: string;
   templateLanguage?: string;
   orgId: string;
+  isSimulation?: boolean;
 }
 
 export async function processWhatsAppSendJob(job: Job<WhatsAppSendPayload>): Promise<void> {
@@ -62,17 +64,29 @@ export async function processWhatsAppSendJob(job: Job<WhatsAppSendPayload>): Pro
     let waMessageId: string | null = null;
     let sendError: string | null = null;
 
-    try {
-      const result = await whatsappAdapter.sendMessage(
-        customerPhone,
-        content,
-        account.phoneNumberId,
-        plainToken,
-      );
-      waMessageId = result.waMessageId;
-    } catch (err) {
-      sendError = err instanceof Error ? err.message : String(err);
-      logger.warn({ message: 'WhatsApp send failed', conversationId, error: sendError });
+    // Phase 9D: Simulation Mode bypass only if explicitly requested
+    if (job.data.isSimulation === true) {
+      logger.info({ message: 'Simulated outbound send', accountId, customerPhone, type: content.type });
+      waMessageId = `sim_wa_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    } else {
+      // Safety constraint: If not simulation and no credentials, fail safely
+      if (!env.META_APP_SECRET || env.FLAG_WHATSAPP_SENDS_ENABLED === false) {
+        sendError = 'Cannot send real WhatsApp message: missing credentials or sends disabled';
+        logger.error({ message: sendError, jobId: job.id });
+      } else {
+        try {
+          const result = await whatsappAdapter.sendMessage(
+            customerPhone,
+            content,
+            account.phoneNumberId,
+            plainToken,
+          );
+          waMessageId = result.waMessageId;
+        } catch (err) {
+          sendError = err instanceof Error ? err.message : String(err);
+          logger.warn({ message: 'WhatsApp send failed', conversationId, error: sendError });
+        }
+      }
     }
 
     // Persist message record for inbox display + audit

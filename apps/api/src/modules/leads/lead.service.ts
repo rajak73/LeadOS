@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 // CRM-2.2 + CRM-2.3 — Lead service (CRUD + status machine).
 // CRM-3.2 — Lead→Contact conversion (atomic).
 // CRM-4.1 — Lead activity feed.
@@ -5,7 +7,8 @@
 // CRM-5.2 — Lead files sub-resource.
 // CRM-6.3 — CSV import (async via BullMQ).
 // CRM-6.4 — CSV export (async via BullMQ).
-//
+// Sprint 8 M1 — CSV Import Wizard (Mappings, Assignment, History).
+
 // Every mutation that touches tenant data runs inside a single withTenant() transaction.
 // The ActivityService.append() is called within the SAME transaction (atomicity) so an
 // activity row is never orphaned if the parent mutation fails.
@@ -431,20 +434,43 @@ export class LeadService {
 
   // ── CRM-6.3: CSV import ──────────────────────────────────────────────────────
 
-  async startImport(csvBuffer: Buffer): Promise<string> {
+  async startImport(
+    csvBuffer: Buffer,
+    fileName: string,
+    fileSize: number,
+    mappings: Record<string, string>,
+    assignment: { type: 'NONE' | 'SINGLE' | 'ROUND_ROBIN'; userId?: string }
+  ): Promise<{ jobId: string; historyId: string }> {
     const ctx = requireTenantContext();
+
+    const history = await withTenant(ctx.organizationId, async (db) => {
+      return db.importHistory.create({
+        data: {
+          organizationId: ctx.organizationId,
+          importedById: ctx.userId,
+          fileName,
+          fileSize,
+          status: 'PENDING'
+        }
+      });
+    });
 
     const jobId = await enqueue(QUEUE.LEAD_IMPORT, LEAD_IMPORT_JOB, {
       organizationId: ctx.organizationId,
       userId: ctx.userId,
       role: ctx.role,
       csvBase64: csvBuffer.toString('base64'),
+      mappings,
+      assignment,
+      fileName,
+      fileSize,
+      historyId: history.id
     });
 
     if (!jobId) {
       throw new AppError(ErrorCode.INTERNAL_ERROR, 'Failed to enqueue import job');
     }
-    return jobId;
+    return { jobId, historyId: history.id };
   }
 
   async getImportJob(jobId: string): Promise<{
@@ -467,6 +493,35 @@ export class LeadService {
       return { status: 'PROCESSING' };
     }
     return { status: 'PENDING' };
+  }
+
+  async listImportHistory(page: number, limit: number): Promise<{ items: any[]; total: number }> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      const skip = (page - 1) * limit;
+      const [items, total] = await Promise.all([
+        db.importHistory.findMany({
+          where: { organizationId: ctx.organizationId },
+          include: { importedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
+          orderBy: { startedAt: 'desc' },
+          skip,
+          take: limit
+        }),
+        db.importHistory.count({ where: { organizationId: ctx.organizationId } })
+      ]);
+      return { items, total };
+    });
+  }
+
+  async getImportHistoryById(historyId: string): Promise<any> {
+    const ctx = requireTenantContext();
+    return withTenant(ctx.organizationId, async (db) => {
+      const history = await db.importHistory.findUnique({
+        where: { id: historyId, organizationId: ctx.organizationId }
+      });
+      if (!history) throw new AppError(ErrorCode.NOT_FOUND, 'Import history not found');
+      return history;
+    });
   }
 
   // ── CRM-6.4: CSV export ──────────────────────────────────────────────────────

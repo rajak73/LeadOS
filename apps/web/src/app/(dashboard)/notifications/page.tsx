@@ -18,7 +18,7 @@ export default function NotificationsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-text-primary">Notifications</h1>
+        <h1 className="text-xl font-semibold text-slate-900">Notifications</h1>
         {unreadCount > 0 && (
           <Button variant="secondary" size="sm" onClick={() => markAllRead()}>
             Mark all read
@@ -26,13 +26,13 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      <div className="bg-bg-elevated border border-border rounded-xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Spinner size="lg" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="py-16 text-center text-sm text-text-tertiary">You&apos;re all caught up</div>
+          <div className="py-16 text-center text-sm text-slate-500">You&apos;re all caught up</div>
         ) : (
           notifications.map((n) => <NotificationRow key={n.id} notification={n} onClick={handleClick} />)
         )}

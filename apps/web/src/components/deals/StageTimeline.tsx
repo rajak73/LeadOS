@@ -52,12 +52,12 @@ export function StageTimeline({ deal, pipeline, onMarkWon, onMarkLost }: StageTi
               data-testid={`stage-btn-${stage.id}`}
               className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
                 isActive
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-primary-600 text-slate-900'
                   : isPast
-                  ? 'bg-bg-subtle text-text-tertiary line-through'
+                  ? 'bg-slate-50 text-slate-500 line-through'
                   : isClickable
-                  ? 'bg-bg-elevated text-text-secondary border border-border hover:border-primary-500 hover:text-primary-500 cursor-pointer'
-                  : 'bg-bg-elevated text-text-tertiary border border-border cursor-default'
+                  ? 'bg-white text-slate-600 border border-slate-200 hover:border-primary-500 hover:text-primary-500 cursor-pointer'
+                  : 'bg-white text-slate-500 border border-slate-200 cursor-default'
               }`}
             >
               {stage.name}

@@ -80,7 +80,7 @@ export function DealDetailPage({ dealId, initialDeal }: DealDetailPageProps) {
     <div className="flex flex-col lg:flex-row gap-6 h-full" data-testid="deal-detail-page">
       {/* Back nav */}
       <div className="lg:hidden">
-        <Link href="/pipeline" className="text-sm text-text-secondary hover:text-text-primary">
+        <Link href="/pipeline" className="text-sm text-slate-600 hover:text-slate-900">
           ← Back to Pipeline
         </Link>
       </div>
@@ -88,7 +88,7 @@ export function DealDetailPage({ dealId, initialDeal }: DealDetailPageProps) {
       {/* Left panel — 60% */}
       <div className="flex-[3] min-w-0 space-y-6">
         <div className="flex items-center gap-3">
-          <Link href="/pipeline" className="hidden lg:inline text-sm text-text-secondary hover:text-text-primary">
+          <Link href="/pipeline" className="hidden lg:inline text-sm text-slate-600 hover:text-slate-900">
             ← Back
           </Link>
           <DealHealthBadge deal={deal} verbose />
@@ -99,7 +99,7 @@ export function DealDetailPage({ dealId, initialDeal }: DealDetailPageProps) {
 
         {/* Won/Lost CTA */}
         {deal.status === 'OPEN' && (
-          <div className="flex gap-2 pt-2 border-t border-border/50">
+          <div className="flex gap-2 pt-2 border-t border-slate-200">
             <Button
               variant="primary"
               onClick={handleMarkWon}
@@ -128,7 +128,7 @@ export function DealDetailPage({ dealId, initialDeal }: DealDetailPageProps) {
       </div>
 
       {/* Right panel — 40% */}
-      <div className="flex-[2] min-w-0 min-h-[400px] lg:min-h-0 border border-border rounded-xl overflow-hidden">
+      <div className="flex-[2] min-w-0 min-h-[400px] lg:min-h-0 border border-slate-200 rounded-xl overflow-hidden">
         <Tabs defaultValue="activity" tabs={tabs} />
       </div>
 

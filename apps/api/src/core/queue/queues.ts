@@ -23,8 +23,9 @@ export async function enqueue<T>(
   name: QueueName,
   jobName: string,
   data: T,
+  opts?: import('bullmq').JobsOptions
 ): Promise<string | undefined> {
-  const job = await getQueue(name).add(jobName, data);
+  const job = await getQueue(name).add(jobName, data, opts);
   return job.id;
 }
 

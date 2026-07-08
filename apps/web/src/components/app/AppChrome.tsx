@@ -9,12 +9,14 @@ import { useEffect, useCallback, useState } from 'react';
 import { connectSocket, disconnectSocket, useSocketEvent } from '@/lib/socket/client';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { CommandPalette } from '@/components/app/CommandPalette';
+import { getAccessToken, refreshAccessToken } from '@/lib/auth/token-store';
 
 async function refreshAndConnect(active = true): Promise<void> {
   try {
-    const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
-    const json = (await res.json()) as { data?: { accessToken?: string } };
-    const token = json?.data?.accessToken;
+    let token = getAccessToken();
+    if (!token) {
+      token = await refreshAccessToken();
+    }
     if (token && active) connectSocket(token);
   } catch {
     // No socket on token failure — React Query polling still keeps data fresh.
@@ -60,8 +62,8 @@ export function AppChrome() {
           onClick={() => setPaletteOpen(true)}
           title="Search (⌘K)"
           data-testid="cmd-palette-trigger"
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-text-tertiary
-                     hover:text-text-primary hover:bg-bg-subtle border border-border/50
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-slate-500
+                     hover:text-slate-900 hover:bg-slate-50 border border-slate-200
                      transition-colors"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

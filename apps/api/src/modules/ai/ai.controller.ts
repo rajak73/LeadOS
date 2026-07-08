@@ -6,7 +6,7 @@ import { isEnabled } from '../../core/flags/flags.js';
 import { withTenant } from '../../core/tenancy/with-tenant.js';
 import { requireTenantContext } from '../../core/tenancy/context.js';
 import { AiService } from './ai.service.js';
-import { MockAiAdapter } from './ai.adapter.js';
+import { getAiAdapter } from './ai.adapter.js';
 import { enqueue } from '../../core/queue/queues.js';
 import { QUEUE } from '../../core/queue/names.js';
 
@@ -94,6 +94,11 @@ export class AiController {
     const leadId = req.params['id']!;
     const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
 
+    // Check kill switch flag
+    if (!isEnabled('ai.scoring.enabled')) {
+      throw new AppError(ErrorCode.FEATURE_DISABLED, 'AI features are disabled for this workspace.');
+    }
+
     const result = await withTenant(ctx.organizationId, async (db) => {
       const lead = await db.lead.findUnique({
         where: { id: leadId },
@@ -111,6 +116,6 @@ export class AiController {
 }
 
 export function createAiController(): AiController {
-  const service = new AiService(new MockAiAdapter());
+  const service = new AiService(getAiAdapter());
   return new AiController(service);
 }

@@ -1,6 +1,8 @@
 import { prisma } from '../../core/prisma/client.js';
 import { withTenant, type TenantTransactionClient } from '../../core/tenancy/with-tenant.js';
 import { logger } from '../../core/observability/logger.js';
+import { enqueue } from '../../core/queue/queues.js';
+import { QUEUE } from '../../core/queue/names.js';
 
 export class FollowupService {
   /**
@@ -93,6 +95,12 @@ export class FollowupService {
 
         leadsCreated++;
       }
+
+      // Enqueue workflow trigger for NO RESPONSE
+      await enqueue(QUEUE.WORKFLOW_EXECUTION, 'workflow-execution-job', {
+        event: 'LEAD_NO_RESPONSE',
+        payload: { organizationId, id: lead.id },
+      });
     }
 
     // 2. Process Overdue Deals (OPEN status, expectedCloseDate in the past)

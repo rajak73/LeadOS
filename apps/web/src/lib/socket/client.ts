@@ -13,7 +13,7 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (!socket) {
     const url = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:4000';
-    socket = io(url, { autoConnect: false, transports: ['websocket'] });
+    socket = io(url, { autoConnect: false, transports: ['websocket'], path: '/ws' });
   }
   return socket;
 }

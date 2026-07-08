@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <RadixToast.Root
             key={m.id}
             className={`fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-xl ${
-              m.variant === 'error' ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+              m.variant === 'error' ? 'bg-red-600 text-slate-900' : 'bg-green-600 text-slate-900'
             }`}
             open
             onOpenChange={() => setMessages((prev) => prev.filter((x) => x.id !== m.id))}

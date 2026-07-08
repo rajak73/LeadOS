@@ -56,7 +56,7 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
     <div className="flex flex-col lg:flex-row gap-6 h-full" data-testid="lead-detail-page">
       {/* Back nav */}
       <div className="lg:hidden">
-        <Link href="/leads" className="text-sm text-text-secondary hover:text-text-primary">
+        <Link href="/leads" className="text-sm text-slate-600 hover:text-slate-900">
           ← Back to Leads
         </Link>
       </div>
@@ -64,7 +64,7 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
       {/* Left panel — 60% */}
       <div className="flex-[3] min-w-0 space-y-6">
         <div className="flex items-center gap-3">
-          <Link href="/leads" className="hidden lg:inline text-sm text-text-secondary hover:text-text-primary">
+          <Link href="/leads" className="hidden lg:inline text-sm text-slate-600 hover:text-slate-900">
             ← Back
           </Link>
           <LeadStatusBadge status={lead.status} />
@@ -74,13 +74,13 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
         <LeadMetadataForm lead={lead} />
 
         {/* Linked deals */}
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-slate-200 pt-4">
           <LinkedDealsPanel leadId={lead.id} />
         </div>
 
         {/* Convert to Contact CTA */}
         {lead.status !== 'WON' && lead.status !== 'LOST' && !lead.convertedToContactId && (
-          <div className="border-t border-border/50 pt-4">
+          <div className="border-t border-slate-200 pt-4">
             {!confirmConvert ? (
               <button
                 type="button"
@@ -92,7 +92,7 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
               </button>
             ) : (
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-text-secondary">Convert this lead to a contact? This cannot be undone.</span>
+                <span className="text-slate-600">Convert this lead to a contact? This cannot be undone.</span>
                 <Button
                   variant="primary"
                   onClick={handleConvert}
@@ -129,7 +129,7 @@ export function LeadDetailPage({ leadId, initialLead }: LeadDetailPageProps) {
       </div>
 
       {/* Right panel — 40% */}
-      <div className="flex-[2] min-w-0 min-h-[400px] lg:min-h-0 border border-border rounded-xl overflow-hidden">
+      <div className="flex-[2] min-w-0 min-h-[400px] lg:min-h-0 border border-slate-200 rounded-xl overflow-hidden">
         <Tabs defaultValue="activity" tabs={tabs} />
       </div>
 

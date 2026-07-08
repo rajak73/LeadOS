@@ -45,7 +45,7 @@ export function LostReasonModal({ open, dealId, pipelineId, onClose }: LostReaso
           placeholder="Reason (optional)"
           rows={3}
           maxLength={500}
-          className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary-500 resize-none"
+          className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-primary-500 resize-none"
         />
         <div className="flex gap-2 justify-end">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

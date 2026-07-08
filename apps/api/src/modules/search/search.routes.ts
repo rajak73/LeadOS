@@ -19,3 +19,13 @@ export function buildSearchRouter(
 
   return router;
 }
+
+export function buildAdminSearchRouter(): Router {
+  const router = Router();
+  const service = new SearchService();
+  const controller = createSearchController(service);
+
+  router.get('/', asyncHandler(controller.adminSearch));
+
+  return router;
+}

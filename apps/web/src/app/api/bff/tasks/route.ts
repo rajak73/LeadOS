@@ -21,7 +21,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const result = await callApi({ path, accessToken });
-  return Response.json(result.body, { status: result.status });
+  const data = result.body as Record<string, unknown>;
+  if (data?.data) {
+    data.isAiEnabled = process.env.FLAG_AI_SCORING_ENABLED === 'true';
+  }
+  return Response.json(data, { status: result.status });
 }
 
 export async function POST(request: NextRequest): Promise<Response> {

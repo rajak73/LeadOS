@@ -120,7 +120,7 @@ export function KanbanBoard({ initialPipelines }: KanbanBoardProps) {
           onChange={setActivePipelineId}
         />
         {activePipeline && (
-          <h2 className="text-sm font-medium text-text-secondary hidden md:block">{activePipeline.name}</h2>
+          <h2 className="text-sm font-medium text-slate-600 hidden md:block">{activePipeline.name}</h2>
         )}
       </div>
 
@@ -149,13 +149,13 @@ export function KanbanBoard({ initialPipelines }: KanbanBoardProps) {
                   onClick={() => setMobileStageIndex((i) => Math.max(0, i - 1))}
                   disabled={mobileStageIndex === 0}
                   aria-label="Previous stage"
-                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-bg-elevated text-text-secondary hover:bg-bg-subtle disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   ‹
                 </button>
-                <span className="text-sm font-medium text-text-primary">
+                <span className="text-sm font-medium text-slate-900">
                   {mobileStage?.name ?? ''}
-                  <span className="ml-1.5 text-text-tertiary text-xs">
+                  <span className="ml-1.5 text-slate-500 text-xs">
                     ({mobileStageIndex + 1} / {stages.length})
                   </span>
                 </span>
@@ -164,7 +164,7 @@ export function KanbanBoard({ initialPipelines }: KanbanBoardProps) {
                   onClick={() => setMobileStageIndex((i) => Math.min(stages.length - 1, i + 1))}
                   disabled={mobileStageIndex === stages.length - 1}
                   aria-label="Next stage"
-                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-bg-elevated text-text-secondary hover:bg-bg-subtle disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   ›
                 </button>

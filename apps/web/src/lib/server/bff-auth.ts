@@ -7,6 +7,10 @@ import { callApi } from './bff';
 import { parseCookieHeader, SESSION_COOKIE_NAME } from './cookies';
 
 export async function resolveAccessToken(request: NextRequest): Promise<string | null> {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
   const cookies = parseCookieHeader(request.headers.get('cookie'));
   const session = cookies[SESSION_COOKIE_NAME];
   if (!session) return null;

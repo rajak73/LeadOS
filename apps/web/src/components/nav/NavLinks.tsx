@@ -18,8 +18,8 @@ function NavLink({ href, icon, label }: NavLinkProps) {
       href={href}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
         isActive
-          ? 'text-text-primary bg-bg-subtle font-medium'
-          : 'text-text-secondary hover:text-text-primary hover:bg-bg-subtle'
+          ? 'text-slate-900 bg-slate-50 font-medium'
+          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
       }`}
     >
       <span>{icon}</span>
@@ -31,6 +31,7 @@ function NavLink({ href, icon, label }: NavLinkProps) {
 export function PrimaryNavLinks() {
   return (
     <>
+      <NavLink href="/customers" icon="⭐" label="Customers" />
       <NavLink href="/leads" icon="👥" label="Leads" />
       <NavLink href="/pipeline" icon="📊" label="Pipeline" />
       <NavLink href="/analytics" icon="📈" label="Analytics" />

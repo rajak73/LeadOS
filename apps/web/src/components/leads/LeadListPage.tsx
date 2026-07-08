@@ -44,7 +44,7 @@ export function LeadListPage() {
   return (
     <div className="space-y-5" data-testid="lead-list-page">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-text-primary">Leads</h1>
+        <h1 className="text-xl font-semibold text-slate-900">Leads</h1>
       </div>
 
       {/* Saved views bar */}

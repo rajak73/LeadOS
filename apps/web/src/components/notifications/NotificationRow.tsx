@@ -25,7 +25,7 @@ export function NotificationRow({ notification, onClick }: NotificationRowProps)
     <button
       type="button"
       onClick={() => onClick?.(notification)}
-      className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-border/40 last:border-0 transition-colors hover:bg-bg-subtle ${
+      className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-slate-200/40 last:border-0 transition-colors hover:bg-slate-50 ${
         unread ? '' : 'opacity-60'
       }`}
     >
@@ -35,12 +35,12 @@ export function NotificationRow({ notification, onClick }: NotificationRowProps)
       />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
-          <span className={`text-sm truncate ${unread ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+          <span className={`text-sm truncate ${unread ? 'text-slate-900 font-medium' : 'text-slate-600'}`}>
             {notification.title}
           </span>
-          <span className="text-xs text-text-tertiary shrink-0">{relativeTime(notification.createdAt)}</span>
+          <span className="text-xs text-slate-500 shrink-0">{relativeTime(notification.createdAt)}</span>
         </span>
-        <span className="block text-xs text-text-secondary truncate mt-0.5">{notification.body}</span>
+        <span className="block text-xs text-slate-600 truncate mt-0.5">{notification.body}</span>
       </span>
     </button>
   );

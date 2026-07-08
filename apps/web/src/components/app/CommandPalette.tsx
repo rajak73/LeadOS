@@ -123,13 +123,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         aria-modal="true"
         aria-label="Command palette"
         className="fixed top-[20%] left-1/2 -translate-x-1/2 z-50 w-full max-w-xl
-                   bg-bg-elevated border border-border rounded-2xl shadow-2xl shadow-black/50
+                   bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-black/50
                    overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
           <svg
-            className="w-5 h-5 text-text-tertiary flex-shrink-0"
+            className="w-5 h-5 text-slate-500 flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -147,7 +147,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search leads, deals, conversations…"
-            className="flex-1 bg-transparent text-text-primary placeholder:text-text-tertiary
+            className="flex-1 bg-transparent text-slate-900 placeholder:text-slate-500
                        text-base focus:outline-none"
             data-testid="command-palette-input"
           />
@@ -155,14 +155,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-text-tertiary hover:text-text-primary transition-colors text-lg"
+              className="text-slate-500 hover:text-slate-900 transition-colors text-lg"
               aria-label="Clear search"
             >
               ×
             </button>
           )}
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs
-                          text-text-tertiary border border-border font-mono">
+                          text-slate-500 border border-slate-200 font-mono">
             esc
           </kbd>
         </div>
@@ -179,7 +179,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           {/* Empty state */}
           {!isLoading && query.length >= 2 && flatResults.length === 0 && (
             <div className="py-10 text-center">
-              <p className="text-text-tertiary text-sm">No results for &ldquo;{query}&rdquo;</p>
+              <p className="text-slate-500 text-sm">No results for &ldquo;{query}&rdquo;</p>
             </div>
           )}
 
@@ -189,7 +189,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               {Array.from(sectionGroups.entries()).map(([section, items]) => (
                 <li key={section}>
                   <div className="px-4 pt-3 pb-1">
-                    <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       {SECTION_LABELS[section]}
                     </span>
                   </div>
@@ -203,20 +203,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         onClick={() => navigate(item.href)}
                         onMouseEnter={() => setSelectedIndex(globalIndex)}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors
-                          ${isSelected ? 'bg-primary-500/10' : 'hover:bg-bg-subtle'}`}
+                          ${isSelected ? 'bg-primary-500/10' : 'hover:bg-slate-50'}`}
                         data-testid={`search-result-${item.key}`}
                       >
                         <span className="text-lg flex-shrink-0">{item.icon}</span>
                         <div className="min-w-0">
-                          <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary-400' : 'text-text-primary'}`}>
+                          <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary-400' : 'text-slate-900'}`}>
                             {item.label}
                           </p>
                           {item.sublabel && (
-                            <p className="text-xs text-text-tertiary truncate">{item.sublabel}</p>
+                            <p className="text-xs text-slate-500 truncate">{item.sublabel}</p>
                           )}
                         </div>
                         {isSelected && (
-                          <kbd className="ml-auto text-xs text-text-tertiary font-mono">↵</kbd>
+                          <kbd className="ml-auto text-xs text-slate-500 font-mono">↵</kbd>
                         )}
                       </button>
                     );
@@ -229,18 +229,18 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           {/* Prompt state */}
           {query.length < 2 && !isLoading && (
             <div className="py-8 text-center space-y-2">
-              <p className="text-text-tertiary text-sm">Type to search across all records</p>
-              <div className="flex items-center justify-center gap-4 text-xs text-text-tertiary">
+              <p className="text-slate-500 text-sm">Type to search across all records</p>
+              <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded border border-border font-mono">↑↓</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded border border-slate-200 font-mono">↑↓</kbd>
                   navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded border border-border font-mono">↵</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded border border-slate-200 font-mono">↵</kbd>
                   open
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded border border-border font-mono">esc</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded border border-slate-200 font-mono">esc</kbd>
                   close
                 </span>
               </div>

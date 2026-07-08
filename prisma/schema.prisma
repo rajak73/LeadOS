@@ -76,6 +76,8 @@ enum LeadStatus {
 enum LeadSource {
   INSTAGRAM_DM
   INSTAGRAM_COMMENT
+  FACEBOOK_DM
+  FACEBOOK_COMMENT
   WHATSAPP
   MANUAL
   IMPORT
@@ -104,6 +106,13 @@ enum WebhookEventStatus {
   DONE
   FAILED
   SKIPPED
+}
+
+enum ImportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum TaskType {
@@ -167,18 +176,35 @@ enum ActivityType {
   MESSAGE_SENT
   INSTAGRAM_ACCOUNT_CONNECTED
   INSTAGRAM_ACCOUNT_DISCONNECTED
+  META_ACCOUNT_CONNECTED
+  META_ACCOUNT_DISCONNECTED
+  FACEBOOK_PAGE_CONNECTED
+  FACEBOOK_PAGE_DISCONNECTED
+  COMMENT_RECEIVED
+  COMMENT_REPLIED
+  DM_RECEIVED
+  DM_SENT
   // Sprint 7 M1 additions — Notification engine + scaffolds for M2/M3/M4 (R-PARITY-1)
   NOTIFICATION_SENT
   LEAD_SCORED
   WORKFLOW_TRIGGERED
   WORKFLOW_ACTION_EXECUTED
   FOLLOW_UP_CREATED
+  // Sprint 8 M1 additions — CSV Import Logging
+  CSV_IMPORT_STARTED
+  CSV_IMPORT_COMPLETED
+  CSV_IMPORT_FAILED
 }
 
 // MessageDirection already in enums.ts; parity-checked against this declaration.
 enum MessageDirection {
   INBOUND
   OUTBOUND
+}
+
+enum MetaPlatform {
+  INSTAGRAM
+  FACEBOOK
 }
 
 // Sprint 6 M1 — Instagram Inbox enums
@@ -269,32 +295,34 @@ model User {
   updatedAt        DateTime   @updatedAt
   deletedAt        DateTime?
 
-  memberships        OrganizationMember[]
-  refreshTokens      RefreshToken[]
-  verificationTokens VerificationToken[]
+  memberships             OrganizationMember[]
+  refreshTokens           RefreshToken[]
+  verificationTokens      VerificationToken[]
   // Sprint 4 CRM relations
-  assignedLeads           Lead[]                  @relation("LeadAssignee")
-  createdLeads            Lead[]                  @relation("LeadCreator")
-  assignedContacts        Contact[]               @relation("ContactAssignee")
-  createdContacts         Contact[]               @relation("ContactCreator")
-  assignedTasks           Task[]                  @relation("TaskAssignee")
-  createdTasks            Task[]                  @relation("TaskCreator")
-  performedActivities     Activity[]              @relation("ActivityPerformer")
-  createdNotes            Note[]                  @relation("NoteCreator")
-  uploadedFiles           File[]                  @relation("FileUploader")
-  teamInvitesSent         TeamInvite[]            @relation("InviteSender")
-  customFieldDefinitions  CustomFieldDefinition[] @relation("CustomFieldCreator")
-  savedReplies            SavedReply[]            @relation("SavedReplyCreator")
+  assignedLeads           Lead[]                   @relation("LeadAssignee")
+  createdLeads            Lead[]                   @relation("LeadCreator")
+  assignedContacts        Contact[]                @relation("ContactAssignee")
+  createdContacts         Contact[]                @relation("ContactCreator")
+  assignedTasks           Task[]                   @relation("TaskAssignee")
+  createdTasks            Task[]                   @relation("TaskCreator")
+  performedActivities     Activity[]               @relation("ActivityPerformer")
+  createdNotes            Note[]                   @relation("NoteCreator")
+  uploadedFiles           File[]                   @relation("FileUploader")
+  teamInvitesSent         TeamInvite[]             @relation("InviteSender")
+  customFieldDefinitions  CustomFieldDefinition[]  @relation("CustomFieldCreator")
+  savedReplies            SavedReply[]             @relation("SavedReplyCreator")
   // Sprint 5 Deal relations
-  assignedDeals           Deal[]                  @relation("DealAssignee")
-  createdDeals            Deal[]                  @relation("DealCreator")
+  assignedDeals           Deal[]                   @relation("DealAssignee")
+  createdDeals            Deal[]                   @relation("DealCreator")
   // Sprint 6 Instagram Inbox relations
-  assignedConversations   InstagramConversation[] @relation("ConversationAssignee")
+  assignedConversations   InstagramConversation[]  @relation("ConversationAssignee")
   // Sprint 7 Notification relations
   notifications           Notification[]           @relation("NotificationRecipient")
   notificationPreferences NotificationPreference[] @relation("NotificationPrefUser")
   // Sprint 9 WhatsApp relations
   assignedWaConversations WhatsAppConversation[]   @relation("WaConversationAssignee")
+  // Sprint 8 Import relations
+  imports                 ImportHistory[]
 
   @@index([status])
   @@map("users")
@@ -315,29 +343,29 @@ model Organization {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  members      OrganizationMember[]
-  roles        Role[]
-  subscription Subscription?
+  members                 OrganizationMember[]
+  roles                   Role[]
+  subscription            Subscription?
   // Sprint 4 CRM relations
-  leads                  Lead[]
-  contacts               Contact[]
-  tasks                  Task[]
-  activities             Activity[]
-  notes                  Note[]
-  files                  File[]
-  aiScores               AiScore[]
-  customFieldDefinitions CustomFieldDefinition[]
-  teamInvites            TeamInvite[]
-  savedReplies           SavedReply[]
+  leads                   Lead[]
+  contacts                Contact[]
+  tasks                   Task[]
+  activities              Activity[]
+  notes                   Note[]
+  files                   File[]
+  aiScores                AiScore[]
+  customFieldDefinitions  CustomFieldDefinition[]
+  teamInvites             TeamInvite[]
+  savedReplies            SavedReply[]
   // Sprint 5 Pipeline & Deal relations
-  pipelines              Pipeline[]
-  pipelineStages         PipelineStage[]
-  deals                  Deal[]
-  webhookEvents          WebhookEvent[]
+  pipelines               Pipeline[]
+  pipelineStages          PipelineStage[]
+  deals                   Deal[]
+  webhookEvents           WebhookEvent[]
   // Sprint 6 Instagram Inbox relations
-  instagramAccounts      InstagramAccount[]
-  instagramConversations InstagramConversation[]
-  messages               Message[]
+  instagramAccounts       InstagramAccount[]
+  instagramConversations  InstagramConversation[]
+  messages                Message[]
   // Sprint 7 Notification relations
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
@@ -349,6 +377,8 @@ model Organization {
   whatsappTemplates       WhatsAppTemplate[]
   whatsappConversations   WhatsAppConversation[]
   whatsappMessages        WhatsAppMessage[]
+  // Sprint 8 Import relations
+  importHistory           ImportHistory[]
 
   @@index([status])
   @@map("organizations")
@@ -528,6 +558,8 @@ model Lead {
   aiScoreUpdatedAt     DateTime?
   instagramHandle      String?    @db.VarChar(100)
   instagramUserId      String?    @db.VarChar(50)
+  facebookUserId       String?    @db.VarChar(100)
+  facebookPageId       String?    @db.VarChar(100)
   instagramAccountId   String?    @db.Uuid // deferred FK → instagram_accounts (Sprint 6)
   tags                 String[]   @default([])
   customFields         Json       @default("{}")
@@ -541,25 +573,27 @@ model Lead {
   updatedAt            DateTime   @updatedAt
   deletedAt            DateTime?
 
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  assignedTo         User?        @relation("LeadAssignee", fields: [assignedToId], references: [id])
-  createdBy          User         @relation("LeadCreator", fields: [createdById], references: [id])
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo             User?                   @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  createdBy              User                    @relation("LeadCreator", fields: [createdById], references: [id])
   // convertedToContactId FK: Lead stores which contact it converted into (many-to-one; 1 in practice)
-  convertedToContact Contact?     @relation("LeadToContact", fields: [convertedToContactId], references: [id])
+  convertedToContact     Contact?                @relation("LeadToContact", fields: [convertedToContactId], references: [id])
   // Back-ref for Contact.createdFromLeadId: contacts that were created from this lead
-  createdContacts    Contact[]    @relation("ContactFromLead")
-  activities         Activity[]
-  tasks              Task[]
-  notesList          Note[]
-  files              File[]
-  aiScores           AiScore[]
-  deals              Deal[]
+  createdContacts        Contact[]               @relation("ContactFromLead")
+  activities             Activity[]
+  tasks                  Task[]
+  notesList              Note[]
+  files                  File[]
+  aiScores               AiScore[]
+  deals                  Deal[]
   // Sprint 6 Instagram Inbox relations
   instagramConversations InstagramConversation[]
   instagramAccount       InstagramAccount?       @relation(fields: [instagramAccountId], references: [id])
   // Sprint 9 WhatsApp relations
   whatsappConversations  WhatsAppConversation[]
 
+  // @@unique enforced here for TypeScript upsert API; DB index created CONCURRENTLY in migration 0015b
+  @@unique([organizationId, instagramUserId])
   @@index([organizationId, status])
   @@index([organizationId, assignedToId])
   @@index([organizationId, source])
@@ -568,8 +602,6 @@ model Lead {
   @@index([email])
   @@index([phone])
   @@index([instagramUserId])
-  // @@unique enforced here for TypeScript upsert API; DB index created CONCURRENTLY in migration 0015b
-  @@unique([organizationId, instagramUserId])
   @@index([deletedAt])
   @@map("leads")
 }
@@ -596,18 +628,18 @@ model Contact {
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  assignedTo      User?        @relation("ContactAssignee", fields: [assignedToId], references: [id])
-  createdBy       User         @relation("ContactCreator", fields: [createdById], references: [id])
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo             User?                   @relation("ContactAssignee", fields: [assignedToId], references: [id])
+  createdBy              User                    @relation("ContactCreator", fields: [createdById], references: [id])
   // createdFromLeadId FK: Contact tracks which lead it was created from (many-to-one; 1 in practice)
-  createdFromLead Lead?        @relation("ContactFromLead", fields: [createdFromLeadId], references: [id])
+  createdFromLead        Lead?                   @relation("ContactFromLead", fields: [createdFromLeadId], references: [id])
   // Back-ref for Lead.convertedToContactId: leads that converted into this contact
-  convertedLeads  Lead[]       @relation("LeadToContact")
-  activities      Activity[]
-  tasks           Task[]
-  notesList       Note[]
-  files           File[]
-  deals           Deal[]
+  convertedLeads         Lead[]                  @relation("LeadToContact")
+  activities             Activity[]
+  tasks                  Task[]
+  notesList              Note[]
+  files                  File[]
+  deals                  Deal[]
   // Sprint 6 Instagram Inbox relations
   instagramConversations InstagramConversation[]
   // Sprint 9 WhatsApp relations
@@ -662,19 +694,19 @@ model Task {
 // This table's DDL is hand-authored; do NOT run prisma migrate dev to regenerate it.
 // DB triggers enforce immutability: activities_no_update, activities_no_delete.
 model Activity {
-  id               String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId   String       @db.Uuid
-  type             ActivityType
-  description      String       @db.Text
-  metadata         Json         @default("{}")
-  performedById    String?      @db.Uuid
-  relatedLeadId    String?      @db.Uuid
-  relatedDealId    String?      @db.Uuid
-  relatedContactId String?      @db.Uuid
-  relatedPipelineId      String? @db.Uuid
-  relatedPipelineStageId String? @db.Uuid
-  relatedConversationId  String? @db.Uuid // Sprint 7 M1 — closes §5.1 deferral (scalar-only, mirrors pipeline FKs)
-  createdAt        DateTime     @default(now())
+  id                     String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId         String       @db.Uuid
+  type                   ActivityType
+  description            String       @db.Text
+  metadata               Json         @default("{}")
+  performedById          String?      @db.Uuid
+  relatedLeadId          String?      @db.Uuid
+  relatedDealId          String?      @db.Uuid
+  relatedContactId       String?      @db.Uuid
+  relatedPipelineId      String?      @db.Uuid
+  relatedPipelineStageId String?      @db.Uuid
+  relatedConversationId  String?      @db.Uuid // Sprint 7 M1 — closes §5.1 deferral (scalar-only, mirrors pipeline FKs)
+  createdAt              DateTime     @default(now())
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   performedBy    User?        @relation("ActivityPerformer", fields: [performedById], references: [id])
@@ -930,25 +962,25 @@ model PipelineStage {
 // Status machine: OPEN → WON or OPEN → LOST (terminal; no reopen in V1).
 // Soft-deleted via deletedAt. value in INR by default (currency field stores ISO 4217 code).
 model Deal {
-  id                 String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId     String     @db.Uuid
-  title              String     @db.VarChar(200)
-  value              Decimal?   @db.Decimal(15, 2)
-  currency           String     @default("INR") @db.Char(3)
-  pipelineId         String     @db.Uuid
-  stageId            String     @db.Uuid
-  leadId             String?    @db.Uuid
-  contactId          String?    @db.Uuid
-  assignedToId       String?    @db.Uuid
-  createdById        String     @db.Uuid
-  status             DealStatus @default(OPEN)
-  closedAt           DateTime?
-  lostReason         String?    @db.VarChar(500)
-  expectedCloseDate  DateTime?
-  customFields       Json       @default("{}")
-  deletedAt          DateTime?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  id                String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId    String     @db.Uuid
+  title             String     @db.VarChar(200)
+  value             Decimal?   @db.Decimal(15, 2)
+  currency          String     @default("INR") @db.Char(3)
+  pipelineId        String     @db.Uuid
+  stageId           String     @db.Uuid
+  leadId            String?    @db.Uuid
+  contactId         String?    @db.Uuid
+  assignedToId      String?    @db.Uuid
+  createdById       String     @db.Uuid
+  status            DealStatus @default(OPEN)
+  closedAt          DateTime?
+  lostReason        String?    @db.VarChar(500)
+  expectedCloseDate DateTime?
+  customFields      Json       @default("{}")
+  deletedAt         DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
@@ -1005,23 +1037,25 @@ model WebhookEvent {
 // accessToken is AES-256-GCM encrypted; stored as v{n}:{hex(iv)}:{hex(tag)}:{hex(ct)}.
 // instagramAccountId on Lead has a deferred FK added in migration 0016.
 model InstagramAccount {
-  id                  String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId      String                 @db.Uuid
-  igUserId            String                 @db.VarChar(50)
-  igUsername          String?                @db.VarChar(100)
-  accessToken         String                 @db.Text
-  tokenExpiresAt      DateTime               @db.Timestamptz
-  tokenType           String                 @db.VarChar(20)
-  status              InstagramAccountStatus @default(ACTIVE)
-  webhookSubscribed   Boolean                @default(false)
-  profilePictureUrl   String?                @db.Text
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  deletedAt           DateTime?
+  id                String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId    String                 @db.Uuid
+  igUserId          String                 @db.VarChar(50)
+  platform          MetaPlatform           @default(INSTAGRAM)
+  facebookPageId    String?                @db.VarChar(100)
+  igUsername        String?                @db.VarChar(100)
+  accessToken       String                 @db.Text
+  tokenExpiresAt    DateTime               @db.Timestamptz
+  tokenType         String                 @db.VarChar(20)
+  status            InstagramAccountStatus @default(ACTIVE)
+  webhookSubscribed Boolean                @default(false)
+  profilePictureUrl String?                @db.Text
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  deletedAt         DateTime?
 
-  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  conversations          InstagramConversation[]
-  leads                  Lead[]
+  organization  Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversations InstagramConversation[]
+  leads         Lead[]
 
   @@unique([organizationId, igUserId])
   @@index([organizationId, status])
@@ -1034,6 +1068,7 @@ model InstagramAccount {
 model InstagramConversation {
   id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId   String             @db.Uuid
+  platform         MetaPlatform       @default(INSTAGRAM)
   igConversationId String             @db.VarChar(100)
   igAccountId      String             @db.Uuid
   leadId           String?            @db.Uuid
@@ -1047,11 +1082,11 @@ model InstagramConversation {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   igAccount    InstagramAccount @relation(fields: [igAccountId], references: [id], onDelete: Cascade)
-  lead         Lead?           @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  contact      Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  assignedTo   User?           @relation("ConversationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  lead         Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact      Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedTo   User?            @relation("ConversationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   messages     Message[]
 
   @@unique([organizationId, igConversationId])
@@ -1065,22 +1100,22 @@ model InstagramConversation {
 // Individual DM message within an Instagram conversation.
 // mid is Meta's globally unique message ID — used as the idempotency key.
 model Message {
-  id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String            @db.Uuid
-  conversationId String            @db.Uuid
-  mid            String            @unique @db.VarChar(200)
+  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String           @db.Uuid
+  conversationId String           @db.Uuid
+  mid            String           @unique @db.VarChar(200)
   direction      MessageDirection
-  contentType    String            @default("TEXT") @db.VarChar(20)
+  contentType    String           @default("TEXT") @db.VarChar(20)
   content        Json
-  status         MessageStatus     @default(SENT)
-  sentAt         DateTime          @db.Timestamptz
-  deliveredAt    DateTime?         @db.Timestamptz
-  readAt         DateTime?         @db.Timestamptz
-  senderId       String?           @db.VarChar(100)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  status         MessageStatus    @default(SENT)
+  sentAt         DateTime         @db.Timestamptz
+  deliveredAt    DateTime?        @db.Timestamptz
+  readAt         DateTime?        @db.Timestamptz
+  senderId       String?          @db.VarChar(100)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   conversation InstagramConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, sentAt(sort: Desc)])
@@ -1105,16 +1140,16 @@ model AiUsageCounter {
 }
 
 model Workflow {
-  id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String        @db.Uuid
-  name           String        @db.VarChar(255)
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String    @db.Uuid
+  name           String    @db.VarChar(255)
   description    String?
-  triggerType    String        @db.VarChar(100) // e.g. LEAD_CREATED, LEAD_STATUS_CHANGED
+  triggerType    String    @db.VarChar(100) // e.g. LEAD_CREATED, LEAD_STATUS_CHANGED
   definition     Json // Zod verified trigger, conditions, and actions schema
-  isActive       Boolean       @default(false)
-  createdAt      DateTime      @default(now()) @db.Timestamptz
-  updatedAt      DateTime      @updatedAt @db.Timestamptz
-  deletedAt      DateTime?     @db.Timestamptz
+  isActive       Boolean   @default(false)
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+  deletedAt      DateTime? @db.Timestamptz
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   runs         WorkflowRun[]
@@ -1201,22 +1236,22 @@ enum WhatsAppTemplateCategory {
 // WhatsApp Business Account (WABA) credentials per organization.
 // accessToken is AES-256-GCM encrypted before storage.
 model WhatsAppAccount {
-  id               String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId   String                 @db.Uuid
-  wabaId           String                 @db.VarChar(100)
-  phoneNumberId    String                 @db.VarChar(100)
-  displayName      String                 @db.VarChar(255)
-  phoneNumber      String                 @db.VarChar(30)
-  accessToken      String                 // encrypted
-  tokenExpiresAt   DateTime?              @db.Timestamptz
-  status           WhatsAppAccountStatus  @default(ACTIVE)
-  webhookVerified  Boolean               @default(false)
-  deletedAt        DateTime?              @db.Timestamptz
-  createdAt        DateTime               @default(now()) @db.Timestamptz
-  updatedAt        DateTime               @updatedAt @db.Timestamptz
+  id              String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId  String                @db.Uuid
+  wabaId          String                @db.VarChar(100)
+  phoneNumberId   String                @db.VarChar(100)
+  displayName     String                @db.VarChar(255)
+  phoneNumber     String                @db.VarChar(30)
+  accessToken     String // encrypted
+  tokenExpiresAt  DateTime?             @db.Timestamptz
+  status          WhatsAppAccountStatus @default(ACTIVE)
+  webhookVerified Boolean               @default(false)
+  deletedAt       DateTime?             @db.Timestamptz
+  createdAt       DateTime              @default(now()) @db.Timestamptz
+  updatedAt       DateTime              @updatedAt @db.Timestamptz
 
-  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  templates    WhatsAppTemplate[]
+  organization  Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templates     WhatsAppTemplate[]
   conversations WhatsAppConversation[]
 
   @@unique([organizationId, phoneNumberId])
@@ -1226,20 +1261,20 @@ model WhatsAppAccount {
 
 // Cache of Meta-approved message templates synced from the Cloud API.
 model WhatsAppTemplate {
-  id             String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String                    @db.Uuid
-  accountId      String                    @db.Uuid
-  templateId     String                    @db.VarChar(100) // Meta's template ID
-  name           String                    @db.VarChar(255)
-  language       String                    @db.VarChar(20)
+  id             String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String                   @db.Uuid
+  accountId      String                   @db.Uuid
+  templateId     String                   @db.VarChar(100) // Meta's template ID
+  name           String                   @db.VarChar(255)
+  language       String                   @db.VarChar(20)
   category       WhatsAppTemplateCategory
-  status         WhatsAppTemplateStatus    @default(PENDING)
-  components     Json                      // raw template components from Meta
-  createdAt      DateTime                  @default(now()) @db.Timestamptz
-  updatedAt      DateTime                  @updatedAt @db.Timestamptz
+  status         WhatsAppTemplateStatus   @default(PENDING)
+  components     Json // raw template components from Meta
+  createdAt      DateTime                 @default(now()) @db.Timestamptz
+  updatedAt      DateTime                 @updatedAt @db.Timestamptz
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  account      WhatsAppAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account      WhatsAppAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, accountId, templateId])
   @@index([organizationId, accountId])
@@ -1250,20 +1285,20 @@ model WhatsAppTemplate {
 // WhatsApp conversation thread — one per (account, customer phone number) pair.
 // windowExpiresAt tracks the 24-hour messaging window: null = no window open.
 model WhatsAppConversation {
-  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId      String             @db.Uuid
-  wabaConversationId  String             @db.VarChar(200) // stable composite key for idempotency
-  accountId           String             @db.Uuid
-  customerPhone       String             @db.VarChar(30)
-  leadId              String?            @db.Uuid
-  contactId           String?            @db.Uuid
-  assignedToId        String?            @db.Uuid
-  status              ConversationStatus @default(OPEN)
-  windowExpiresAt     DateTime?          @db.Timestamptz // null = window closed; set to +24h on each inbound
-  lastInboundAt       DateTime?          @db.Timestamptz
-  lastMessageAt       DateTime?          @db.Timestamptz
-  createdAt           DateTime           @default(now()) @db.Timestamptz
-  updatedAt           DateTime           @updatedAt @db.Timestamptz
+  id                 String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId     String             @db.Uuid
+  wabaConversationId String             @db.VarChar(200) // stable composite key for idempotency
+  accountId          String             @db.Uuid
+  customerPhone      String             @db.VarChar(30)
+  leadId             String?            @db.Uuid
+  contactId          String?            @db.Uuid
+  assignedToId       String?            @db.Uuid
+  status             ConversationStatus @default(OPEN)
+  windowExpiresAt    DateTime?          @db.Timestamptz // null = window closed; set to +24h on each inbound
+  lastInboundAt      DateTime?          @db.Timestamptz
+  lastMessageAt      DateTime?          @db.Timestamptz
+  createdAt          DateTime           @default(now()) @db.Timestamptz
+  updatedAt          DateTime           @updatedAt @db.Timestamptz
 
   organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   account      WhatsAppAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -1283,21 +1318,21 @@ model WhatsAppConversation {
 // Individual WhatsApp message within a conversation.
 // waMessageId is Meta's globally unique message ID (idempotency key).
 model WhatsAppMessage {
-  id               String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId   String                 @db.Uuid
-  conversationId   String                 @db.Uuid
-  waMessageId      String                 @unique @db.VarChar(200)
-  direction        MessageDirection
-  contentType      String                 @default("TEXT") @db.VarChar(20)
-  content          Json
-  templateName     String?                @db.VarChar(255) // set when template message
-  status           MessageStatus          @default(SENT)
-  sentAt           DateTime               @db.Timestamptz
-  deliveredAt      DateTime?              @db.Timestamptz
-  readAt           DateTime?              @db.Timestamptz
-  errorCode        String?                @db.VarChar(50)
-  createdAt        DateTime               @default(now()) @db.Timestamptz
-  updatedAt        DateTime               @updatedAt @db.Timestamptz
+  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String           @db.Uuid
+  conversationId String           @db.Uuid
+  waMessageId    String           @unique @db.VarChar(200)
+  direction      MessageDirection
+  contentType    String           @default("TEXT") @db.VarChar(20)
+  content        Json
+  templateName   String?          @db.VarChar(255) // set when template message
+  status         MessageStatus    @default(SENT)
+  sentAt         DateTime         @db.Timestamptz
+  deliveredAt    DateTime?        @db.Timestamptz
+  readAt         DateTime?        @db.Timestamptz
+  errorCode      String?          @db.VarChar(50)
+  createdAt      DateTime         @default(now()) @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @db.Timestamptz
 
   organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -1307,3 +1342,25 @@ model WhatsAppMessage {
   @@map("whatsapp_messages")
 }
 
+// Sprint 8 M1 — CSV Import History
+model ImportHistory {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId  String          @db.Uuid
+  importedById    String          @db.Uuid
+  fileName        String          @db.VarChar(255)
+  fileSize        Int
+  recordsTotal    Int             @default(0)
+  recordsImported Int             @default(0)
+  recordsFailed   Int             @default(0)
+  recordsSkipped  Int             @default(0)
+  status          ImportJobStatus @default(PENDING)
+  errorSummary    Json?
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  importedBy   User         @relation(fields: [importedById], references: [id])
+
+  @@index([organizationId, startedAt(sort: Desc)])
+  @@map("import_history")
+}

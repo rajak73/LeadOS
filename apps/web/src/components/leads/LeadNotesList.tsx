@@ -43,7 +43,7 @@ export function LeadNotesList({ leadId }: LeadNotesListProps) {
           placeholder="Add a note…"
           rows={3}
           data-testid="note-textarea"
-          className="w-full px-3 py-2 text-sm bg-bg-base border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-500 resize-none transition-colors"
+          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-primary-500 resize-none transition-colors"
         />
         <Button
           variant="primary"
@@ -56,17 +56,17 @@ export function LeadNotesList({ leadId }: LeadNotesListProps) {
       </div>
 
       {notes.length === 0 && (
-        <p className="text-sm text-text-tertiary text-center py-4">No notes yet</p>
+        <p className="text-sm text-slate-500 text-center py-4">No notes yet</p>
       )}
 
       {notes.map((note) => (
         <div
           key={note.id}
-          className="p-3 bg-bg-elevated border border-border rounded-lg space-y-1"
+          className="p-3 bg-white border border-slate-200 rounded-lg space-y-1"
           data-testid={`note-${note.id}`}
         >
-          <p className="text-sm text-text-primary whitespace-pre-wrap">{getNoteText(note.content)}</p>
-          <p className="text-xs text-text-tertiary">{formatRelativeTime(note.createdAt)}</p>
+          <p className="text-sm text-slate-900 whitespace-pre-wrap">{getNoteText(note.content)}</p>
+          <p className="text-xs text-slate-500">{formatRelativeTime(note.createdAt)}</p>
         </div>
       ))}
     </div>

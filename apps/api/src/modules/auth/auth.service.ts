@@ -58,6 +58,7 @@ export interface MeResult {
   emailVerified: boolean;
   isSuperAdmin: boolean;
   organizations: { id: string; name: string; role: string }[];
+  isAiEnabled: boolean;
 }
 
 export class AuthService {
@@ -307,6 +308,7 @@ export class AuthService {
         name: m.organizationName,
         role: m.roleName,
       })),
+      isAiEnabled: process.env['FLAG_AI_SCORING_ENABLED'] !== 'false' && process.env['FLAG_AI_SCORING_ENABLED'] !== '0',
     };
   }
 

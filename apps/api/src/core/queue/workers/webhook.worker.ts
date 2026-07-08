@@ -20,6 +20,7 @@ import {
   PrismaMessageRepository,
 } from '../../../modules/inbox/inbox.repository.js';
 import type { WebhookSource } from '@leados/shared';
+import { InteractiveCaptureService, type LeadWithCustomFields } from '../../../modules/inbox/interactive-capture.service.js';
 
 export const WEBHOOK_JOB = 'webhook-event';
 export const INSTAGRAM_WEBHOOK_SUBSCRIBE_JOB = 'instagram-webhook-subscribe';
@@ -60,7 +61,13 @@ export async function processInstagramWebhookSubscribeJob(
     const repo = new PrismaInstagramAccountRepository(db);
     const account = await repo.findByIdOrThrow(igAccountId);
     const plainToken = decryptField(account.accessToken);
-    await instagramAdapter.subscribeWebhook(igUserId, plainToken);
+    
+    if (account.platform === 'FACEBOOK') {
+      await instagramAdapter.subscribeFacebookWebhook(igUserId, plainToken);
+    } else {
+      await instagramAdapter.subscribeWebhook(igUserId, plainToken);
+    }
+    
     await repo.update(igAccountId, { webhookSubscribed: true });
   });
 
@@ -146,45 +153,56 @@ async function handleInstagram(payload: unknown, webhookEventId: string): Promis
   const p = payload as { object?: string; entry?: unknown[] } | null;
 
   if (!p || !Array.isArray(p.entry) || p.entry.length === 0) {
-    logger.info({ message: 'Instagram webhook: no entries', webhookEventId });
+    logger.info({ message: 'Meta webhook: no entries', webhookEventId });
     return;
   }
 
   for (const rawEntry of p.entry) {
     const entry = rawEntry as Record<string, unknown>;
+    const entryId = entry['id'] as string | undefined;
+    
+    // 1. Process messaging (DMs)
     const messaging = entry['messaging'];
-    if (!Array.isArray(messaging)) continue;
+    if (Array.isArray(messaging)) {
+      for (let i = 0; i < messaging.length; i++) {
+        const msgEvent = messaging[i] as Record<string, unknown>;
+        const delivery = msgEvent['delivery'] as { mids?: string[]; watermark?: number } | undefined;
+        const read = msgEvent['read'] as { watermark?: number } | undefined;
 
-    for (let i = 0; i < messaging.length; i++) {
-      const msgEvent = messaging[i] as Record<string, unknown>;
+        if (delivery?.mids && delivery.mids.length > 0) {
+          await processInstagramDelivery(delivery.mids).catch((err) =>
+            logger.warn({ message: 'Meta webhook: delivery status error', webhookEventId, index: i, error: String(err) }),
+          );
+          continue;
+        }
 
-      // Status webhooks (delivered / read) are handled separately from DM messages
-      const delivery = msgEvent['delivery'] as { mids?: string[]; watermark?: number } | undefined;
-      const read = msgEvent['read'] as { watermark?: number } | undefined;
+        if (read?.watermark) {
+          await processInstagramRead(read.watermark).catch((err) =>
+            logger.warn({ message: 'Meta webhook: read status error', webhookEventId, index: i, error: String(err) }),
+          );
+          continue;
+        }
 
-      if (delivery?.mids && delivery.mids.length > 0) {
-        await processInstagramDelivery(delivery.mids).catch((err) =>
-          logger.warn({ message: 'Instagram webhook: delivery status error', webhookEventId, index: i, error: String(err) }),
-        );
-        continue;
+        try {
+          await processInstagramMessage(msgEvent, webhookEventId);
+        } catch (err) {
+          logger.warn({ message: 'Meta webhook: message event error', webhookEventId, index: i, error: String(err) });
+        }
       }
+    }
 
-      if (read?.watermark) {
-        await processInstagramRead(read.watermark).catch((err) =>
-          logger.warn({ message: 'Instagram webhook: read status error', webhookEventId, index: i, error: String(err) }),
-        );
-        continue;
-      }
-
-      try {
-        await processInstagramMessage(msgEvent, webhookEventId);
-      } catch (err) {
-        logger.warn({
-          message: 'Instagram webhook: message event error (continuing batch)',
-          webhookEventId,
-          index: i,
-          error: String(err),
-        });
+    // 2. Process changes (Feed/Comments)
+    const changes = entry['changes'];
+    if (Array.isArray(changes) && entryId) {
+      for (let i = 0; i < changes.length; i++) {
+        const change = changes[i] as Record<string, unknown>;
+        if (change.field === 'feed' || change.field === 'comments') {
+          try {
+            await processMetaComment(entryId, change.value as Record<string, unknown>, webhookEventId);
+          } catch (err) {
+            logger.warn({ message: 'Meta webhook: comment error', webhookEventId, error: String(err) });
+          }
+        }
       }
     }
   }
@@ -236,10 +254,16 @@ async function processInstagramMessage(
     return;
   }
 
-  // Resolve the instagram_account by the recipient's igUserId (cross-tenant lookup — base prisma)
+  // Resolve the instagram_account by the recipient's igUserId or facebookPageId
   const account = await prisma.instagramAccount.findFirst({
-    where: { igUserId: recipientIgUserId, deletedAt: null },
-    select: { id: true, organizationId: true },
+    where: { 
+      OR: [
+        { igUserId: recipientIgUserId },
+        { facebookPageId: recipientIgUserId }
+      ],
+      deletedAt: null 
+    },
+    select: { id: true, organizationId: true, platform: true, facebookPageId: true },
   });
 
   if (!account) {
@@ -309,12 +333,27 @@ async function processInstagramMessage(
     assignedToId = conversation.assignedToId;
     preview = text ?? '[attachment]';
 
-    // 3. Find or create lead by instagramUserId
-    const lead = await findOrCreateLead(db, senderIgUserId, systemUserId);
+    // 3. Find or create lead by instagramUserId or facebookUserId
+    const lead = await findOrCreateLead(db, senderIgUserId, systemUserId, account.platform as 'INSTAGRAM'|'FACEBOOK', account.facebookPageId ?? undefined);
 
     // 4. Link lead to conversation if not yet linked
     if (!conversation.leadId && lead) {
       await convRepo.update(conversation.id, { leadId: lead.id });
+    }
+
+    // 4b. Execute Simulated Interactive Lead Capture
+    if (lead && text) {
+      const isSimulation = message['is_simulation'] === true;
+      const captureService = new InteractiveCaptureService(db);
+      await captureService.handleSimulatedLeadCapture(
+        lead,
+        conversation.id,
+        text,
+        account.platform as 'INSTAGRAM' | 'FACEBOOK',
+        igAccountId,
+        senderIgUserId,
+        isSimulation
+      );
     }
 
     // 5. Update conversation's lastInboundAt (tracks 24h messaging window)
@@ -372,6 +411,83 @@ async function processInstagramMessage(
   }
 }
 
+async function processMetaComment(
+  recipientIgUserId: string,
+  value: Record<string, unknown>,
+  webhookEventId: string
+): Promise<void> {
+  const item = value['item'] as string; // 'comment'
+  const verb = value['verb'] as string; // 'add'
+  if (item !== 'comment' || verb !== 'add') return;
+
+  const senderObj = value['from'] as Record<string, unknown> | undefined;
+  const senderIgUserId = senderObj?.['id'] as string | undefined;
+  const text = value['message'] as string | undefined;
+  const mid = value['comment_id'] as string | undefined || value['id'] as string | undefined;
+  const timestamp = Number(value['created_time']) * 1000 || Date.now();
+
+  if (!recipientIgUserId || !senderIgUserId || !text || !mid) return;
+
+  const account = await prisma.instagramAccount.findFirst({
+    where: { igUserId: recipientIgUserId, deletedAt: null },
+    select: { id: true, organizationId: true, platform: true, facebookPageId: true },
+  });
+
+  if (!account) return;
+
+  const orgId = account.organizationId;
+  const igAccountId = account.id;
+
+  const systemMember = await prisma.organizationMember.findFirst({
+    where: { organizationId: orgId, status: 'ACTIVE' },
+    orderBy: { createdAt: 'asc' },
+    select: { userId: true },
+  });
+  const systemUserId = systemMember?.userId;
+  if (!systemUserId) return;
+
+  await withTenant(orgId, async (db) => {
+    const convRepo = new PrismaConversationRepository(db);
+    const msgRepo = new PrismaMessageRepository(db);
+
+    const igConversationId = `${recipientIgUserId}_${senderIgUserId}`;
+    const sentAt = new Date(timestamp);
+
+    const conversation = await convRepo.upsertByIgConversationId({
+      igConversationId,
+      igAccountId,
+      lastMessageAt: sentAt,
+    });
+
+    const newMsg = await msgRepo.createIfNotExists({
+      mid,
+      conversationId: conversation.id,
+      direction: 'INBOUND',
+      contentType: 'TEXT',
+      content: { text: `[Comment] ${text}` },
+      sentAt,
+      senderId: senderIgUserId,
+    });
+
+    if (!newMsg) return;
+
+    const lead = await findOrCreateLead(db, senderIgUserId, systemUserId, account.platform as 'INSTAGRAM'|'FACEBOOK', account.facebookPageId ?? undefined);
+
+    if (!conversation.leadId && lead) {
+      await convRepo.update(conversation.id, { leadId: lead.id });
+    }
+    
+    // We don't trigger capture flow for comments in this simulation, only DMs.
+    
+    await convRepo.update(conversation.id, { lastInboundAt: sentAt });
+  });
+
+  await prisma.webhookEvent.updateMany({
+    where: { id: webhookEventId, organizationId: null },
+    data: { organizationId: orgId },
+  });
+}
+
 /**
  * Find an existing non-deleted lead by instagramUserId, or create one.
  * Catches P2002 (concurrent creation) and re-queries.
@@ -379,13 +495,27 @@ async function processInstagramMessage(
  */
 async function findOrCreateLead(
   db: import('../../tenancy/with-tenant.js').TenantTransactionClient,
-  senderIgUserId: string,
+  senderId: string,
   systemUserId: string,
-): Promise<{ id: string } | null> {
+  platform: 'INSTAGRAM' | 'FACEBOOK',
+  pageId?: string
+): Promise<LeadWithCustomFields | null> {
+  const isFb = platform === 'FACEBOOK';
+  
+  const selectFields = {
+    id: true,
+    firstName: true,
+    lastName: true,
+    phone: true,
+    email: true,
+    organizationId: true,
+    customFields: true,
+  };
+
   // 1. Try to find existing non-deleted lead
   const existing = await db.lead.findFirst({
-    where: { instagramUserId: senderIgUserId, deletedAt: null },
-    select: { id: true },
+    where: isFb ? { facebookUserId: senderId, deletedAt: null } : { instagramUserId: senderId, deletedAt: null },
+    select: selectFields,
   });
   if (existing) return existing;
 
@@ -393,22 +523,24 @@ async function findOrCreateLead(
   try {
     return await db.lead.create({
       data: asTenantCreate<Prisma.LeadUncheckedCreateInput>({
-        firstName: `IG User`,
-        source: 'INSTAGRAM_DM',
+        firstName: isFb ? 'Facebook User' : 'IG User',
+        source: isFb ? 'FACEBOOK_DM' : 'INSTAGRAM_DM',
         status: 'NEW',
-        instagramUserId: senderIgUserId,
+        instagramUserId: isFb ? null : senderId,
+        facebookUserId: isFb ? senderId : null,
+        facebookPageId: isFb && pageId ? pageId : null,
         tags: [],
         customFields: {} as Prisma.InputJsonValue,
         createdById: systemUserId,
       }),
-      select: { id: true },
+      select: selectFields,
     });
   } catch (err) {
     if (isPrismaP2002(err)) {
-      // Concurrent create of same instagramUserId lead — re-query (may include soft-deleted)
+      // Concurrent create
       return db.lead.findFirst({
-        where: { instagramUserId: senderIgUserId },
-        select: { id: true },
+        where: isFb ? { facebookUserId: senderId } : { instagramUserId: senderId },
+        select: selectFields,
       });
     }
     throw err;
@@ -557,14 +689,26 @@ async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise
           // Find or create lead by phone number
           if (systemUserId) {
             const { asTenantCreate } = await import('../../tenancy/tenant-repository.js');
-            const existingLead = await db.lead.findFirst({
+            
+            const selectFields = {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true,
+              organizationId: true,
+              customFields: true,
+            };
+            
+            let lead: LeadWithCustomFields | null = await db.lead.findFirst({
               where: { phone: fromPhone, deletedAt: null },
-              select: { id: true },
+              select: selectFields,
             });
-            if (!existingLead) {
+            
+            if (!lead) {
               try {
                 const lastName = senderName.split(' ').slice(1).join(' ');
-                const newLead = await db.lead.create({
+                lead = await db.lead.create({
                   data: asTenantCreate<import('@prisma/client').Prisma.LeadUncheckedCreateInput>({
                     firstName: senderName.split(' ')[0] ?? fromPhone,
                     ...(lastName ? { lastName } : {}),
@@ -575,16 +719,41 @@ async function handleWhatsApp(payload: unknown, webhookEventId: string): Promise
                     customFields: {} as import('@prisma/client').Prisma.InputJsonValue,
                     createdById: systemUserId,
                   }),
-                  select: { id: true },
+                  select: selectFields,
                 });
                 // Link lead to conversation
-                await convRepo.update(conv.id, { leadId: newLead.id });
+                await convRepo.update(conv.id, { leadId: lead.id });
               } catch {
-                // P2002 concurrent create — ignore
+                // P2002 concurrent create — try fetching again
+                lead = await db.lead.findFirst({
+                  where: { phone: fromPhone, deletedAt: null },
+                  select: selectFields,
+                });
+                if (lead) {
+                  await convRepo.update(conv.id, { leadId: lead.id });
+                }
               }
             } else {
               if (!conv.leadId) {
-                await convRepo.update(conv.id, { leadId: existingLead.id });
+                await convRepo.update(conv.id, { leadId: lead.id });
+              }
+            }
+            
+            // Execute Simulated Interactive Lead Capture
+            if (lead && msgType === 'text') {
+              const textContent = (msg['text'] as Record<string, unknown>)?.['body'] as string;
+              const isSimulation = msg['is_simulation'] === true;
+              if (textContent) {
+                const captureService = new InteractiveCaptureService(db);
+                await captureService.handleSimulatedLeadCapture(
+                  lead,
+                  conv.id,
+                  textContent,
+                  'WHATSAPP',
+                  waAccount.id,
+                  fromPhone,
+                  isSimulation
+                );
               }
             }
           }

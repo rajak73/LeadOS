@@ -5,7 +5,9 @@ export const WorkflowTriggerType = z.enum([
   'LEAD_STATUS_CHANGED',
   'DEAL_CREATED',
   'DEAL_STAGE_MOVED',
-  'MESSAGE_RECEIVED'
+  'MESSAGE_RECEIVED',
+  'LEAD_SCORE_CHANGED',
+  'LEAD_NO_RESPONSE'
 ]);
 export type WorkflowTriggerType = z.infer<typeof WorkflowTriggerType>;
 
@@ -61,7 +63,9 @@ export const ActionType = z.enum([
   'send_instagram_message',
   'rescore_lead',
   'send_whatsapp_template',
-  'outbound_webhook'
+  'outbound_webhook',
+  'send_email',
+  'delay'
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 

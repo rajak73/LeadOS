@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest): Promise<Response> {
   const accessToken = await resolveAccessToken(request);
   if (!accessToken) return Response.json({ success: false, error: { code: 'UNAUTHORIZED' } }, { status: 401 });
-  const result = await callApi({ path: '/api/v1/analytics/dashboard', accessToken });
+  const timeRange = request.nextUrl.searchParams.get('timeRange') || 'week';
+  const result = await callApi({ path: `/api/v1/analytics/dashboard?timeRange=${timeRange}`, accessToken });
   return Response.json(result.body, { status: result.status });
 }

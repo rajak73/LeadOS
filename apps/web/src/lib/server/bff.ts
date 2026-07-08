@@ -34,13 +34,28 @@ export async function callApi(call: ApiCall): Promise<ApiResult> {
 
   const init: RequestInit = { method: call.method ?? 'GET', headers, cache: 'no-store' };
   if (call.body !== undefined) init.body = JSON.stringify(call.body);
-  const res = await fetch(`${API_BASE}${call.path}`, init);
 
-  let body: unknown = null;
   try {
-    body = await res.json();
-  } catch {
-    body = null;
+    const res = await fetch(`${API_BASE}${call.path}`, init);
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+    return { status: res.status, body, setCookie: res.headers.get('set-cookie') };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`callApi failed to reach backend API (${API_BASE}):`, err);
+    return {
+      status: 502,
+      body: {
+        success: false,
+        error: { message: `Backend API is currently unreachable. Details: ${errorMsg}` }
+      },
+      setCookie: null
+    };
   }
-  return { status: res.status, body, setCookie: res.headers.get('set-cookie') };
 }
+
+

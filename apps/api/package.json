@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "dev:worker": "tsx watch src/worker.ts",
+    "dev": "node --env-file=../../.env --import tsx --watch src/server.ts",
+    "dev:worker": "node --env-file=../../.env --import tsx --watch src/worker.ts",
     "build": "tsup",
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
@@ -22,11 +22,13 @@
     "db:studio": "prisma studio --schema=../../prisma/schema.prisma",
     "check:rls": "tsx scripts/check-rls-coverage.ts",
     "check:enum-parity": "node ../../scripts/check-enum-parity.mjs",
-    "bench:tenancy": "tsx scripts/tenancy-bench.ts"
+    "bench:tenancy": "tsx scripts/tenancy-bench.ts",
+    "db:seed:demo": "node --env-file=../../.env --import tsx scripts/demo-seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/s3-request-presigner": "^3.1073.0",
+    "@google/genai": "^2.10.0",
     "@leados/shared": "workspace:*",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
@@ -37,7 +39,6 @@
     "@socket.io/redis-emitter": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.21.0",
-    "socket.io": "^4.8.1",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -50,6 +51,8 @@
     "multer": "^2.2.0",
     "prom-client": "^15.1.3",
     "rate-limiter-flexible": "^5.0.4",
+    "socket.io": "^4.8.1",
+    "stripe": "^17.4.0",
     "winston": "^3.15.0",
     "zod": "^3.23.8"
   },

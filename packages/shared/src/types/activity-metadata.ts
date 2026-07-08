@@ -250,7 +250,26 @@ export interface WorkflowActionExecutedMetadata {
 
 export interface FollowUpCreatedMetadata {
   type: typeof ActivityType.FOLLOW_UP_CREATED;
-  taskId: string;
+  followUpId: string;
+  dueDate: string;
+  title: string;
+}
+
+export interface CsvImportStartedMetadata {
+  type: typeof ActivityType.CSV_IMPORT_STARTED;
+  fileName: string;
+  totalRows: number;
+}
+
+export interface CsvImportCompletedMetadata {
+  type: typeof ActivityType.CSV_IMPORT_COMPLETED;
+  imported: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface CsvImportFailedMetadata {
+  type: typeof ActivityType.CSV_IMPORT_FAILED;
   reason: string;
 }
 
@@ -292,7 +311,10 @@ export type ActivityMetadata =
   | LeadScoredMetadata
   | WorkflowTriggeredMetadata
   | WorkflowActionExecutedMetadata
-  | FollowUpCreatedMetadata;
+  | FollowUpCreatedMetadata
+  | CsvImportStartedMetadata
+  | CsvImportCompletedMetadata
+  | CsvImportFailedMetadata;
 
 // ─── Input type for ActivityService.append() ─────────────────────────────────
 

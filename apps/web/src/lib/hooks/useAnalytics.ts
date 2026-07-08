@@ -26,11 +26,11 @@ export interface DashboardAnalyticsData {
   computedAt: string;
 }
 
-export function useDashboardAnalytics() {
+export function useDashboardAnalytics(timeRange: string = 'week') {
   return useQuery<DashboardAnalyticsData>({
-    queryKey: ['dashboard-analytics'],
+    queryKey: ['dashboard-analytics', timeRange],
     queryFn: async () => {
-      const res = await fetch('/api/bff/analytics/dashboard', {
+      const res = await fetch(`/api/bff/analytics/dashboard?timeRange=${timeRange}`, {
         credentials: 'include',
         cache: 'no-store',
       });

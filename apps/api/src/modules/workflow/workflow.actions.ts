@@ -68,9 +68,9 @@ export async function executeAction(
   db: TenantTransactionClient,
   organizationId: string,
   action: WorkflowAction,
-  entity: { id: string; firstName?: string; assignedToId?: string | null; customFields?: unknown; [key: string]: unknown },
+  entity: { id: string; firstName?: string; email?: string | null; assignedToId?: string | null; customFields?: unknown; [key: string]: unknown },
   actorId: string
-): Promise<{ success: boolean; error?: string; message?: string }> {
+): Promise<{ success: boolean; error?: string; message?: string; suspended?: boolean; delayMs?: number }> {
   try {
     switch (action.type) {
       case 'update_lead_status': {
@@ -116,6 +116,23 @@ export async function executeAction(
         const leadId = entity.id;
         const assignedToId = action.config.assignedToId || entity.assignedToId || null;
         const dueInDays = Number(action.config.dueInDays || 0);
+
+        let taskCreatorId = actorId !== 'system' ? actorId : null;
+        if (!taskCreatorId && entity.assignedToId) taskCreatorId = String(entity.assignedToId);
+        if (!taskCreatorId && entity.createdById) taskCreatorId = String(entity.createdById);
+        if (!taskCreatorId) {
+          const orgOwner = await db.organizationMember.findFirst({
+            where: { organizationId },
+            orderBy: { createdAt: 'asc' },
+            select: { userId: true }
+          });
+          taskCreatorId = orgOwner?.userId || null;
+        }
+
+        if (!taskCreatorId) {
+          return { success: false, error: 'Could not resolve a valid user ID for task creation' };
+        }
+
         await db.task.create({
           data: {
             organizationId,
@@ -125,7 +142,7 @@ export async function executeAction(
             status: 'PENDING',
             relatedLeadId: leadId,
             assignedToId,
-            createdById: actorId,
+            createdById: taskCreatorId,
             dueDate: dueInDays ? new Date(Date.now() + dueInDays * 24 * 60 * 60 * 1000) : null
           }
         });
@@ -281,6 +298,36 @@ export async function executeAction(
         }
 
         return { success: true, message: `Outbound webhook POST to ${webhookUrl} succeeded (${response.status})` };
+      }
+
+      case 'send_email': {
+        const leadEmail = entity.email as string | null | undefined;
+        if (!leadEmail) {
+          return { success: false, error: 'Entity has no email address' };
+        }
+        await enqueue(QUEUE.EMAIL_DELIVERY, 'email-deliver', {
+          to: leadEmail,
+          templateKey: 'inbox_message',
+          data: {
+            senderName: String(action.config.subject || 'Automated Follow-up'),
+            preview: String(action.config.body || 'This is an automated message.')
+          }
+        });
+        return { success: true, message: `Enqueued email to ${leadEmail}` };
+      }
+
+      case 'delay': {
+        const delayAmount = Number(action.config.amount || 0);
+        const delayUnit = String(action.config.unit || 'minutes');
+        let delayMs = 0;
+        if (delayUnit === 'minutes') delayMs = delayAmount * 60 * 1000;
+        else if (delayUnit === 'hours') delayMs = delayAmount * 60 * 60 * 1000;
+        else if (delayUnit === 'days') delayMs = delayAmount * 24 * 60 * 60 * 1000;
+
+        if (delayMs > 0) {
+          return { success: true, message: `Delaying for ${delayMs}ms`, suspended: true, delayMs };
+        }
+        return { success: true, message: `Skipping 0ms delay` };
       }
 
       default:

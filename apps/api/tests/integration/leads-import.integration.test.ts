@@ -24,6 +24,7 @@ import { prisma } from '../../src/core/prisma/client.js';
 import { isPostgresUp } from '../helpers/services.js';
 import { signAccessToken } from '../../src/core/auth/jwt.js';
 import { processImport } from '../../src/modules/leads/lead-import.service.js';
+import crypto from 'crypto';
 
 const pgUp = await isPostgresUp();
 const app = buildApp();
@@ -156,11 +157,19 @@ describe('processImport (unit-via-integration)', () => {
       'Carol,White,carol@example.com,,IMPORT,\n',
       'utf8',
     );
+    const historyId = crypto.randomUUID();
+    await prisma.$executeRawUnsafe(`INSERT INTO import_history (id, "organizationId", "importedById", "fileName", "fileSize", status, "startedAt") VALUES ($1::uuid, $2::uuid, $3::uuid, 'test.csv', 10, 'PENDING', now())`, historyId, orgId, userId);
+
     const result = await processImport({
       organizationId: orgId,
       userId,
       role: 'OWNER',
       csvBase64: csv.toString('base64'),
+      fileName: 'test.csv',
+      fileSize: 10,
+      historyId,
+      mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', phone: 'phone', source: 'source', tags: 'tags' },
+      assignment: { type: 'NONE' as const }
     });
 
     expect(result.total).toBe(2);
@@ -172,19 +181,35 @@ describe('processImport (unit-via-integration)', () => {
 
   it.skipIf(!pgUp)('skips duplicate rows (same email already exists)', async () => {
     // Insert a lead with the same email we'll try to import again.
+    const historyId1 = crypto.randomUUID();
+    await prisma.$executeRawUnsafe(`INSERT INTO import_history (id, "organizationId", "importedById", "fileName", "fileSize", status, "startedAt") VALUES ($1::uuid, $2::uuid, $3::uuid, 'test.csv', 10, 'PENDING', now())`, historyId1, orgId, userId);
+
     await processImport({
       organizationId: orgId,
       userId,
       role: 'OWNER',
       csvBase64: Buffer.from('firstName,email\nDave,dave@example.com\n').toString('base64'),
+      fileName: 'test.csv',
+      fileSize: 10,
+      historyId: historyId1,
+      mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', phone: 'phone', source: 'source', tags: 'tags' },
+      assignment: { type: 'NONE' as const }
     });
     const before = await countLeads(orgId);
+
+    const historyId2 = crypto.randomUUID();
+    await prisma.$executeRawUnsafe(`INSERT INTO import_history (id, "organizationId", "importedById", "fileName", "fileSize", status, "startedAt") VALUES ($1::uuid, $2::uuid, $3::uuid, 'test.csv', 10, 'PENDING', now())`, historyId2, orgId, userId);
 
     const result = await processImport({
       organizationId: orgId,
       userId,
       role: 'OWNER',
       csvBase64: Buffer.from('firstName,email\nDave Duplicate,dave@example.com\n').toString('base64'),
+      fileName: 'test.csv',
+      fileSize: 10,
+      historyId: historyId2,
+      mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', phone: 'phone', source: 'source', tags: 'tags' },
+      assignment: { type: 'NONE' as const }
     });
 
     expect(result.duplicates).toBe(1);
@@ -200,11 +225,19 @@ describe('processImport (unit-via-integration)', () => {
       'Eve,eve@example.com\n',  // valid
       'utf8',
     );
+    const historyId = crypto.randomUUID();
+    await prisma.$executeRawUnsafe(`INSERT INTO import_history (id, "organizationId", "importedById", "fileName", "fileSize", status, "startedAt") VALUES ($1::uuid, $2::uuid, $3::uuid, 'test.csv', 10, 'PENDING', now())`, historyId, orgId, userId);
+
     const result = await processImport({
       organizationId: orgId,
       userId,
       role: 'OWNER',
       csvBase64: csv.toString('base64'),
+      fileName: 'test.csv',
+      fileSize: 10,
+      historyId,
+      mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', phone: 'phone', source: 'source', tags: 'tags' },
+      assignment: { type: 'NONE' as const }
     });
 
     expect(result.total).toBe(2);
@@ -221,12 +254,22 @@ describe('processImport (unit-via-integration)', () => {
       await seedSubscription(otherOrg, 'GROWTH');
       const before = await countLeads(orgId);
 
-      await processImport({
+      const historyId = crypto.randomUUID();
+      await prisma.$executeRawUnsafe(`INSERT INTO import_history (id, "organizationId", "importedById", "fileName", "fileSize", status, "startedAt") VALUES ($1::uuid, $2::uuid, $3::uuid, 'test.csv', 10, 'PENDING', now())`, historyId, otherOrg, otherUser);
+
+      const payload = {
         organizationId: otherOrg,
         userId: otherUser,
         role: 'OWNER',
         csvBase64: Buffer.from('firstName\nFrank\n').toString('base64'),
-      });
+        fileName: 'test.csv',
+        fileSize: 10,
+        historyId,
+        mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', phone: 'phone', source: 'source', tags: 'tags' },
+        assignment: { type: 'NONE' as const } as const
+      };
+
+      await processImport(payload);
 
       // Org A's count must be unchanged.
       expect(await countLeads(orgId)).toBe(before);

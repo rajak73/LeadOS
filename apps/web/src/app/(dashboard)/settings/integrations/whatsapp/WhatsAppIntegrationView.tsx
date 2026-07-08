@@ -32,7 +32,7 @@ function WhatsAppAccountCard({
   const syncMutation = useSyncWhatsAppTemplates(account.id);
 
   return (
-    <div className="rounded-lg border border-border bg-surface-secondary p-4 space-y-3">
+    <div className="rounded-lg border border-slate-200 bg-surface-secondary p-4 space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {/* WhatsApp icon */}
@@ -47,8 +47,8 @@ function WhatsAppAccountCard({
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-text-primary truncate">{account.displayName}</p>
-            <p className="text-xs text-text-tertiary">{account.phoneNumber}</p>
+            <p className="text-sm font-medium text-slate-900 truncate">{account.displayName}</p>
+            <p className="text-xs text-slate-500">{account.phoneNumber}</p>
           </div>
         </div>
 
@@ -84,9 +84,9 @@ function WhatsAppAccountCard({
 
       {/* Templates panel */}
       {showTemplates && (
-        <div className="border-t border-border pt-3 space-y-2">
+        <div className="border-t border-slate-200 pt-3 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-text-secondary">Approved Templates</p>
+            <p className="text-xs font-medium text-slate-600">Approved Templates</p>
             <Button
               variant="ghost"
               size="sm"
@@ -101,7 +101,7 @@ function WhatsAppAccountCard({
               <Spinner />
             </div>
           ) : templates.length === 0 ? (
-            <p className="text-xs text-text-tertiary">
+            <p className="text-xs text-slate-500">
               No approved templates. Sync to fetch the latest from Meta.
             </p>
           ) : (
@@ -112,8 +112,8 @@ function WhatsAppAccountCard({
                   className="flex items-center justify-between rounded-md bg-surface px-3 py-2"
                 >
                   <div>
-                    <p className="text-xs font-medium text-text-primary">{tpl.name}</p>
-                    <p className="text-xs text-text-tertiary">
+                    <p className="text-xs font-medium text-slate-900">{tpl.name}</p>
+                    <p className="text-xs text-slate-500">
                       {tpl.language} · {tpl.category}
                     </p>
                   </div>
@@ -158,11 +158,11 @@ function ConnectDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-xl border border-border bg-surface shadow-2xl">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-surface shadow-2xl">
         <div className="p-6 space-y-4">
           <div>
-            <h2 className="text-base font-semibold text-text-primary">Connect WhatsApp Account</h2>
-            <p className="mt-1 text-xs text-text-tertiary">
+            <h2 className="text-base font-semibold text-slate-900">Connect WhatsApp Account</h2>
+            <p className="mt-1 text-xs text-slate-500">
               Enter your Meta Business credentials to connect a WhatsApp Business Account (WABA).
             </p>
           </div>
@@ -180,7 +180,7 @@ function ConnectDialog({
               <div key={field.name}>
                 <label
                   htmlFor={`wa-${field.name}`}
-                  className="block text-xs font-medium text-text-secondary mb-1"
+                  className="block text-xs font-medium text-slate-600 mb-1"
                 >
                   {field.label}
                 </label>
@@ -192,14 +192,14 @@ function ConnectDialog({
                   onChange={handleChange}
                   placeholder={field.placeholder}
                   required
-                  className="w-full rounded-md border border-border bg-surface-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand focus:outline-none"
+                  className="w-full rounded-md border border-slate-200 bg-surface-secondary px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-brand focus:outline-none"
                 />
               </div>
             ))}
           </form>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-6 py-4">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
@@ -247,8 +247,8 @@ export function WhatsAppIntegrationView() {
   return (
     <div className="space-y-6 max-w-screen-lg">
       <div>
-        <h1 className="text-xl font-semibold text-text-primary">WhatsApp Integration</h1>
-        <p className="mt-1 text-sm text-text-secondary">
+        <h1 className="text-xl font-semibold text-slate-900">WhatsApp Integration</h1>
+        <p className="mt-1 text-sm text-slate-600">
           Connect WhatsApp Business Accounts to send and receive messages from within LeadOS.
         </p>
       </div>
@@ -266,7 +266,7 @@ export function WhatsAppIntegrationView() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-text-primary">Connected accounts</h2>
+          <h2 className="text-sm font-medium text-slate-900">Connected accounts</h2>
           <Button
             variant="primary"
             size="sm"
@@ -285,7 +285,7 @@ export function WhatsAppIntegrationView() {
             <Spinner />
           </div>
         ) : accounts.length === 0 ? (
-          <div className="rounded-lg border border-border border-dashed px-4 py-6 text-center text-sm text-text-tertiary">
+          <div className="rounded-lg border border-slate-200 border-dashed px-4 py-6 text-center text-sm text-slate-500">
             No WhatsApp accounts connected yet.
           </div>
         ) : (
@@ -302,7 +302,7 @@ export function WhatsAppIntegrationView() {
         )}
       </section>
 
-      <p className="text-xs text-text-tertiary">
+      <p className="text-xs text-slate-500">
         TRIAL and STARTER plans support 1 WhatsApp account; GROWTH allows 3; SCALE allows 5; ENTERPRISE is unlimited.
         Free-form messages require the customer to initiate within the last 24 hours. Use approved templates to reach out anytime.
       </p>

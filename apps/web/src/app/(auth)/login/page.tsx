@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { setAccessToken } from '@/lib/auth/token-store';
 
@@ -39,7 +40,7 @@ export default function LoginPage() {
       const token = json.data?.accessToken;
       if (token) setAccessToken(token);
 
-      router.replace('/');
+      router.replace('/dashboard');
     } catch {
       setError('Unable to reach the server. Check that the API is running.');
     } finally {
@@ -48,16 +49,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-bg-elevated border border-border rounded-xl p-8 space-y-6">
-      <div className="space-y-1">
-        <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-3">LeadOS</p>
-        <h1 className="text-xl font-semibold text-text-primary">Sign in to your workspace</h1>
-        <p className="text-sm text-text-tertiary">Enter your credentials to continue</p>
+    <div className="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent pointer-events-none" />
+      
+      <div className="space-y-1 relative z-10">
+        <p className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+          LeadOS
+        </p>
+        <h1 className="text-xl font-bold text-slate-900">Sign in to your workspace</h1>
+        <p className="text-sm text-slate-600">Enter your credentials to continue</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
         <div className="space-y-1.5">
-          <label htmlFor="email" className="text-xs font-medium text-text-secondary block">
+          <label htmlFor="email" className="text-xs font-semibold text-slate-700 block">
             Email
           </label>
           <input
@@ -68,12 +74,12 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-500 transition-colors"
+            className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="password" className="text-xs font-medium text-text-secondary block">
+          <label htmlFor="password" className="text-xs font-semibold text-slate-700 block">
             Password
           </label>
           <input
@@ -84,12 +90,12 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full px-3 py-1.5 text-sm bg-bg-base border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-500 transition-colors"
+            className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
           />
         </div>
 
         {error && (
-          <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5">
             {error}
           </p>
         )}
@@ -99,11 +105,20 @@ export default function LoginPage() {
           variant="primary"
           size="md"
           disabled={loading}
-          className="w-full justify-center"
+          className="w-full justify-center h-11 rounded-xl bg-primary-600 text-white hover:bg-primary-500 hover:shadow-lg hover:shadow-primary-500/20 duration-200 ring-1 ring-primary-500/50"
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
+
+      <div className="text-center pt-2 relative z-10">
+        <p className="text-xs text-slate-500">
+          Don't have an account?{' '}
+          <Link href="/signup" className="text-primary-600 hover:text-primary-500 font-semibold transition-colors">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

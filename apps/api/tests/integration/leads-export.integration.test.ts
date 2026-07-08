@@ -18,6 +18,7 @@ import request from 'supertest';
 import { buildApp } from '../../src/app.js';
 import { prisma } from '../../src/core/prisma/client.js';
 import { isPostgresUp } from '../helpers/services.js';
+import { randomUUID } from 'crypto';
 import { signAccessToken } from '../../src/core/auth/jwt.js';
 import { processExport } from '../../src/modules/leads/lead-export.service.js';
 import { processImport } from '../../src/modules/leads/lead-import.service.js';
@@ -78,11 +79,28 @@ async function seedSubscription(oId: string, plan = 'GROWTH'): Promise<void> {
 }
 
 async function importLeads(oId: string, uId: string, rows: string): Promise<void> {
+  const historyId = randomUUID();
+  await prisma.importHistory.create({
+    data: {
+      id: historyId,
+      organization: { connect: { id: oId } },
+      importedBy: { connect: { id: uId } },
+      fileName: 'test.csv',
+      fileSize: rows.length,
+      status: 'PENDING',
+    }
+  });
+
   await processImport({
     organizationId: oId,
     userId: uId,
     role: 'OWNER',
     csvBase64: Buffer.from(rows, 'utf8').toString('base64'),
+    fileName: 'test.csv',
+    fileSize: rows.length,
+    historyId: historyId,
+    mappings: { firstName: 'firstName', lastName: 'lastName', email: 'email', status: 'status' },
+    assignment: { type: 'NONE' as const }
   });
 }
 
@@ -114,25 +132,29 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (!pgUp) return;
-  await prisma.$transaction(async (tx) => {
+await prisma.$transaction(async (tx) => {
+    const oId = orgId || '00000000-0000-0000-0000-000000000000';
+    const tOId = trialOrgId || '00000000-0000-0000-0000-000000000000';
+    const uId = userId || '00000000-0000-0000-0000-000000000000';
+    const tUId = trialUserId || '00000000-0000-0000-0000-000000000000';
     await tx.$executeRawUnsafe(`SET LOCAL session_replication_role = replica`);
     await tx.$executeRawUnsafe(
       `DELETE FROM organization_members WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-      orgId, trialOrgId,
+      oId, tOId,
     );
     await tx.$executeRawUnsafe(
       `DELETE FROM roles WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-      orgId, trialOrgId,
+      oId, tOId,
     );
     await tx.$executeRawUnsafe(
       `DELETE FROM subscriptions WHERE "organizationId" IN ($1::uuid, $2::uuid)`,
-      orgId, trialOrgId,
+      oId, tOId,
     );
     await tx.$executeRawUnsafe(
       `DELETE FROM organizations WHERE id IN ($1::uuid, $2::uuid)`,
-      orgId, trialOrgId,
+      oId, tOId,
     );
-    await tx.$executeRawUnsafe(`DELETE FROM users WHERE id IN ($1::uuid, $2::uuid)`, userId, trialUserId);
+    await tx.$executeRawUnsafe(`DELETE FROM users WHERE id IN ($1::uuid, $2::uuid)`, uId, tUId);
   });
 });
 

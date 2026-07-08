@@ -21,19 +21,19 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} {...disabledProp}>
       <RadixSelect.Trigger
-        className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-text-primary hover:bg-bg-subtle w-full ${className}`}
+        className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 hover:bg-slate-50 w-full ${className}`}
       >
         <RadixSelect.Value placeholder={placeholder ?? 'Select…'} />
         <RadixSelect.Icon className="ml-auto opacity-50">▾</RadixSelect.Icon>
       </RadixSelect.Trigger>
       <RadixSelect.Portal>
-        <RadixSelect.Content className="z-50 bg-bg-elevated border border-border rounded-lg shadow-xl overflow-hidden min-w-[160px]">
+        <RadixSelect.Content className="z-50 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden min-w-[160px]">
           <RadixSelect.Viewport className="p-1">
             {options.map((opt) => (
               <RadixSelect.Item
                 key={opt.value}
                 value={opt.value}
-                className="flex items-center px-3 py-1.5 text-sm text-text-primary rounded cursor-pointer hover:bg-bg-subtle focus:bg-bg-subtle focus:outline-none"
+                className="flex items-center px-3 py-1.5 text-sm text-slate-900 rounded cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
               >
                 <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
               </RadixSelect.Item>

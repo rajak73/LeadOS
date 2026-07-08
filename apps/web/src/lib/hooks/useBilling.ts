@@ -20,6 +20,12 @@ export interface BillingSubscriptionData {
     maxUsers: number | null;
     maxLeads: number | null;
   } | null;
+  usage?: {
+    leads: number;
+    deals: number;
+    users: number;
+    workflows: number;
+  };
 }
 
 export function useSubscription() {

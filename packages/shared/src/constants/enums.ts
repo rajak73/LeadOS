@@ -37,6 +37,8 @@ export const LeadStatus = {
 export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus];
 
 export const LeadSource = {
+  FACEBOOK_DM: 'FACEBOOK_DM',
+  FACEBOOK_COMMENT: 'FACEBOOK_COMMENT',
   INSTAGRAM_DM: 'INSTAGRAM_DM',
   INSTAGRAM_COMMENT: 'INSTAGRAM_COMMENT',
   WHATSAPP: 'WHATSAPP',
@@ -72,6 +74,14 @@ export const WebhookEventStatus = {
   SKIPPED: 'SKIPPED',
 } as const;
 export type WebhookEventStatus = (typeof WebhookEventStatus)[keyof typeof WebhookEventStatus];
+
+export const ImportJobStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const;
+export type ImportJobStatus = (typeof ImportJobStatus)[keyof typeof ImportJobStatus];
 
 export const TaskType = {
   CALL: 'CALL',
@@ -166,6 +176,19 @@ export const ActivityType = {
   WORKFLOW_TRIGGERED: 'WORKFLOW_TRIGGERED',
   WORKFLOW_ACTION_EXECUTED: 'WORKFLOW_ACTION_EXECUTED',
   FOLLOW_UP_CREATED: 'FOLLOW_UP_CREATED',
+  // Sprint 8 M1 additions
+  CSV_IMPORT_STARTED: 'CSV_IMPORT_STARTED',
+  CSV_IMPORT_COMPLETED: 'CSV_IMPORT_COMPLETED',
+  CSV_IMPORT_FAILED: 'CSV_IMPORT_FAILED',
+  // Sprint 9+ additions
+  COMMENT_RECEIVED: 'COMMENT_RECEIVED',
+  COMMENT_REPLIED: 'COMMENT_REPLIED',
+  DM_RECEIVED: 'DM_RECEIVED',
+  DM_SENT: 'DM_SENT',
+  FACEBOOK_PAGE_CONNECTED: 'FACEBOOK_PAGE_CONNECTED',
+  FACEBOOK_PAGE_DISCONNECTED: 'FACEBOOK_PAGE_DISCONNECTED',
+  META_ACCOUNT_CONNECTED: 'META_ACCOUNT_CONNECTED',
+  META_ACCOUNT_DISCONNECTED: 'META_ACCOUNT_DISCONNECTED',
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 
