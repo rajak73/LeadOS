@@ -53,6 +53,8 @@
 * **Phase 12F (Completed):** Founder Demo Readiness Package completed. Created demo runbook and external blocker tracker. The project is demo-ready but real external integrations are blocked.
 * **Phase 12G (Completed):** Founder Demo Manual QA completed. The demo was completely successful with ZERO critical blockers. Three minor P3 Polish bugs were logged (AI UX gap, uncommitted auth UI files, and missing customer empty states).
 * **Phase 12H (Completed):** Final UX Polish completed. Addressed the 3 minor P3 UI bugs found in Phase 12G. The CRM app is now 100% demo-ready. No P0 blockers remain for the internal functionality.
+* **Phase 13A (Completed):** Final Demo Deployment Verification completed. Local codebase cleanly builds, lints, and typechecks. Live Render deployments (both API and Web) are up, returning 200s, and healthy.
+* **Current Release Candidate:** Commit `ee5ebbe`. You may optionally tag this `v0.9-demo-ready`.
 * **Remaining CRM Gaps:** Real Stripe payment processing remains blocked pending Stripe keys. Real AI provider calls remain blocked pending AI keys. 
 * **Phase 11C (Meta Integration):** Remains STRICTLY BLOCKED until founder setup is completed.
 * **Exact next options:**
