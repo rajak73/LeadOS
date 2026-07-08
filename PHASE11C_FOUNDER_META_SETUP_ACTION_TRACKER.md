@@ -1,10 +1,27 @@
 # Phase 11C — Founder Meta Setup Action Tracker
 
 ## 1. Current Status
-LeadOS architecture is ready for Instagram/WhatsApp real integration. Routing, queues, OAuth flows, multitenant isolation, token encryption, and workers are implemented. However, real Meta setup is pending.
+LeadOS architecture is ready for Instagram/WhatsApp real integration. Routing, queues, OAuth flows, multitenant isolation, token encryption, and workers are implemented. 
+
+However, real Meta setup is pending.
 
 ## 2. Why Phase 11C Is Blocked
 Phase 11C is the "Meta Test Credential Wiring + Webhook Verification" phase. This requires real credentials from Meta and a verified webhook setup to proceed. The agent cannot (and should not) do this on behalf of the founder for security and compliance reasons.
+
+Currently, Phase 11C is **BLOCKED**.
+
+*   Meta Developer Account: NOT CREATED YET
+*   Meta App ID: PENDING
+*   Instagram Business Account: PENDING
+*   Facebook Page Connection: PENDING
+*   WhatsApp Cloud API Test Number: PENDING
+*   Test Users: PENDING
+*   Render Meta Env Variables: PENDING
+*   Local/Staging Meta Env Variables: PENDING
+*   Real Instagram automation: NOT READY
+*   Real WhatsApp automation: NOT READY
+*   Real Facebook automation: NOT READY
+*   Simulation mode: STILL AVAILABLE
 
 ## 3. Founder Actions Required
 Please complete the checklists below before authorizing Phase 11C.
