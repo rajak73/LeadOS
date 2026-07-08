@@ -118,20 +118,8 @@ async function main() {
       });
     }
 
-    // IDEMPOTENCY: Clear existing dynamic data for this demo org before re-seeding
-    console.log(`[demo-seed] Cleaning existing data for idempotency...`);
-    await prisma.activity.deleteMany({ where: { organizationId: org.id } });
-    await prisma.task.deleteMany({ where: { organizationId: org.id } });
-    await prisma.deal.deleteMany({ where: { organizationId: org.id } });
-    await prisma.message.deleteMany({ where: { organizationId: org.id } });
-    await prisma.instagramConversation.deleteMany({ where: { organizationId: org.id } });
-    await prisma.instagramAccount.deleteMany({ where: { organizationId: org.id } });
-    await prisma.aiScore.deleteMany({ where: { organizationId: org.id } });
-    await prisma.contact.deleteMany({ where: { organizationId: org.id } });
-    await prisma.lead.deleteMany({ where: { organizationId: org.id } });
-    await prisma.workflowRun.deleteMany({ where: { organizationId: org.id } });
-    await prisma.workflow.deleteMany({ where: { organizationId: org.id } });
-    await prisma.note.deleteMany({ where: { organizationId: org.id } });
+    // IDEMPOTENCY: Check if data exists later instead of deleting (since activities are immutable)
+    console.log(`[demo-seed] Checking existing data for idempotency...`);
 
     const orgRoles = await prisma.role.findMany({ where: { organizationId: org.id } });
     
@@ -195,6 +183,12 @@ async function main() {
       }
     }
     const stages = await prisma.pipelineStage.findMany({ where: { pipelineId: pipeline.id }, orderBy: { order: 'asc' } });
+
+    const existingLeadsCount = await prisma.lead.count({ where: { organizationId: org.id } });
+    if (existingLeadsCount > 0) {
+      console.log(`[demo-seed] CRM data already exists for ${orgData.name}, skipping creation to prevent duplicates.`);
+      continue;
+    }
 
     // CREATE LEADS (15)
     console.log(`[demo-seed] Creating Leads...`);
@@ -339,10 +333,11 @@ async function main() {
     const igAccount = await prisma.instagramAccount.create({
       data: {
         organizationId: org.id,
-        accountId: `sim_ig_${org.slug}_001`,
-        username: `${org.slug}_official`,
-        name: org.name,
-        isActive: true,
+        igUserId: `sim_ig_user_${org.slug}_001`,
+        igUsername: `${org.slug}_official`,
+        accessToken: `fake_access_token_${org.slug}`,
+        tokenExpiresAt: faker.date.future(),
+        tokenType: 'Bearer',
       }
     });
 
@@ -352,10 +347,8 @@ async function main() {
       const convo = await prisma.instagramConversation.create({
         data: {
           organizationId: org.id,
-          instagramAccountId: igAccount.id,
-          instagramScopingId: `sim_scope_${i}`,
-          participantId: `sim_user_${i}`,
-          participantUsername: `user_${i}`,
+          igAccountId: igAccount.id,
+          igConversationId: `sim_conv_${i}_${org.slug}`,
           leadId: leadId,
           status: 'OPEN',
           lastMessageAt: new Date()
