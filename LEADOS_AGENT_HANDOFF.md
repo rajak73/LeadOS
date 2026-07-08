@@ -51,14 +51,14 @@
 * **Phase 12D (Completed):** AI Draft Backend Wiring completed. The "💡 AI Draft" buttons safely respect `FLAG_AI_SCORING_ENABLED`, catch disabled errors cleanly in the UI, and deterministically fall back to the `MockAiAdapter` when provider API keys exist, enforcing zero real external API calls.
 * **Phase 12E (Completed):** Billing Quota Enforcement + BRD Completion Report. Billing now has live usage metrics and backend quota enforcement (`PLAN_LIMIT_EXCEEDED`). The UI gracefully prompts for upgrades. 
 * **Phase 12F (Completed):** Founder Demo Readiness Package completed. Created demo runbook and external blocker tracker. The project is demo-ready but real external integrations are blocked.
-* **Remaining CRM Gaps:** Real Stripe payment processing remains blocked pending Stripe keys. Real AI provider calls remain blocked pending AI keys. AI Draft UX disabled-button polish may still be pending if not fully refined.
+* **Phase 12G (Completed):** Founder Demo Manual QA completed. The demo was completely successful with ZERO critical blockers. Three minor P3 Polish bugs were logged (AI UX gap, uncommitted auth UI files, and missing customer empty states).
+* **Remaining CRM Gaps:** Real Stripe payment processing remains blocked pending Stripe keys. Real AI provider calls remain blocked pending AI keys. 
 * **Phase 11C (Meta Integration):** Remains STRICTLY BLOCKED until founder setup is completed.
 * **Exact next options:**
-  1. Meta setup
-  2. Stripe setup
-  3. AI provider setup
-  4. Founder demo/manual testing
-  5. AI Draft UX disabled-button polish if still pending
+  1. Approve minor P3 UX Polish fixes (Phase 12H)
+  2. Meta Developer Setup (Phase 11C)
+  3. Stripe setup
+  4. AI provider setup
 
 ## 6. Callback Paths to Configure (For Founder Later)
 *   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`
