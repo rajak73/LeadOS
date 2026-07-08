@@ -49,9 +49,16 @@
 * **Phase 12B (Completed):** CRM module polish and bug fixes completed. The core UI/UX is robust.
 * **Phase 12C (Completed):** Billing & AI Readiness Audit completed. Architecture natively supports Stripe and multi-provider AI via clean adapters.
 * **Phase 12D (Completed):** AI Draft Backend Wiring completed. The "💡 AI Draft" buttons safely respect `FLAG_AI_SCORING_ENABLED`, catch disabled errors cleanly in the UI, and deterministically fall back to the `MockAiAdapter` when provider API keys exist, enforcing zero real external API calls.
-* **Remaining CRM Gaps:** Real LLM prompt logic is missing for `OpenAiAdapter` and `GeminiAdapter` `draftFollowup` methods. Billing usage metrics are hardcoded, and Stripe quotas are not enforced.
+* **Phase 12E (Completed):** Billing Quota Enforcement + BRD Completion Report. Billing now has live usage metrics and backend quota enforcement (`PLAN_LIMIT_EXCEEDED`). The UI gracefully prompts for upgrades. 
+* **Phase 12F (Completed):** Founder Demo Readiness Package completed. Created demo runbook and external blocker tracker. The project is demo-ready but real external integrations are blocked.
+* **Remaining CRM Gaps:** Real Stripe payment processing remains blocked pending Stripe keys. Real AI provider calls remain blocked pending AI keys. AI Draft UX disabled-button polish may still be pending if not fully refined.
 * **Phase 11C (Meta Integration):** Remains STRICTLY BLOCKED until founder setup is completed.
-* **Recommended Next Phase:** Phase 12E (Real Provider AI Testing & Prompt Implementation OR Billing Plan Mock Enforcement).
+* **Exact next options:**
+  1. Meta setup
+  2. Stripe setup
+  3. AI provider setup
+  4. Founder demo/manual testing
+  5. AI Draft UX disabled-button polish if still pending
 
 ## 6. Callback Paths to Configure (For Founder Later)
 *   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`
