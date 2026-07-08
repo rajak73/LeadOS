@@ -308,7 +308,7 @@ export class AuthService {
         name: m.organizationName,
         role: m.roleName,
       })),
-      isAiEnabled: env.FLAG_AI_SCORING_ENABLED,
+      isAiEnabled: process.env['FLAG_AI_SCORING_ENABLED'] !== 'false' && process.env['FLAG_AI_SCORING_ENABLED'] !== '0',
     };
   }
 
