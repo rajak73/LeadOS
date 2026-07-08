@@ -48,8 +48,10 @@
 * **Phase 12A (Completed):** Non-Meta Product Readiness Audit completed.
 * **Phase 12B (Completed):** CRM module polish and bug fixes completed. The core UI/UX is robust.
 * **Phase 12C (Completed):** Billing & AI Readiness Audit completed. Architecture natively supports Stripe and multi-provider AI via clean adapters.
-* **Remaining CRM Gaps:** AI frontend wiring is incomplete (`draftFollowup` missing). Billing usage metrics are hardcoded.
-* **Recommended Next Phase:** Phase 12D Option C (AI Draft Backend Wiring With Feature Flag).
+* **Phase 12D (Completed):** AI Draft Backend Wiring completed. The "💡 AI Draft" buttons safely respect `FLAG_AI_SCORING_ENABLED`, catch disabled errors cleanly in the UI, and deterministically fall back to the `MockAiAdapter` when provider API keys exist, enforcing zero real external API calls.
+* **Remaining CRM Gaps:** Real LLM prompt logic is missing for `OpenAiAdapter` and `GeminiAdapter` `draftFollowup` methods. Billing usage metrics are hardcoded, and Stripe quotas are not enforced.
+* **Phase 11C (Meta Integration):** Remains STRICTLY BLOCKED until founder setup is completed.
+* **Recommended Next Phase:** Phase 12E (Real Provider AI Testing & Prompt Implementation OR Billing Plan Mock Enforcement).
 
 ## 6. Callback Paths to Configure (For Founder Later)
 *   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`

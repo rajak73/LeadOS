@@ -79,7 +79,8 @@ export function useFollowupSuggestion(leadId: string, enabled = false) {
         cache: 'no-store',
       });
       if (!res.ok) {
-        throw new Error('Failed to fetch follow-up suggestion');
+        const errorJson = await res.json().catch(() => ({}));
+        throw new Error(errorJson.error?.message || errorJson.error?.code || 'Failed to fetch follow-up suggestion');
       }
       const json = await res.json();
       return json.data;

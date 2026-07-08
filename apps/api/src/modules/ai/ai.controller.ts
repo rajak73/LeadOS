@@ -94,6 +94,11 @@ export class AiController {
     const leadId = req.params['id']!;
     const ownedByUserId = ctx.ownOnly === true ? ctx.userId : undefined;
 
+    // Check kill switch flag
+    if (!isEnabled('ai.scoring.enabled')) {
+      throw new AppError(ErrorCode.FEATURE_DISABLED, 'AI features are disabled for this workspace.');
+    }
+
     const result = await withTenant(ctx.organizationId, async (db) => {
       const lead = await db.lead.findUnique({
         where: { id: leadId },

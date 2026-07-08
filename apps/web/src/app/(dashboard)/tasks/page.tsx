@@ -19,7 +19,7 @@ export default function TasksPage() {
   const [suggestionOpen, setSuggestionOpen] = useState(false);
 
   // Hook for AI Suggestion
-  const { data: suggestion, isLoading: isSuggestionLoading } = useFollowupSuggestion(
+  const { data: suggestion, isLoading: isSuggestionLoading, error: suggestionError } = useFollowupSuggestion(
     selectedLeadId || '',
     suggestionOpen && !!selectedLeadId
   );
@@ -220,6 +220,10 @@ export default function TasksPage() {
               <div className="flex items-center justify-center py-12">
                 <Spinner size="lg" />
               </div>
+            ) : suggestionError ? (
+              <p className="text-sm text-red-400 text-center py-6">
+                {suggestionError.message}
+              </p>
             ) : !suggestion ? (
               <p className="text-sm text-red-400 text-center py-6">
                 Failed to generate AI follow-up suggestion.

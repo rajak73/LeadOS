@@ -63,7 +63,9 @@ export class OpenAiAdapter implements AiAdapter {
   }
 
   async draftFollowup(_context: LeadContext): Promise<{ channel: 'EMAIL' | 'INSTAGRAM_DM'; draft: string }> {
-    throw new Error('OpenAiAdapter.draftFollowup is not implemented yet.');
+    // Fallback to mock adapter during Phase 12D since real API calls are not yet approved
+    const mock = new MockAiAdapter();
+    return mock.draftFollowup(_context);
   }
 }
 
@@ -121,7 +123,9 @@ export class GeminiAdapter implements AiAdapter {
   }
 
   async draftFollowup(_context: LeadContext): Promise<{ channel: 'EMAIL' | 'INSTAGRAM_DM'; draft: string }> {
-    throw new Error('GeminiAdapter.draftFollowup is not implemented yet.');
+    // Fallback to mock adapter during Phase 12D since real API calls are not yet approved
+    const mock = new MockAiAdapter();
+    return mock.draftFollowup(_context);
   }
 }
 
