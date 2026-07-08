@@ -25,7 +25,7 @@
 ## 3. Phase 11 Status (Meta Integration Setup)
 * **Phase 11A (Completed):** Meta Integration Readiness Audit completed. Architecture is ready.
 * **Phase 11B (Completed):** Meta Developer Setup Guide provided.
-* **Latest Commit Hash:** `95578f1`
+* **Latest Commit Hash:** `636c63f`
 * **Real Integration Status:** NOT READY. Simulation mode works. Real credentials are not configured yet.
 
 ## 4. Current Blockers (Phase 11C: BLOCKED)
@@ -44,12 +44,16 @@
 *   Real Facebook automation: NOT READY
 *   Simulation mode: STILL AVAILABLE
 
-## 5. Callback Paths to Configure (For Founder Later)
+## 5. Phase 12 Status (Non-Meta Polish)
+* **Phase 12A (Completed):** Non-Meta Product Readiness Audit completed.
+* **Recommended Next Phase:** Phase 12B (CRM module polish and bug fixes).
+
+## 6. Callback Paths to Configure (For Founder Later)
 *   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`
 *   **Instagram OAuth Callback:** `https://leados-api.onrender.com/api/instagram/callback`
 *   **WhatsApp Webhook:** `https://leados-api.onrender.com/api/webhooks/whatsapp`
 
-## 6. Required Environment Variable Names (No Values)
+## 7. Required Environment Variable Names (No Values)
 *   `INSTAGRAM_APP_ID`
 *   `INSTAGRAM_APP_SECRET`
 *   `INSTAGRAM_OAUTH_REDIRECT_URI`
@@ -61,7 +65,7 @@
 *   `FLAG_INSTAGRAM_SENDS_ENABLED`
 *   `FLAG_WHATSAPP_SENDS_ENABLED`
 
-## 7. Critical Safety Rules
+## 8. Critical Safety Rules
 * Do not print secrets.
 * Do not ask founder to paste secrets in chat.
 * Do not create or edit `.env` with real Meta values.
@@ -74,10 +78,10 @@
 * Do not implement impersonation.
 * Do not duplicate routes/services if existing ones exist. Reuse first.
 
-## 8. Useful Commands
+## 9. Useful Commands
 * `git branch --show-current`
 * `git log --oneline -5`
 * `git status --short`
 
-## 9. Resume Instruction
+## 10. Resume Instruction
 Future agent: Start by reading this file only. Do not scan the repo. Continue from the Current Blockers section.
