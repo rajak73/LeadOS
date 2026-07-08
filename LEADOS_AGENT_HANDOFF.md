@@ -46,7 +46,9 @@
 
 ## 5. Phase 12 Status (Non-Meta Polish)
 * **Phase 12A (Completed):** Non-Meta Product Readiness Audit completed.
-* **Recommended Next Phase:** Phase 12B (CRM module polish and bug fixes).
+* **Phase 12B (Completed):** CRM module polish and bug fixes completed. The core UI/UX is robust.
+* **Remaining CRM Gaps:** AI Integrations require frontend wiring. Billing features require Stripe config.
+* **Recommended Next Phase:** Phase 12C/12D (Billing/AI integration).
 
 ## 6. Callback Paths to Configure (For Founder Later)
 *   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`
