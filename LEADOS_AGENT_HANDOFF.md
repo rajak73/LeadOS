@@ -11,7 +11,7 @@
 * **Database target:** Neon Postgres
 * **Redis target:** Upstash Redis
 
-## 2. Infrastructure & Phase 8/9 Status
+## 2. Infrastructure & Past Phase Status
 * Render API is live.
 * Render Frontend is live.
 * Neon is connected.
@@ -19,51 +19,42 @@
 * Background worker is skipped because it is paid.
 * cron-job.org is active and triggering every 5 minutes.
 * **Phase 8:** Dashboard UI implemented.
-* **Phase 9:** Cron job verification passed (401s on unauthorized, 200 on authorized). `CRON_SECRET` rotated.
+* **Phase 9:** Cron job verification passed. `CRON_SECRET` rotated.
+* **Phase 10:** Demo Data (Phase 10E) and Admin/Tenant QA (Phase 10F) completed safely.
 
-## 3. Phase 10 Final Status: PHASE 10 CLOSED
-* **Phase 10E:** Local Demo DB (`leados_demo_local`) correctly initialized with idempotent demo seed. No production DB touched.
-* **Phase 10F:** Final Admin/Tenant QA verified and passed.
-  * Super Admin QA: PASS
-  * Org Admin restriction: PASS
-  * Normal User restriction: PASS
-  * Tenant isolation (cross-tenant access): PASS
-* Redis local setup: PASS
-* Local API/frontend booted: PASS
-* Production DB untouched: PASS
+## 3. Phase 11 Status (Meta Integration Setup)
+* **Phase 11A (Completed):** Meta Integration Readiness Audit completed. Architecture is ready.
+* **Phase 11B (Completed):** Meta Developer Setup Guide provided.
+* **Latest Commit Hash:** `f0a644b`
+* **Real Integration Status:** NOT production-ready yet. Simulation mode works. Real credentials are not configured yet.
 
-## 4. Current Social Automation Truth
-* Simulation mode works.
-* Interactive capture simulation works.
-* Real Meta credentials are **NOT** configured.
-* Real Instagram/WhatsApp/Facebook automation is **NOT** production-ready.
-* No real social messages sent.
-* Simulation bypass requires `isSimulation: true`.
-* Missing Meta credentials do **NOT** mark real messages SENT. Real sends without credentials fail safely.
-* `captureState` stored in `Lead.customFields` as `NEEDS_NAME_PHONE`.
+## 4. Current Blockers (Phase 11C)
+**Phase 11C cannot start until the founder completes the Meta Developer setup and securely configures env variables.**
 
-## 5. Remaining Blockers
-* Real Meta credentials missing.
-* Meta App Review/Advanced Access missing.
-* Background worker skipped due to free mode.
-* Cron has up to 5-minute latency.
+*   Founder must create Meta App, connect Instagram/FB/WhatsApp, set up test numbers, and inject credentials into the Render environment securely without committing them.
 
-## 6. Current Next Task
-**Recommended next phase:** Phase 11A — Meta Integration Readiness Audit
+## 5. Callback Paths to Configure (For Founder)
+*   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`
+*   **Instagram OAuth Callback:** `https://leados-api.onrender.com/api/instagram/callback`
+*   **WhatsApp Webhook:** `https://leados-api.onrender.com/api/webhooks/whatsapp`
 
-**Goal:**
-* Audit existing Instagram, WhatsApp, Facebook integration code.
-* Identify existing handlers, verification points, and env vars.
-* Verify what simulation mode uses vs real mode.
-* Propose readiness and gaps.
-* **Do NOT implement real Meta API calls.**
-* **Do NOT ask for Meta secrets.**
+## 6. Required Environment Variable Names (No Values)
+*   `INSTAGRAM_APP_ID`
+*   `INSTAGRAM_APP_SECRET`
+*   `INSTAGRAM_OAUTH_REDIRECT_URI`
+*   `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`
+*   `META_APP_SECRET`
+*   `META_WHATSAPP_VERIFY_TOKEN`
+*   `META_WHATSAPP_PHONE_ID`
+*   `META_API_VERSION`
+*   `FLAG_INSTAGRAM_SENDS_ENABLED`
+*   `FLAG_WHATSAPP_SENDS_ENABLED`
 
 ## 7. Critical Safety Rules
 * Do not print secrets.
 * Do not ask founder to paste secrets in chat.
 * Do not create or edit `.env` with real Meta values.
-* Do not call Meta Graph API.
+* Do not call Meta Graph API yet.
 * Do not send real social messages.
 * Do not deploy.
 * Do not run production migration.
@@ -78,4 +69,4 @@
 * `git status --short`
 
 ## 9. Resume Instruction
-Future agent: Start by reading this file only. Do not scan the repo. Continue from the Current Next Task section.
+Future agent: Start by reading this file only. Do not scan the repo. Continue from the Current Blockers section.
