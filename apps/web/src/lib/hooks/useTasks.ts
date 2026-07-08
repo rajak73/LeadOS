@@ -31,7 +31,7 @@ export function useTasks(filters: { status?: string; type?: string } = {}) {
   if (filters.status) queryParams.append('status', filters.status);
   if (filters.type) queryParams.append('type', filters.type);
 
-  return useQuery<Task[]>({
+  return useQuery<{ tasks: Task[], isAiEnabled: boolean }>({
     queryKey: ['tasks', filters],
     queryFn: async () => {
       const res = await fetch(`/api/bff/tasks?${queryParams.toString()}`, {
@@ -42,7 +42,7 @@ export function useTasks(filters: { status?: string; type?: string } = {}) {
         throw new Error('Failed to fetch tasks');
       }
       const json = await res.json();
-      return json.data;
+      return { tasks: json.data as Task[], isAiEnabled: json.isAiEnabled === true };
     },
     staleTime: 10_000,
   });

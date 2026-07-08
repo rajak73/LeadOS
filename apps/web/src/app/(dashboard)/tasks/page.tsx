@@ -10,7 +10,9 @@ import { useToast } from '@/components/ui/Toast';
 import { formatRelativeTime } from '@/lib/types/api';
 
 export default function TasksPage() {
-  const { data: tasks, isLoading, isError, refetch } = useTasks();
+  const { data: tasksData, isLoading, isError, refetch } = useTasks();
+  const tasks = tasksData?.tasks;
+  const isAiEnabled = tasksData?.isAiEnabled ?? false;
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const { toast } = useToast();
 
@@ -152,13 +154,23 @@ export default function TasksPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {task.type === 'FOLLOW_UP' && task.relatedLeadId && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleGetSuggestion(task.relatedLeadId!)}
-                  >
-                    💡 AI Draft
-                  </Button>
+                  <div className="relative group/tooltip inline-block">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleGetSuggestion(task.relatedLeadId!)}
+                      disabled={!isAiEnabled}
+                      className={!isAiEnabled ? 'opacity-50 cursor-not-allowed' : ''}
+                    >
+                      💡 AI Draft
+                    </Button>
+                    {!isAiEnabled && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-48 p-2 bg-slate-900 text-white text-xs rounded shadow-lg text-center z-50">
+                        AI suggestions are disabled for this workspace.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    )}
+                  </div>
                 )}
                 <Button
                   variant="secondary"

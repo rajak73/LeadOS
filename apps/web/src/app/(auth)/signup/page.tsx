@@ -104,17 +104,17 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="bg-bg-elevated border border-border-strong rounded-2xl p-8 space-y-6 text-center shadow-xl shadow-primary-900/10 backdrop-blur-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 text-center shadow-xl shadow-slate-200/50">
         <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.2)]">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-text-primary">Registration Successful!</h1>
-        <p className="text-sm text-text-secondary leading-relaxed">
+        <h1 className="text-xl font-bold text-slate-900">Registration Successful!</h1>
+        <p className="text-sm text-slate-600 leading-relaxed">
           Your workspace has been created. Please check your email to verify your account, then sign in.
         </p>
-        <Link href="/login" className="block mt-4 text-primary-400 hover:text-primary-300 text-sm font-semibold transition-colors">
+        <Link href="/login" className="block mt-4 text-primary-600 hover:text-primary-500 text-sm font-semibold transition-colors">
           Go to Sign In
         </Link>
       </div>
@@ -122,22 +122,22 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="bg-bg-elevated border border-border-strong rounded-2xl p-8 space-y-6 shadow-xl shadow-primary-900/10 backdrop-blur-xl relative overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 shadow-xl shadow-slate-200/50 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent pointer-events-none" />
 
       <div className="space-y-1 relative z-10">
-        <p className="text-xs font-bold text-primary-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <p className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
           LeadOS
         </p>
-        <h1 className="text-xl font-bold text-text-primary">Create your workspace</h1>
-        <p className="text-sm text-text-secondary">Get started with LeadOS in seconds</p>
+        <h1 className="text-xl font-bold text-slate-900">Create your workspace</h1>
+        <p className="text-sm text-slate-600">Get started with LeadOS in seconds</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label htmlFor="firstName" className="text-xs font-semibold text-text-secondary block">
+            <label htmlFor="firstName" className="text-xs font-semibold text-slate-700 block">
               First Name
             </label>
             <input
@@ -147,12 +147,12 @@ export default function SignupPage() {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="Jane"
-              className={`w-full px-3 py-2 text-sm bg-bg-overlay border rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.firstName ? 'border-rose-500 focus:border-rose-400' : 'border-border-default focus:border-primary-500'}`}
+              className={`w-full px-3 py-2 text-sm bg-white border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.firstName ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-primary-500'}`}
             />
-            {fieldErrors.firstName && <p className="text-xs text-rose-400 mt-1">{fieldErrors.firstName}</p>}
+            {fieldErrors.firstName && <p className="text-xs text-rose-600 mt-1">{fieldErrors.firstName}</p>}
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="lastName" className="text-xs font-semibold text-text-secondary block">
+            <label htmlFor="lastName" className="text-xs font-semibold text-slate-700 block">
               Last Name
             </label>
             <input
@@ -162,14 +162,14 @@ export default function SignupPage() {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Doe"
-              className={`w-full px-3 py-2 text-sm bg-bg-overlay border rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.lastName ? 'border-rose-500 focus:border-rose-400' : 'border-border-default focus:border-primary-500'}`}
+              className={`w-full px-3 py-2 text-sm bg-white border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.lastName ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-primary-500'}`}
             />
-            {fieldErrors.lastName && <p className="text-xs text-rose-400 mt-1">{fieldErrors.lastName}</p>}
+            {fieldErrors.lastName && <p className="text-xs text-rose-600 mt-1">{fieldErrors.lastName}</p>}
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="organizationName" className="text-xs font-semibold text-text-secondary block">
+          <label htmlFor="organizationName" className="text-xs font-semibold text-slate-700 block">
             Workspace Name
           </label>
           <input
@@ -179,13 +179,13 @@ export default function SignupPage() {
             value={organizationName}
             onChange={(e) => setOrganizationName(e.target.value)}
             placeholder="Acme Corp"
-            className={`w-full px-3 py-2 text-sm bg-bg-overlay border rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.organizationName ? 'border-rose-500 focus:border-rose-400' : 'border-border-default focus:border-primary-500'}`}
+            className={`w-full px-3 py-2 text-sm bg-white border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.organizationName ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-primary-500'}`}
           />
-          {fieldErrors.organizationName && <p className="text-xs text-rose-400 mt-1">{fieldErrors.organizationName}</p>}
+          {fieldErrors.organizationName && <p className="text-xs text-rose-600 mt-1">{fieldErrors.organizationName}</p>}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="email" className="text-xs font-semibold text-text-secondary block">
+          <label htmlFor="email" className="text-xs font-semibold text-slate-700 block">
             Email
           </label>
           <input
@@ -196,13 +196,13 @@ export default function SignupPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className={`w-full px-3 py-2 text-sm bg-bg-overlay border rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.email ? 'border-rose-500 focus:border-rose-400' : 'border-border-default focus:border-primary-500'}`}
+            className={`w-full px-3 py-2 text-sm bg-white border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.email ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-primary-500'}`}
           />
-          {fieldErrors.email && <p className="text-xs text-rose-400 mt-1">{fieldErrors.email}</p>}
+          {fieldErrors.email && <p className="text-xs text-rose-600 mt-1">{fieldErrors.email}</p>}
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="password" className="text-xs font-semibold text-text-secondary block">
+          <label htmlFor="password" className="text-xs font-semibold text-slate-700 block">
             Password
           </label>
           <input
@@ -213,19 +213,19 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className={`w-full px-3 py-2 text-sm bg-bg-overlay border rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.password ? 'border-rose-500 focus:border-rose-400' : 'border-border-default focus:border-primary-500'}`}
+            className={`w-full px-3 py-2 text-sm bg-white border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${fieldErrors.password ? 'border-rose-500 focus:border-rose-400' : 'border-slate-200 focus:border-primary-500'}`}
           />
           {fieldErrors.password ? (
-            <p className="text-xs text-rose-400 mt-1">{fieldErrors.password}</p>
+            <p className="text-xs text-rose-600 mt-1">{fieldErrors.password}</p>
           ) : (
-            <p className="text-[10px] text-text-tertiary mt-1">
+            <p className="text-[10px] text-slate-500 mt-1">
               Must be at least 8 characters, contain an uppercase letter, a number, and a special character.
             </p>
           )}
         </div>
 
         {error && (
-          <p className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-2.5">
+          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5">
             {error}
           </p>
         )}
@@ -241,9 +241,9 @@ export default function SignupPage() {
         </Button>
         
         <div className="text-center mt-4">
-          <p className="text-xs text-text-tertiary">
+          <p className="text-xs text-slate-500">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary-400 hover:text-primary-300 transition-colors font-semibold">
+            <Link href="/login" className="text-primary-600 hover:text-primary-500 transition-colors font-semibold">
               Sign in
             </Link>
           </p>

@@ -52,13 +52,13 @@
 * **Phase 12E (Completed):** Billing Quota Enforcement + BRD Completion Report. Billing now has live usage metrics and backend quota enforcement (`PLAN_LIMIT_EXCEEDED`). The UI gracefully prompts for upgrades. 
 * **Phase 12F (Completed):** Founder Demo Readiness Package completed. Created demo runbook and external blocker tracker. The project is demo-ready but real external integrations are blocked.
 * **Phase 12G (Completed):** Founder Demo Manual QA completed. The demo was completely successful with ZERO critical blockers. Three minor P3 Polish bugs were logged (AI UX gap, uncommitted auth UI files, and missing customer empty states).
+* **Phase 12H (Completed):** Final UX Polish completed. Addressed the 3 minor P3 UI bugs found in Phase 12G. The CRM app is now 100% demo-ready. No P0 blockers remain for the internal functionality.
 * **Remaining CRM Gaps:** Real Stripe payment processing remains blocked pending Stripe keys. Real AI provider calls remain blocked pending AI keys. 
 * **Phase 11C (Meta Integration):** Remains STRICTLY BLOCKED until founder setup is completed.
 * **Exact next options:**
-  1. Approve minor P3 UX Polish fixes (Phase 12H)
-  2. Meta Developer Setup (Phase 11C)
-  3. Stripe setup
-  4. AI provider setup
+  1. Meta Developer Setup (Phase 11C)
+  2. Stripe API Setup
+  3. OpenAI API Setup
 
 ## 6. Callback Paths to Configure (For Founder Later)
 *   **Instagram Webhook:** `https://leados-api.onrender.com/api/webhooks/instagram`

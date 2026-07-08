@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/Spinner';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 import Link from 'next/link';
 
 interface CustomerListResponse {
@@ -75,7 +76,13 @@ export default function CustomersPage() {
             </tbody>
           </table>
         ) : (
-          <div className="py-16 text-center text-slate-500 text-sm">No customers found.</div>
+          <div className="py-12">
+            <EmptyState 
+              icon="👥" 
+              title="No customers yet" 
+              description="Customers will appear here once leads are converted or contacts are added." 
+            />
+          </div>
         )}
       </div>
     </div>
