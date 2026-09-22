@@ -155,7 +155,7 @@ export function TryItPanel() {
               onChange={(e) => setText(e.target.value)}
               placeholder={
                 kind === 'dm'
-                  ? 'Hi, how much is a haircut? Can I come on Sunday?'
+                  ? 'Hi! Price kya hai? Sunday ko visit kar sakte hain?'
                   : 'Price please? 😍'
               }
             />

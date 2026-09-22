@@ -86,7 +86,7 @@ export function SimulateCard() {
               rows={2}
               placeholder={
                 lastKind === 'dm'
-                  ? 'Hi! How much is a haircut, and are you open on Sunday?'
+                  ? 'Hi! What are your prices, and are you open on Sunday?'
                   : 'Love this! Price please?'
               }
               {...register('text')}
