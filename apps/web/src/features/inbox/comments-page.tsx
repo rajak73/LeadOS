@@ -21,11 +21,11 @@ export default function CommentsPage() {
   const post = posts?.find((p) => p.mediaId === selected);
 
   return (
-    <div className="flex h-[calc(100dvh-14rem)] min-h-[30rem] overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <div className="@container flex h-[calc(100dvh-14rem)] min-h-[22rem] overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
       <section
         aria-label="Posts"
         className={cn(
-          'min-h-0 w-full flex-col overflow-y-auto border-border md:flex md:w-[340px] md:shrink-0 md:border-r',
+          'min-h-0 w-full flex-col overflow-y-auto border-border @3xl:flex @3xl:w-[300px] @3xl:shrink-0 @3xl:border-r @5xl:w-[340px]',
           mediaId ? 'hidden' : 'flex',
         )}
       >
@@ -39,7 +39,7 @@ export default function CommentsPage() {
       </section>
       <section
         aria-label="Post comments"
-        className={cn('min-h-0 min-w-0 flex-1 flex-col md:flex', mediaId ? 'flex' : 'hidden')}
+        className={cn('min-h-0 min-w-0 flex-1 flex-col @3xl:flex', mediaId ? 'flex' : 'hidden')}
       >
         {selected ? (
           <PostComments key={selected} mediaId={selected} post={post} />

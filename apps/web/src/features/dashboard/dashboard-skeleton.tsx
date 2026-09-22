@@ -25,21 +25,21 @@ function ChartSkeleton({ className, rows }: { className?: string; rows?: number 
 
 export function DashboardSkeleton() {
   return (
-    <LoadingRegion label="Loading dashboard…" className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <LoadingRegion label="Loading dashboard…" className="@container flex flex-col gap-4">
+      <div className="flex flex-wrap gap-4">
         {Array.from({ length: 5 }, (_, i) => (
-          <Card key={i} className="space-y-3 p-4">
+          <Card key={i} className="min-w-52 flex-1 basis-52 space-y-3 p-4">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-8 w-20" />
             <Skeleton className="h-3.5 w-32" />
           </Card>
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ChartSkeleton className="lg:col-span-2" />
+      <div className="grid gap-4 @4xl:grid-cols-3">
+        <ChartSkeleton className="@4xl:col-span-2" />
         <ChartSkeleton rows={4} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 @4xl:grid-cols-3">
         <ChartSkeleton rows={5} />
         <ChartSkeleton rows={5} />
         <ChartSkeleton rows={5} />

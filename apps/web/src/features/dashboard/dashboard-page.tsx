@@ -71,16 +71,17 @@ export default function DashboardPage() {
         <div
           aria-busy={isPlaceholderData || undefined}
           className={cn(
-            'flex flex-col gap-4 transition-opacity',
+            // Columns follow the content width (sidebar open or not), not the viewport.
+            '@container flex flex-col gap-4 transition-opacity',
             isPlaceholderData && 'opacity-60',
           )}
         >
           <KpiCards summary={data} />
-          <div className="grid gap-4 lg:grid-cols-3">
-            <LeadsOverTimeChart points={data.leadsOverTime} className="lg:col-span-2" />
+          <div className="grid gap-4 @4xl:grid-cols-3">
+            <LeadsOverTimeChart points={data.leadsOverTime} className="@4xl:col-span-2" />
             <MyTasks />
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 @4xl:grid-cols-3">
             <PipelineByStageChart summary={data} />
             <LeadsBySourceChart summary={data} />
             <TopPerformers summary={data} />

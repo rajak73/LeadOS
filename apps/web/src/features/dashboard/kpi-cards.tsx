@@ -42,7 +42,7 @@ function Change({ value, previous }: { value: number; previous: number }) {
 
 function Kpi({ label, value, footer }: { label: string; value: string; footer: ReactNode }) {
   return (
-    <Card className="flex flex-col gap-1 p-4">
+    <Card className="flex min-w-52 flex-1 basis-52 flex-col gap-1 p-4">
       <h2 className="type-small font-medium text-fg-muted">{label}</h2>
       <p className="type-metric text-fg">{value}</p>
       <div className="mt-auto">{footer}</div>
@@ -53,7 +53,8 @@ function Kpi({ label, value, footer }: { label: string; value: string; footer: R
 export function KpiCards({ summary }: { summary: DashboardSummary }) {
   const { kpis, currency } = summary;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    // Wrapping row: cards stretch to fill each line, so an odd card never leaves a gap beside it.
+    <div className="flex flex-wrap gap-4">
       <Kpi
         label="New leads"
         value={formatNumber(kpis.newLeads.value)}

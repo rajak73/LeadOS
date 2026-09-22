@@ -123,6 +123,12 @@ function unavailable(err: unknown): AppError {
   return new AppError(ErrorCode.AI_UNAVAILABLE, message);
 }
 
+/**
+ * A little above the scoring default so replies don't all read alike; the prompt still pins
+ * every fact to the business info.
+ */
+const REPLY_TEMPERATURE = 0.5;
+
 /** Throws AiError (reply pipeline) — callers decide whether to surface it. */
 export async function generateDmReply(
   settings: PromptSettings,
@@ -135,6 +141,7 @@ export async function generateDmReply(
       { role: 'user', content: dmUserPrompt(lines, lead) },
     ],
     dmSchema,
+    { temperature: REPLY_TEMPERATURE },
   );
   const reply = tidyReply(data.reply, DM_REPLY_MAX_CHARS);
   const handoff = data.handoff || !reply;
@@ -165,6 +172,7 @@ export async function generateCommentReply(
       { role: 'user', content: commentUserPrompt(input) },
     ],
     commentSchema,
+    { temperature: REPLY_TEMPERATURE },
   );
   let publicReply = mode === 'PRIVATE' ? null : scrubPublic(data.publicReply);
   let privateReply = mode === 'PUBLIC' ? null : tidyReply(data.privateReply, DM_REPLY_MAX_CHARS);

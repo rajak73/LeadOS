@@ -35,12 +35,13 @@ export function ThreadHeader({ conversation: c }: { conversation: IgConversation
         <Link
           to={`/inbox${search}`}
           aria-label="Back to conversations"
-          className={buttonClasses({ variant: 'ghost', iconOnly: true, className: 'md:hidden' })}
+          className={buttonClasses({ variant: 'ghost', iconOnly: true, className: '@3xl:hidden' })}
         >
           <ArrowLeft aria-hidden />
         </Link>
         <IgAvatar name={name} src={c.profilePictureUrl} />
-        <div className="min-w-0 flex-1">
+        {/* basis keeps the name readable: the controls wrap below instead of squeezing it. */}
+        <div className="min-w-0 flex-1 basis-40">
           <h2 className="truncate type-section text-fg">{name}</h2>
           {c.username && (
             <a
@@ -55,7 +56,7 @@ export function ThreadHeader({ conversation: c }: { conversation: IgConversation
             </a>
           )}
         </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2">
           {c.lead ? (
             <Link
               to={`/leads/${c.lead.id}`}

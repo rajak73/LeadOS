@@ -7,19 +7,21 @@ import { ConversationList } from './conversation-list';
 import { ConversationThread } from './conversation-thread';
 
 /**
- * Two panes on desktop (list + thread). On small screens only one pane shows:
- * the list at /inbox, the thread (with a back button) at /inbox/:id.
+ * Two panes when the inbox itself is wide enough (list + thread). Narrower — a phone, or a
+ * laptop where the sidebar takes room — only one pane shows: the list at /inbox, the thread
+ * (with a back button) at /inbox/:id. Sized by container, not viewport, so the thread never
+ * gets squeezed into a sliver next to the list.
  */
 export default function MessagesPage() {
   const { id } = useParams();
   useDocumentTitle('Inbox');
 
   return (
-    <div className="flex h-[calc(100dvh-14rem)] min-h-[30rem] overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <div className="@container flex h-[calc(100dvh-14rem)] min-h-[22rem] overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
       <section
         aria-label="Conversations"
         className={cn(
-          'min-h-0 w-full flex-col border-border md:flex md:w-[360px] md:shrink-0 md:border-r',
+          'min-h-0 w-full flex-col border-border @3xl:flex @3xl:w-[300px] @3xl:shrink-0 @3xl:border-r @5xl:w-[360px]',
           id ? 'hidden' : 'flex',
         )}
       >
@@ -27,7 +29,7 @@ export default function MessagesPage() {
       </section>
       <section
         aria-label="Conversation"
-        className={cn('min-h-0 min-w-0 flex-1 flex-col md:flex', id ? 'flex' : 'hidden')}
+        className={cn('min-h-0 min-w-0 flex-1 flex-col @3xl:flex', id ? 'flex' : 'hidden')}
       >
         {id ? (
           <ConversationThread key={id} id={id} />

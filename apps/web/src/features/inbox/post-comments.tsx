@@ -78,7 +78,7 @@ export function PostComments({ mediaId, post }: { mediaId: string; post?: IgComm
             className={buttonClasses({
               variant: 'ghost',
               iconOnly: true,
-              className: '-ml-1 shrink-0 md:hidden',
+              className: '-ml-1 shrink-0 @3xl:hidden',
             })}
           >
             <ArrowLeft aria-hidden />

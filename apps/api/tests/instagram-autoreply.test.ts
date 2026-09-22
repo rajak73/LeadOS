@@ -116,6 +116,8 @@ describe('DM auto-reply', () => {
     const [body] = callsOf('dm')[0]! as [Body, { timeout: number }];
     expect(body.model).toBe('gemini-2.5-flash');
     expect(body.messages[0]!.content).toContain('Free site visit');
+    expect(body.messages[0]!.content).toContain('SOUND LIKE A PERSON');
+    expect((body as { temperature?: number }).temperature).toBe(0.5);
     expect(body.messages[1]!.content).toContain('Customer: modular kitchen ka');
     expect((callsOf('dm')[0]![1] as { timeout: number }).timeout).toBe(20_000);
     expect(ai.clients.at(-1)).toMatchObject({
