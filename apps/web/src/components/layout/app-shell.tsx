@@ -10,7 +10,8 @@ import { CommandPalette } from './command-palette';
 import { NotificationsBell } from './notifications-bell';
 import { UserMenu } from './user-menu';
 
-const COLLAPSE_KEY = 'leados-sidebar-collapsed';
+// Older builds remembered a collapsed sidebar; the sidebar now always starts open.
+const OLD_COLLAPSE_KEY = 'leados-sidebar-collapsed';
 
 function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   return (
@@ -49,17 +50,15 @@ function PageFallback() {
 }
 
 export function AppShell() {
-  const [collapsed, setCollapsed] = useState(() => safeStorage.get(COLLAPSE_KEY) === '1');
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => safeStorage.remove(OLD_COLLAPSE_KEY), []);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const toggleCollapsed = useCallback(() => {
-    setCollapsed((c) => {
-      safeStorage.set(COLLAPSE_KEY, c ? '0' : '1');
-      return !c;
-    });
+    setCollapsed((c) => !c);
   }, []);
 
   useEffect(() => {
