@@ -3,6 +3,9 @@
 
 import { z } from 'zod';
 import {
+  AUTO_REPLY_MODES,
+  COMMENT_REPLY_MODES,
+  COMMENT_REPLY_STATUSES,
   CONDITION_OPERATORS,
   DEAL_STATUSES,
   LEAD_SOURCES,
@@ -553,3 +556,109 @@ export const notificationListQuerySchema = paginationSchema.extend({
   unreadOnly: z.preprocess((v) => v === 'true' || v === true, z.boolean()).default(false),
 });
 export type NotificationListQuery = z.infer<typeof notificationListQuerySchema>;
+
+// ─── Instagram & auto-reply ──────────────────────────────────────────────────
+
+export const IG_DM_MAX_LENGTH = 1000; // Instagram's limit for a text DM
+export const IG_COMMENT_MAX_LENGTH = 2200;
+
+export const connectInstagramSchema = z.object({
+  accessToken: z
+    .string()
+    .trim()
+    .min(20, 'Paste the full access token from the Meta dashboard')
+    .max(1000),
+});
+export type ConnectInstagramInput = z.infer<typeof connectInstagramSchema>;
+
+export const conversationListQuerySchema = paginationSchema.extend({
+  filter: z.enum(['all', 'unread', 'attention']).default('all'),
+  search: z.string().trim().max(100).optional(),
+});
+export type ConversationListQuery = z.infer<typeof conversationListQuerySchema>;
+
+export const sendMessageSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(1, 'Write a message first')
+    .max(IG_DM_MAX_LENGTH, `Instagram messages are limited to ${IG_DM_MAX_LENGTH} characters`),
+});
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+
+/** Approve (optionally edited) or discard an AI draft. */
+export const draftActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('send'),
+    text: z.string().trim().min(1, 'Write a message first').max(IG_DM_MAX_LENGTH).optional(),
+  }),
+  z.object({ action: z.literal('discard') }),
+]);
+export type DraftActionInput = z.infer<typeof draftActionSchema>;
+
+export const updateConversationSchema = z
+  .object({
+    aiEnabled: z.boolean().optional(),
+    leadId: optionalId, // link to an existing lead (null to unlink)
+    markRead: z.literal(true).optional(),
+  })
+  .refine((d) => Object.keys(d).length > 0, { message: 'Nothing to update' });
+export type UpdateConversationInput = z.infer<typeof updateConversationSchema>;
+
+export const commentListQuerySchema = paginationSchema.extend({
+  status: z.preprocess(asArray, z.array(z.enum(COMMENT_REPLY_STATUSES)).optional()),
+  mediaId: z.string().max(64).optional(),
+  search: z.string().trim().max(100).optional(),
+});
+export type CommentListQuery = z.infer<typeof commentListQuerySchema>;
+
+/** Reply to a comment manually, or approve (optionally edited) an AI draft. */
+export const commentReplySchema = z
+  .object({
+    publicReply: z.preprocess(
+      blankToNull,
+      z.string().trim().max(IG_COMMENT_MAX_LENGTH).nullable().optional(),
+    ),
+    privateReply: z.preprocess(
+      blankToNull,
+      z.string().trim().max(IG_DM_MAX_LENGTH).nullable().optional(),
+    ),
+  })
+  .refine((d) => Boolean(d.publicReply || d.privateReply), {
+    message: 'Write a public reply, a private message, or both',
+  });
+export type CommentReplyInput = z.infer<typeof commentReplySchema>;
+
+export const updateAutoReplySettingsSchema = z.object({
+  dmEnabled: z.boolean().optional(),
+  commentsEnabled: z.boolean().optional(),
+  mode: z.enum(AUTO_REPLY_MODES).optional(),
+  commentReplyMode: z.enum(COMMENT_REPLY_MODES).optional(),
+  businessInfo: z.string().trim().max(8000, 'Keep business info under 8,000 characters').optional(),
+  tone: z.string().trim().max(300).optional(),
+  handoffMessage: z.string().trim().max(IG_DM_MAX_LENGTH).optional(),
+  replyDelaySeconds: z.coerce.number().int().min(0).max(300).optional(),
+  maxRepliesPerDay: z.coerce.number().int().min(1).max(200).optional(),
+  createLeads: z.boolean().optional(),
+});
+export type UpdateAutoReplySettingsInput = z.infer<typeof updateAutoReplySettingsSchema>;
+
+/** Try the AI without sending anything. */
+export const testAutoReplySchema = z.object({
+  kind: z.enum(['dm', 'comment']).default('dm'),
+  text: z.string().trim().min(1, 'Write a sample message').max(1000),
+});
+export type TestAutoReplyInput = z.infer<typeof testAutoReplySchema>;
+
+/** Test mode only: inject a fake incoming DM or comment through the real pipeline. */
+export const simulateInstagramSchema = z.object({
+  kind: z.enum(['dm', 'comment']),
+  username: z
+    .string()
+    .trim()
+    .min(1, 'Enter a username')
+    .max(30)
+    .regex(/^[a-zA-Z0-9._]+$/, 'Use letters, numbers, dots and underscores'),
+  text: z.string().trim().min(1, 'Write a message').max(1000),
+});
+export type SimulateInstagramInput = z.infer<typeof simulateInstagramSchema>;

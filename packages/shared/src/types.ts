@@ -2,6 +2,14 @@
 
 import type {
   ActivityType,
+  AiProvider,
+  AutoReplyMode,
+  CommentReplyMode,
+  CommentReplyStatus,
+  IgAccountStatus,
+  MessageAuthor,
+  MessageDirection,
+  MessageStatus,
   DealStatus,
   LeadSource,
   LeadStatus,
@@ -38,7 +46,8 @@ export interface AppSettings {
   defaultCurrency: string;
   timezone: string;
   aiScoringAuto: boolean;
-  aiProvider: 'openai' | 'rules'; // 'rules' when no OPENAI_API_KEY is configured
+  aiProvider: AiProvider; // 'rules' when no AI key is configured (scoring then uses built-in rules; AI replies are unavailable)
+  aiModel: string | null; // e.g. 'gemini-2.5-flash'; null for 'rules'
 }
 
 /** GET /auth/status — tells the login screen whether first-run setup is needed. */
@@ -207,7 +216,15 @@ export interface Notification {
   type: NotificationType;
   title: string;
   body: string;
-  entityType: 'lead' | 'contact' | 'deal' | 'task' | null;
+  entityType:
+    | 'lead'
+    | 'contact'
+    | 'deal'
+    | 'task'
+    | 'ig_conversation'
+    | 'ig_comment'
+    | 'instagram'
+    | null;
   entityId: string | null;
   readAt: ISODate | null;
   createdAt: ISODate;
@@ -301,4 +318,138 @@ export interface DashboardSummary {
     value: number;
   }>;
   topPerformers: Array<{ user: UserRef; wonCount: number; wonValue: number }>;
+}
+
+// ─── Instagram & auto-reply ──────────────────────────────────────────────────
+
+/** GET /instagram/status — everything the Instagram settings page needs. */
+export interface InstagramStatus {
+  connected: boolean;
+  account: {
+    igUserId: string;
+    username: string;
+    name: string | null;
+    profilePictureUrl: string | null;
+    status: IgAccountStatus;
+    statusMessage: string | null; // human-readable problem, e.g. "The access token has expired."
+    tokenExpiresAt: ISODate | null;
+    lastWebhookAt: ISODate | null;
+    connectedAt: ISODate;
+  } | null;
+  /** Values the admin must paste into the Meta app dashboard. */
+  webhook: {
+    callbackUrl: string; // `${PUBLIC_URL}/api/webhooks/instagram`
+    verifyToken: string;
+    isPublicUrl: boolean; // false when PUBLIC_URL is localhost — Meta cannot reach it
+  };
+  appSecretConfigured: boolean; // META_APP_SECRET set (needed to verify webhooks)
+  testMode: boolean; // INSTAGRAM_TEST_MODE: sends are simulated, simulate endpoint enabled
+}
+
+export interface IgAttachment {
+  type: 'image' | 'video' | 'audio' | 'file' | 'share' | 'story_mention' | 'reel' | 'unknown';
+  url: string | null;
+}
+
+export interface IgMessage {
+  id: string;
+  conversationId: string;
+  direction: MessageDirection;
+  text: string | null;
+  attachments: IgAttachment[];
+  author: MessageAuthor;
+  sentBy: UserRef | null;
+  status: MessageStatus;
+  error: string | null; // user-friendly
+  createdAt: ISODate;
+  sentAt: ISODate | null;
+}
+
+export interface IgConversation {
+  id: string;
+  igsid: string;
+  username: string | null;
+  name: string | null;
+  profilePictureUrl: string | null;
+  lead: { id: string; firstName: string; lastName: string | null; status: LeadStatus } | null;
+  aiEnabled: boolean;
+  aiPausedReason: string | null;
+  needsAttention: boolean;
+  hasDraft: boolean;
+  unreadCount: number;
+  lastMessageAt: ISODate | null;
+  lastMessagePreview: string | null;
+  /** When the 24-hour window to reply closes; null if the customer never wrote. */
+  replyWindowEndsAt: ISODate | null;
+  canReply: boolean; // replyWindowEndsAt is in the future
+  createdAt: ISODate;
+}
+
+export interface IgConversationDetail extends IgConversation {
+  messages: IgMessage[]; // oldest first, last 100
+}
+
+export interface IgComment {
+  id: string;
+  commentId: string;
+  parentCommentId: string | null;
+  media: {
+    id: string;
+    permalink: string | null;
+    caption: string | null;
+    thumbnailUrl: string | null;
+  };
+  fromUsername: string | null;
+  text: string;
+  lead: { id: string; firstName: string; lastName: string | null } | null;
+  replyStatus: CommentReplyStatus;
+  publicReply: string | null;
+  privateReply: string | null;
+  privateReplySent: boolean;
+  replyError: string | null;
+  skipReason: string | null;
+  repliedBy: UserRef | null;
+  commentedAt: ISODate;
+}
+
+export interface AutoReplySettings {
+  dmEnabled: boolean;
+  commentsEnabled: boolean;
+  mode: AutoReplyMode;
+  commentReplyMode: CommentReplyMode;
+  businessInfo: string;
+  tone: string;
+  handoffMessage: string;
+  replyDelaySeconds: number;
+  maxRepliesPerDay: number;
+  createLeads: boolean;
+  /** Read-only: which AI answers. 'rules' means no key is set and AI replies are off. */
+  aiProvider: AiProvider;
+  aiModel: string | null;
+}
+
+/** POST /auto-reply/test and POST /instagram/conversations/:id/suggest */
+export interface AiReplyPreview {
+  reply: string | null; // null when the AI decided a person should answer
+  handoff: boolean;
+  handoffReason: string | null;
+  extracted: { email: string | null; phone: string | null };
+  provider: AiProvider;
+  model: string | null;
+}
+
+export interface CommentReplyPreview {
+  skip: boolean;
+  skipReason: string | null;
+  publicReply: string | null;
+  privateReply: string | null;
+  provider: AiProvider;
+  model: string | null;
+}
+
+export interface InboxCounts {
+  unreadConversations: number;
+  needsAttention: number; // conversations with a handoff or a draft waiting
+  commentDrafts: number;
+  commentsUnanswered: number; // replyStatus NONE or FAILED, last 7 days
 }

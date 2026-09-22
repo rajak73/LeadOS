@@ -65,6 +65,10 @@ export const ACTIVITY_TYPES = values(
   'TASK_COMPLETED',
   'NOTE_ADDED',
   'WORKFLOW_ACTION',
+  'INSTAGRAM_MESSAGE_RECEIVED',
+  'INSTAGRAM_MESSAGE_SENT',
+  'INSTAGRAM_COMMENT_RECEIVED',
+  'INSTAGRAM_COMMENT_REPLIED',
 );
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
@@ -75,6 +79,11 @@ export const NOTIFICATION_TYPES = values(
   'TASK_DUE',
   'LEAD_SCORED',
   'WORKFLOW',
+  'INSTAGRAM_MESSAGE',
+  'INSTAGRAM_COMMENT',
+  'AI_HANDOFF',
+  'AI_DRAFT_READY',
+  'INSTAGRAM_CONNECTION',
 );
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -117,3 +126,39 @@ export const CONDITION_OPERATORS = values(
   'IS_NOT_EMPTY',
 );
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
+
+// ─── Instagram & auto-reply ──────────────────────────────────────────────────
+
+export const IG_ACCOUNT_STATUSES = values('ACTIVE', 'EXPIRED', 'ERROR');
+export type IgAccountStatus = (typeof IG_ACCOUNT_STATUSES)[number];
+
+export const MESSAGE_DIRECTIONS = values('INBOUND', 'OUTBOUND');
+export type MessageDirection = (typeof MESSAGE_DIRECTIONS)[number];
+
+/** Who wrote a message. INSTAGRAM_APP = sent by the business from the Instagram app itself. */
+export const MESSAGE_AUTHORS = values('CUSTOMER', 'USER', 'AI', 'INSTAGRAM_APP');
+export type MessageAuthor = (typeof MESSAGE_AUTHORS)[number];
+
+export const MESSAGE_STATUSES = values(
+  'RECEIVED',
+  'DRAFT',
+  'SENDING',
+  'SENT',
+  'FAILED',
+  'DISCARDED',
+);
+export type MessageStatus = (typeof MESSAGE_STATUSES)[number];
+
+export const COMMENT_REPLY_STATUSES = values('NONE', 'DRAFT', 'REPLIED', 'SKIPPED', 'FAILED');
+export type CommentReplyStatus = (typeof COMMENT_REPLY_STATUSES)[number];
+
+/** AUTO = AI replies are sent immediately; DRAFT = saved for you to approve. */
+export const AUTO_REPLY_MODES = values('AUTO', 'DRAFT');
+export type AutoReplyMode = (typeof AUTO_REPLY_MODES)[number];
+
+/** PUBLIC = reply under the comment; PRIVATE = DM the commenter; BOTH = short public reply + DM. */
+export const COMMENT_REPLY_MODES = values('PUBLIC', 'PRIVATE', 'BOTH');
+export type CommentReplyMode = (typeof COMMENT_REPLY_MODES)[number];
+
+export const AI_PROVIDERS = values('gemini', 'groq', 'openai', 'rules');
+export type AiProvider = (typeof AI_PROVIDERS)[number];

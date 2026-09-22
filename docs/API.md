@@ -175,3 +175,135 @@ activities. When `OPENAI_API_KEY` is not set, or the call fails/times out (15 s)
 deterministic rules scorer (`modelVersion: "rules-v1"`) is used instead so scoring always
 works. When `settings.aiScoringAuto` is on, leads are rescored (debounced 10 s per lead)
 after create, status change and new notes.
+
+## AI provider
+
+One provider serves both lead scoring and Instagram replies, chosen by env:
+`AI_PROVIDER=gemini|groq|openai` (if unset: the first of GEMINI_API_KEY, GROQ_API_KEY,
+OPENAI_API_KEY that is set; none → `rules`). All three are called through the `openai` SDK
+using their OpenAI-compatible endpoints:
+
+| Provider | Base URL | Key | Default model (`AI_MODEL` overrides) |
+|---|---|---|---|
+| gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` | `gemini-2.5-flash` |
+| groq | `https://api.groq.com/openai/v1` | `GROQ_API_KEY` | `llama-3.3-70b-versatile` |
+| openai | default | `OPENAI_API_KEY` | `gpt-4o-mini` |
+
+Use `response_format: { type: 'json_object' }` (supported by all three) and validate the
+JSON with zod; on invalid JSON retry once, then fail. Timeout 20 s. Scoring falls back to
+the rules scorer on any failure (as before). Replies have no fallback: if the AI fails,
+nothing is sent, the conversation is flagged `needsAttention` and the error is logged.
+`GET /settings` reports `aiProvider` and `aiModel`.
+
+## Instagram
+
+Uses the **Instagram API with Instagram Login** (graph.instagram.com, `INSTAGRAM_GRAPH_VERSION`
+default `v23.0`). Needs a Meta app with the Instagram product, permissions
+`instagram_business_basic`, `instagram_business_manage_messages`,
+`instagram_business_manage_comments`, and a professional (Business/Creator) account.
+
+Env: `META_APP_SECRET` (Instagram app secret — verifies webhook signatures and is used for
+token refresh), `META_WEBHOOK_VERIFY_TOKEN` (random string; if unset one is derived from
+JWT_SECRET and shown in settings), `PUBLIC_URL` (public https origin of this app, e.g. a
+Cloudflare Tunnel URL; defaults to APP_ORIGIN), `INSTAGRAM_TEST_MODE` (default `true` in
+development, `false` otherwise), `ENCRYPTION_KEY` (optional; 32+ chars; defaults to a key
+derived from JWT_SECRET) for encrypting the stored token with AES-256-GCM.
+
+**Connecting.** The admin generates a long-lived token in the Meta dashboard ("Generate
+token" under Instagram API setup) and pastes it. The API calls `GET /me?fields=user_id,username,name,profile_picture_url`,
+stores the account (replacing any previous one), subscribes the account to webhooks
+(`POST /me/subscribed_apps?subscribed_fields=messages,comments`), and records the expiry.
+A daily job refreshes the token (`GET /refresh_access_token?grant_type=ig_refresh_token`) when
+it expires within 10 days. A Graph API auth error (code 190) sets status `EXPIRED` with a
+friendly `statusMessage` and notifies admins once.
+
+**Test mode.** When `INSTAGRAM_TEST_MODE=true`, all Graph API calls go to an in-process
+sandbox adapter (sends succeed with fake ids, profile lookups return the username), a
+"Test account" can be connected with any token, and `POST /instagram/simulate` is enabled.
+This lets the whole flow — lead creation, AI reply, drafts, inbox — run on localhost.
+
+**Webhooks** (public, no auth; mounted with a raw body parser before `express.json`):
+
+| Method | Path | Behaviour |
+|---|---|---|
+| GET | `/webhooks/instagram` | Meta verification: if `hub.mode=subscribe` and `hub.verify_token` matches, respond `hub.challenge` as text/plain 200, else 403. |
+| POST | `/webhooks/instagram` | Verify `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with META_APP_SECRET, timing-safe) → 401 if invalid (in test mode unsigned requests are accepted only when META_APP_SECRET is unset). Respond 200 immediately, then process each entry on the in-process queue. Update `lastWebhookAt`. |
+
+Processing rules:
+- `messaging[]` with `message`: ignore if `message.is_deleted`; dedupe by `mid`. `is_echo`
+  (the business wrote from the Instagram app, or it's our own API send) → if `mid` already
+  stored, ignore; else store as OUTBOUND, author `INSTAGRAM_APP`, and pause AI for that thread
+  (`aiPausedReason: "You replied from the Instagram app"`) so the AI never talks over a person.
+  Otherwise upsert the conversation by sender id (fetch `name,username,profile_pic` once),
+  store INBOUND, bump `unreadCount`, set `lastInboundAt`. If `createLeads` and the
+  conversation has no lead: create a lead (source `INSTAGRAM`, firstName = name or
+  @username, tag `instagram`) and link it. Log activity
+  `INSTAGRAM_MESSAGE_RECEIVED` on the lead, notify all active admins (`INSTAGRAM_MESSAGE`,
+  collapsed: at most one unread notification per conversation), then schedule auto-reply.
+- `changes[]` with `field: 'comments'`: ignore comments from our own `igUserId`; dedupe by
+  comment id; fetch media `permalink,caption,thumbnail_url,media_url` (cache per mediaId);
+  store; optionally create/link a lead the same way (by `fromIgId`, reusing the lead of a DM
+  conversation with the same igsid if any); activity + notification (`INSTAGRAM_COMMENT`);
+  schedule auto-reply.
+- Other fields/events are ignored.
+
+**Auto-reply (DMs).** Runs `replyDelaySeconds` after the latest inbound message (a new
+inbound message within the delay resets the timer, so a burst gets one reply). Skips when:
+`dmEnabled` off, provider is `rules`, account not ACTIVE, conversation `aiEnabled` false,
+reply window closed, a USER/INSTAGRAM_APP message was sent after the latest inbound message,
+or the conversation already had `maxRepliesPerDay` AI replies in the last 24 h (then pause
+AI with reason "Daily auto-reply limit reached" and flag attention). Prompt contents: system
+rules (you are the business's Instagram assistant; answer ONLY from the business info; never
+invent prices, availability, discounts or policies; if the answer isn't in the business info,
+or the customer asks for a human, complains, or wants to book/pay, set handoff; reply in the
+customer's language and script — Hindi, Hinglish, English…; keep it short, no markdown, at
+most one emoji; ≤ 900 characters), `tone`, `businessInfo`, the last 20 messages, and known
+lead fields. Required JSON: `{ "reply": string|null, "handoff": boolean, "handoffReason":
+string|null, "email": string|null, "phone": string|null }`. Then:
+- extracted email/phone → fill the lead's empty email/phone fields (never overwrite).
+- `handoff` → pause AI (`aiPausedReason` = handoffReason), `needsAttention = true`, send
+  `handoffMessage` (as author AI) if non-empty and mode is AUTO (in DRAFT mode store it as a
+  draft), notify admins (`AI_HANDOFF`).
+- otherwise mode AUTO → send; mode DRAFT → store as DRAFT (only one pending draft per
+  conversation — replace an older one), `needsAttention = true`, notify (`AI_DRAFT_READY`).
+- Sending: `POST /me/messages { recipient: { id: igsid }, message: { text } }`; store `mid`;
+  on failure status FAILED with a friendly `error` ("The 24-hour reply window has closed",
+  "Instagram rejected the message", …) and flag attention.
+
+**Auto-reply (comments).** Same guards with `commentsEnabled`; delay 0–5 s; skip replies
+to our own comments and comments that are replies inside a thread where we already replied.
+JSON: `{ "skip": boolean, "skipReason": string|null, "publicReply": string|null,
+"privateReply": string|null }` — skip spam, abuse, emojis-only praise may get a short thanks,
+and anything needing a person (complaints) → skip with reason + notify. `commentReplyMode`
+decides which parts are used: PUBLIC → `POST /{comment-id}/replies { message }`; PRIVATE →
+`POST /me/messages { recipient: { comment_id }, message: { text } }` (one private reply per
+comment, within 7 days; the resulting DM thread is stored as a conversation when the customer
+answers); BOTH → both (public reply should be short, e.g. "Sent you a DM!"). DRAFT mode stores
+the texts with replyStatus DRAFT.
+
+Endpoints (all require auth; **(admin)** as before):
+
+| Method | Path | Body / query | Returns |
+|---|---|---|---|
+| GET | `/instagram/status` | — | `InstagramStatus` |
+| POST | `/instagram/connect` **(admin)** | `connectInstagramSchema` | `InstagramStatus`. 422 with a friendly message if Meta rejects the token. |
+| POST | `/instagram/disconnect` **(admin)** | — | `InstagramStatus`. Unsubscribes (best effort), deletes the token; conversations/comments are kept. |
+| POST | `/instagram/simulate` **(admin, test mode only — 404 otherwise)** | `simulateInstagramSchema` | `{ conversationId: string } \| { commentId: string }` — runs the real webhook pipeline with a fake sender id derived from the username. |
+| GET | `/instagram/counts` | — | `InboxCounts` (the web app polls it every 20 s for the sidebar badge) |
+| GET | `/instagram/conversations` | `conversationListQuerySchema` | `IgConversation[]` + meta, newest activity first. `attention` = needsAttention or has a draft. |
+| GET | `/instagram/conversations/:id` | — | `IgConversationDetail` |
+| PATCH | `/instagram/conversations/:id` | `updateConversationSchema` | `IgConversation`. `aiEnabled: true` clears `aiPausedReason` and `needsAttention` (if no draft). `markRead` zeroes `unreadCount`. |
+| POST | `/instagram/conversations/:id/messages` | `sendMessageSchema` | `IgMessage` (author USER). 409 if the reply window has closed. Sending clears `needsAttention` and discards any pending draft. |
+| POST | `/instagram/conversations/:id/suggest` | — | `AiReplyPreview` — AI suggestion for the latest message, nothing is sent or stored. 503 `AI_UNAVAILABLE` if provider is `rules` or the call fails. |
+| POST | `/instagram/messages/:id/draft` | `draftActionSchema` | `IgMessage` — send (optionally edited) or discard a DRAFT. 409 if not a draft. |
+| POST | `/instagram/conversations/:id/lead` | — | `IgConversation` — create and link a lead now (if none). |
+| GET | `/instagram/comments` | `commentListQuerySchema` | `IgComment[]` + meta, newest first |
+| POST | `/instagram/comments/:id/reply` | `commentReplySchema` | `IgComment` — manual reply or approve an edited draft; sends what's given. |
+| POST | `/instagram/comments/:id/skip` | — | `IgComment` (replyStatus SKIPPED, clears draft) |
+| POST | `/instagram/comments/:id/suggest` | — | `CommentReplyPreview` |
+| GET | `/auto-reply/settings` | — | `AutoReplySettings` |
+| PATCH | `/auto-reply/settings` **(admin)** | `updateAutoReplySettingsSchema` | `AutoReplySettings`. Enabling DM/comments when provider is `rules` → 409 "Add a Gemini, Groq or OpenAI API key to turn on AI replies." |
+| POST | `/auto-reply/test` | `testAutoReplySchema` | `AiReplyPreview` (kind dm) or `CommentReplyPreview` (kind comment) — uses current settings, nothing is stored or sent. |
+
+Lead detail: `LeadDetail` gains nothing new, but the lead's activity timeline shows the
+Instagram activities, and `GET /instagram/conversations?search=` matches username/name.
