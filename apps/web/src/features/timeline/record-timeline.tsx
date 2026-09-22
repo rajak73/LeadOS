@@ -1,7 +1,8 @@
-import { History } from 'lucide-react';
+import { History, Instagram } from 'lucide-react';
 import type { Activity, Note } from '@leados/shared';
 import { useActivities, useNotes, type RecordScope } from '@/api/timeline';
 import { Button } from '@/components/ui/button';
+import { TextLink } from '@/components/ui/link';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { RelativeTime } from '@/components/domain/relative-time';
@@ -15,11 +16,33 @@ type Entry =
   | { kind: 'note'; at: string; note: Note }
   | { kind: 'activity'; at: string; activity: Activity };
 
+/** Where an Instagram activity links to, from the metadata the API records. */
+export function instagramLink(activity: Activity): { to: string; label: string } | null {
+  if (!activity.type.startsWith('INSTAGRAM_')) return null;
+  const { conversationId, username } = activity.metadata;
+  if (typeof conversationId === 'string')
+    return { to: `/inbox/${conversationId}`, label: 'View conversation' };
+  if (activity.type.startsWith('INSTAGRAM_COMMENT'))
+    return { to: '/inbox/comments', label: 'View comments' };
+  if (typeof username === 'string')
+    return {
+      to: `/inbox?search=${encodeURIComponent(`@${username}`)}`,
+      label: 'View conversation',
+    };
+  return null;
+}
+
 function ActivityRow({ activity }: { activity: Activity }) {
   const actor = activity.performedBy ? personName(activity.performedBy) : 'Automation';
+  const isInstagram = activity.type.startsWith('INSTAGRAM_');
+  const link = instagramLink(activity);
   return (
     <div className="flex gap-3">
-      <span aria-hidden className="mt-2 ml-2.5 size-1.5 shrink-0 rounded-full bg-border-strong" />
+      {isInstagram ? (
+        <Instagram aria-hidden className="mt-1 ml-1 size-4 shrink-0 text-fg-subtle" />
+      ) : (
+        <span aria-hidden className="mt-2 ml-2.5 size-1.5 shrink-0 rounded-full bg-border-strong" />
+      )}
       <div className="min-w-0 flex-1 pl-1.5">
         <p className="type-body text-fg">
           <span className="sr-only">{activityTypeLabels[activity.type]}: </span>
@@ -27,6 +50,12 @@ function ActivityRow({ activity }: { activity: Activity }) {
         </p>
         <p className="type-caption text-fg-subtle">
           {actor} · <RelativeTime date={activity.createdAt} />
+          {link && (
+            <>
+              {' · '}
+              <TextLink to={link.to}>{link.label}</TextLink>
+            </>
+          )}
         </p>
       </div>
     </div>

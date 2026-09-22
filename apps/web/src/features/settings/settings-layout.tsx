@@ -1,5 +1,13 @@
 import { NavLink, Outlet } from 'react-router';
-import { KanbanSquare, SlidersHorizontal, UserRound, Users, type LucideIcon } from 'lucide-react';
+import {
+  Bot,
+  Instagram,
+  KanbanSquare,
+  SlidersHorizontal,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/cn';
 import { useSession } from '@/providers/session';
@@ -16,6 +24,8 @@ const items: SettingsNavItem[] = [
   { to: 'team', label: 'Team', icon: Users, adminOnly: true },
   { to: 'pipelines', label: 'Pipelines', icon: KanbanSquare, adminOnly: true },
   { to: 'general', label: 'General', icon: SlidersHorizontal, adminOnly: true },
+  { to: 'instagram', label: 'Instagram', icon: Instagram, adminOnly: true },
+  { to: 'auto-reply', label: 'Auto-reply', icon: Bot },
 ];
 
 export default function SettingsLayout() {
@@ -29,7 +39,7 @@ export default function SettingsLayout() {
         description={
           isAdmin
             ? 'Your profile, your team and how LeadOS works for your company.'
-            : 'Your profile and password.'
+            : 'Your profile, your password and how auto-reply is set up.'
         }
       />
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">

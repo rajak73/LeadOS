@@ -4,7 +4,9 @@ import { logger } from './lib/logger.js';
 import { configureDatabase, prisma } from './lib/prisma.js';
 import { shutdownQueue } from './lib/queue.js';
 import { getDummyHash } from './lib/password.js';
+import { describeProvider } from './modules/ai/index.js';
 import { purgeExpiredRefreshTokens } from './modules/auth/index.js';
+import { startInstagramJobs } from './modules/instagram/index.js';
 import { startTaskReminders } from './modules/tasks/index.js';
 
 async function main(): Promise<void> {
@@ -13,11 +15,11 @@ async function main(): Promise<void> {
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`LeadOS API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
-    if (!env.OPENAI_API_KEY)
-      logger.info('OPENAI_API_KEY not set — lead scoring uses the built-in rules scorer');
+    logger.info(describeProvider());
   });
 
   const stopReminders = startTaskReminders();
+  const stopInstagramJobs = startInstagramJobs();
   const housekeeping = setInterval(
     () => {
       purgeExpiredRefreshTokens().catch((err: unknown) =>
@@ -34,6 +36,7 @@ async function main(): Promise<void> {
     shuttingDown = true;
     logger.info(`${signal} received, shutting down`);
     stopReminders();
+    stopInstagramJobs();
     clearInterval(housekeeping);
     const force = setTimeout(() => process.exit(1), 15_000);
     force.unref();

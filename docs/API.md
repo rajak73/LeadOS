@@ -73,7 +73,7 @@ comma-separated values: `?status=NEW,CONTACTED`. `assignedToId` also accepts `me
 | PATCH  | `/leads/:id`         | `updateLeadSchema`                           | `Lead`. Status → LOST requires `lostReason`; leaving LOST clears it. A converted (WON) lead's status can't change (409 `INVALID_TRANSITION`).                                                                                                                                                                                                                    |
 | DELETE | `/leads/:id`         | —                                            | `null`                                                                                                                                                                                                                                                                                                                                                           |
 | POST   | `/leads/:id/convert` | `convertLeadSchema`                          | `{ lead: Lead, contact: Contact, deal: Deal \| null }`. Sets status WON, creates a contact (or links an existing contact with the same email) and optionally a deal in the first open stage. 409 if already converted.                                                                                                                                           |
-| POST   | `/leads/:id/score`   | —                                            | `AiScore` — scores now (sync). 503 `AI_UNAVAILABLE` only if OpenAI fails _and_ the rules fallback is disabled (never, by default).                                                                                                                                                                                                                               |
+| POST   | `/leads/:id/score`   | —                                            | `AiScore` — scores now (sync). 503 `AI_UNAVAILABLE` only if the AI provider fails _and_ the rules fallback is disabled (never, by default).                                                                                                                                                                                                                      |
 | GET    | `/leads/:id/scores`  | —                                            | `AiScore[]` newest first (max 20)                                                                                                                                                                                                                                                                                                                                |
 | POST   | `/leads/bulk`        | `bulkLeadsSchema`                            | `{ affected: number }`. `delete` is admin-only.                                                                                                                                                                                                                                                                                                                  |
 | POST   | `/leads/import`      | multipart `file` (CSV, ≤ 2 MB, ≤ 5,000 rows) | `ImportResult`. Header row required; recognised columns (case-insensitive): first name / firstName / name, last name, email, phone, company, source, status, tags (`;`-separated). Unknown columns ignored. Source/status accept labels ("Website") or values; default source `IMPORT`. Imported leads trigger `LEAD_CREATED` workflows but not AI auto-scoring. |
@@ -169,12 +169,12 @@ redirects, and refuses private/loopback/link-local/CGNAT addresses after DNS res
 
 ## AI lead scoring
 
-Model: OpenAI `gpt-4o-mini` (`OPENAI_MODEL`, default `gpt-4o-mini`) using JSON-schema
-structured output. The prompt includes the lead's fields, tags, open deals and the last 20
-activities. When `OPENAI_API_KEY` is not set, or the call fails/times out (15 s), the
-deterministic rules scorer (`modelVersion: "rules-v1"`) is used instead so scoring always
-works. When `settings.aiScoringAuto` is on, leads are rescored (debounced 10 s per lead)
-after create, status change and new notes.
+Uses the configured AI provider (see "AI provider" below) in JSON mode. The prompt includes
+the lead's fields, tags, open deals and the last 20 activities; `modelVersion` records the
+model name (e.g. `gemini-2.5-flash`). When no AI key is set, or the call fails/times out
+(20 s), the deterministic rules scorer (`modelVersion: "rules-v1"`) is used instead so
+scoring always works. When `settings.aiScoringAuto` is on, leads are rescored (debounced 10 s
+per lead) after create, status change and new notes.
 
 ## AI provider
 
@@ -183,11 +183,11 @@ One provider serves both lead scoring and Instagram replies, chosen by env:
 OPENAI_API_KEY that is set; none → `rules`). All three are called through the `openai` SDK
 using their OpenAI-compatible endpoints:
 
-| Provider | Base URL | Key | Default model (`AI_MODEL` overrides) |
-|---|---|---|---|
-| gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` | `gemini-2.5-flash` |
-| groq | `https://api.groq.com/openai/v1` | `GROQ_API_KEY` | `llama-3.3-70b-versatile` |
-| openai | default | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| Provider | Base URL                                                   | Key              | Default model (`AI_MODEL` overrides) |
+| -------- | ---------------------------------------------------------- | ---------------- | ------------------------------------ |
+| gemini   | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` | `gemini-2.5-flash`                   |
+| groq     | `https://api.groq.com/openai/v1`                           | `GROQ_API_KEY`   | `llama-3.3-70b-versatile`            |
+| openai   | default                                                    | `OPENAI_API_KEY` | `gpt-4o-mini`                        |
 
 Use `response_format: { type: 'json_object' }` (supported by all three) and validate the
 JSON with zod; on invalid JSON retry once, then fail. Timeout 20 s. Scoring falls back to
@@ -224,12 +224,13 @@ This lets the whole flow — lead creation, AI reply, drafts, inbox — run on l
 
 **Webhooks** (public, no auth; mounted with a raw body parser before `express.json`):
 
-| Method | Path | Behaviour |
-|---|---|---|
-| GET | `/webhooks/instagram` | Meta verification: if `hub.mode=subscribe` and `hub.verify_token` matches, respond `hub.challenge` as text/plain 200, else 403. |
-| POST | `/webhooks/instagram` | Verify `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with META_APP_SECRET, timing-safe) → 401 if invalid (in test mode unsigned requests are accepted only when META_APP_SECRET is unset). Respond 200 immediately, then process each entry on the in-process queue. Update `lastWebhookAt`. |
+| Method | Path                  | Behaviour                                                                                                                                                                                                                                                                                         |
+| ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/webhooks/instagram` | Meta verification: if `hub.mode=subscribe` and `hub.verify_token` matches, respond `hub.challenge` as text/plain 200, else 403.                                                                                                                                                                   |
+| POST   | `/webhooks/instagram` | Verify `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with META_APP_SECRET, timing-safe) → 401 if invalid (in test mode unsigned requests are accepted only when META_APP_SECRET is unset). Respond 200 immediately, then process each entry on the in-process queue. Update `lastWebhookAt`. |
 
 Processing rules:
+
 - `messaging[]` with `message`: ignore if `message.is_deleted`; dedupe by `mid`. `is_echo`
   (the business wrote from the Instagram app, or it's our own API send) → if `mid` already
   stored, ignore; else store as OUTBOUND, author `INSTAGRAM_APP`, and pause AI for that thread
@@ -260,6 +261,7 @@ customer's language and script — Hindi, Hinglish, English…; keep it short, n
 most one emoji; ≤ 900 characters), `tone`, `businessInfo`, the last 20 messages, and known
 lead fields. Required JSON: `{ "reply": string|null, "handoff": boolean, "handoffReason":
 string|null, "email": string|null, "phone": string|null }`. Then:
+
 - extracted email/phone → fill the lead's empty email/phone fields (never overwrite).
 - `handoff` → pause AI (`aiPausedReason` = handoffReason), `needsAttention = true`, send
   `handoffMessage` (as author AI) if non-empty and mode is AUTO (in DRAFT mode store it as a
@@ -283,27 +285,27 @@ the texts with replyStatus DRAFT.
 
 Endpoints (all require auth; **(admin)** as before):
 
-| Method | Path | Body / query | Returns |
-|---|---|---|---|
-| GET | `/instagram/status` | — | `InstagramStatus` |
-| POST | `/instagram/connect` **(admin)** | `connectInstagramSchema` | `InstagramStatus`. 422 with a friendly message if Meta rejects the token. |
-| POST | `/instagram/disconnect` **(admin)** | — | `InstagramStatus`. Unsubscribes (best effort), deletes the token; conversations/comments are kept. |
-| POST | `/instagram/simulate` **(admin, test mode only — 404 otherwise)** | `simulateInstagramSchema` | `{ conversationId: string } \| { commentId: string }` — runs the real webhook pipeline with a fake sender id derived from the username. |
-| GET | `/instagram/counts` | — | `InboxCounts` (the web app polls it every 20 s for the sidebar badge) |
-| GET | `/instagram/conversations` | `conversationListQuerySchema` | `IgConversation[]` + meta, newest activity first. `attention` = needsAttention or has a draft. |
-| GET | `/instagram/conversations/:id` | — | `IgConversationDetail` |
-| PATCH | `/instagram/conversations/:id` | `updateConversationSchema` | `IgConversation`. `aiEnabled: true` clears `aiPausedReason` and `needsAttention` (if no draft). `markRead` zeroes `unreadCount`. |
-| POST | `/instagram/conversations/:id/messages` | `sendMessageSchema` | `IgMessage` (author USER). 409 if the reply window has closed. Sending clears `needsAttention` and discards any pending draft. |
-| POST | `/instagram/conversations/:id/suggest` | — | `AiReplyPreview` — AI suggestion for the latest message, nothing is sent or stored. 503 `AI_UNAVAILABLE` if provider is `rules` or the call fails. |
-| POST | `/instagram/messages/:id/draft` | `draftActionSchema` | `IgMessage` — send (optionally edited) or discard a DRAFT. 409 if not a draft. |
-| POST | `/instagram/conversations/:id/lead` | — | `IgConversation` — create and link a lead now (if none). |
-| GET | `/instagram/comments` | `commentListQuerySchema` | `IgComment[]` + meta, newest first |
-| POST | `/instagram/comments/:id/reply` | `commentReplySchema` | `IgComment` — manual reply or approve an edited draft; sends what's given. |
-| POST | `/instagram/comments/:id/skip` | — | `IgComment` (replyStatus SKIPPED, clears draft) |
-| POST | `/instagram/comments/:id/suggest` | — | `CommentReplyPreview` |
-| GET | `/auto-reply/settings` | — | `AutoReplySettings` |
-| PATCH | `/auto-reply/settings` **(admin)** | `updateAutoReplySettingsSchema` | `AutoReplySettings`. Enabling DM/comments when provider is `rules` → 409 "Add a Gemini, Groq or OpenAI API key to turn on AI replies." |
-| POST | `/auto-reply/test` | `testAutoReplySchema` | `AiReplyPreview` (kind dm) or `CommentReplyPreview` (kind comment) — uses current settings, nothing is stored or sent. |
+| Method | Path                                                              | Body / query                    | Returns                                                                                                                                            |
+| ------ | ----------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/instagram/status`                                               | —                               | `InstagramStatus`                                                                                                                                  |
+| POST   | `/instagram/connect` **(admin)**                                  | `connectInstagramSchema`        | `InstagramStatus`. 422 with a friendly message if Meta rejects the token.                                                                          |
+| POST   | `/instagram/disconnect` **(admin)**                               | —                               | `InstagramStatus`. Unsubscribes (best effort), deletes the token; conversations/comments are kept.                                                 |
+| POST   | `/instagram/simulate` **(admin, test mode only — 404 otherwise)** | `simulateInstagramSchema`       | `{ conversationId: string } \| { commentId: string }` — runs the real webhook pipeline with a fake sender id derived from the username.            |
+| GET    | `/instagram/counts`                                               | —                               | `InboxCounts` (the web app polls it every 20 s for the sidebar badge)                                                                              |
+| GET    | `/instagram/conversations`                                        | `conversationListQuerySchema`   | `IgConversation[]` + meta, newest activity first. `attention` = needsAttention or has a draft.                                                     |
+| GET    | `/instagram/conversations/:id`                                    | —                               | `IgConversationDetail`                                                                                                                             |
+| PATCH  | `/instagram/conversations/:id`                                    | `updateConversationSchema`      | `IgConversation`. `aiEnabled: true` clears `aiPausedReason` and `needsAttention` (if no draft). `markRead` zeroes `unreadCount`.                   |
+| POST   | `/instagram/conversations/:id/messages`                           | `sendMessageSchema`             | `IgMessage` (author USER). 409 if the reply window has closed. Sending clears `needsAttention` and discards any pending draft.                     |
+| POST   | `/instagram/conversations/:id/suggest`                            | —                               | `AiReplyPreview` — AI suggestion for the latest message, nothing is sent or stored. 503 `AI_UNAVAILABLE` if provider is `rules` or the call fails. |
+| POST   | `/instagram/messages/:id/draft`                                   | `draftActionSchema`             | `IgMessage` — send (optionally edited) or discard a DRAFT. 409 if not a draft.                                                                     |
+| POST   | `/instagram/conversations/:id/lead`                               | —                               | `IgConversation` — create and link a lead now (if none).                                                                                           |
+| GET    | `/instagram/comments`                                             | `commentListQuerySchema`        | `IgComment[]` + meta, newest first                                                                                                                 |
+| POST   | `/instagram/comments/:id/reply`                                   | `commentReplySchema`            | `IgComment` — manual reply or approve an edited draft; sends what's given.                                                                         |
+| POST   | `/instagram/comments/:id/skip`                                    | —                               | `IgComment` (replyStatus SKIPPED, clears draft)                                                                                                    |
+| POST   | `/instagram/comments/:id/suggest`                                 | —                               | `CommentReplyPreview`                                                                                                                              |
+| GET    | `/auto-reply/settings`                                            | —                               | `AutoReplySettings`                                                                                                                                |
+| PATCH  | `/auto-reply/settings` **(admin)**                                | `updateAutoReplySettingsSchema` | `AutoReplySettings`. Enabling DM/comments when provider is `rules` → 409 "Add a Gemini, Groq or OpenAI API key to turn on AI replies."             |
+| POST   | `/auto-reply/test`                                                | `testAutoReplySchema`           | `AiReplyPreview` (kind dm) or `CommentReplyPreview` (kind comment) — uses current settings, nothing is stored or sent.                             |
 
 Lead detail: `LeadDetail` gains nothing new, but the lead's activity timeline shows the
 Instagram activities, and `GET /instagram/conversations?search=` matches username/name.

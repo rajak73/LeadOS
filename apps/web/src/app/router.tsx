@@ -39,6 +39,18 @@ export const routes: RouteObject[] = [
                     path: 'contacts/:id',
                     ...page(() => import('@/features/contacts/contact-detail-page')),
                   },
+                  {
+                    path: 'inbox',
+                    ...page(() => import('@/features/inbox/inbox-layout')),
+                    children: [
+                      {
+                        path: 'comments',
+                        ...page(() => import('@/features/inbox/comments-page')),
+                      },
+                      // One route for /inbox and /inbox/:id so the list stays mounted.
+                      { path: ':id?', ...page(() => import('@/features/inbox/messages-page')) },
+                    ],
+                  },
                   { path: 'pipeline', ...page(() => import('@/features/pipeline/pipeline-page')) },
                   {
                     path: 'deals/:id',
@@ -75,6 +87,10 @@ export const routes: RouteObject[] = [
                         ...page(() => import('@/features/settings/profile-page')),
                       },
                       {
+                        path: 'auto-reply',
+                        ...page(() => import('@/features/settings/auto-reply-page')),
+                      },
+                      {
                         element: <RequireAdmin />,
                         children: [
                           { path: 'team', ...page(() => import('@/features/settings/team-page')) },
@@ -85,6 +101,10 @@ export const routes: RouteObject[] = [
                           {
                             path: 'general',
                             ...page(() => import('@/features/settings/general-page')),
+                          },
+                          {
+                            path: 'instagram',
+                            ...page(() => import('@/features/settings/instagram-page')),
                           },
                         ],
                       },

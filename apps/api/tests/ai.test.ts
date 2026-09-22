@@ -48,7 +48,7 @@ describe('lead scoring', () => {
     expect(detail.latestScore.id).toBe(res.body.data.id);
   });
 
-  it('calls OpenAI with structured output when a key is set, and clamps the score', async () => {
+  it('calls OpenAI in JSON mode when a key is set, and clamps the score', async () => {
     env.OPENAI_API_KEY = 'sk-test';
     create.mockResolvedValueOnce(
       aiReply({
@@ -73,11 +73,11 @@ describe('lead scoring', () => {
 
     const [body, opts] = create.mock.calls[0]!;
     expect(body.model).toBe('gpt-4o-mini');
-    expect(body.response_format.type).toBe('json_schema');
-    expect(body.response_format.json_schema.strict).toBe(true);
+    expect(body.response_format).toEqual({ type: 'json_object' });
+    expect(body.messages[0].content).toContain('JSON');
     expect(body.messages[1].content).toContain('Company: Razorpay');
     expect(body.messages[1].content).toContain('Asked for pricing for 20 seats');
-    expect(opts.timeout).toBe(15_000);
+    expect(opts.timeout).toBe(20_000);
   });
 
   it('falls back to the rules scorer when OpenAI fails or returns junk', async () => {

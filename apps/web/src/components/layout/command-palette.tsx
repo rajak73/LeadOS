@@ -2,7 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Command } from 'cmdk';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Briefcase, Plus, Search, User, UserRound, type LucideIcon } from 'lucide-react';
+import {
+  Briefcase,
+  MessageSquare,
+  Plus,
+  Search,
+  User,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
 import { useSearch } from '@/api/misc';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Spinner } from '@/components/ui/spinner';
@@ -64,7 +72,11 @@ export function CommandPalette({
     { label: 'New task', to: '/tasks?new=1', icon: Plus },
     { label: 'New deal', to: '/pipeline?new=1', icon: Plus },
   ].filter((a) => matches(a.label));
-  const pages = [...mainNav, settingsNav].filter((p) => matches(`Go to ${p.label}`));
+  const pages = [
+    ...mainNav,
+    { to: '/inbox/comments', label: 'Comments', icon: MessageSquare },
+    settingsNav,
+  ].filter((p) => matches(`Go to ${p.label}`));
   const hasResults = Boolean(
     data && (data.leads.length || data.contacts.length || data.deals.length),
   );

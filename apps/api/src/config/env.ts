@@ -18,7 +18,21 @@ const booleanFlag = (fallback: boolean) =>
       return z.NEVER;
     });
 
+/** Like booleanFlag, but undefined when unset so the default can depend on other values. */
+const optionalBooleanFlag = z
+  .string()
+  .optional()
+  .transform((v, ctx) => {
+    if (v === undefined || v.trim() === '') return undefined;
+    const s = v.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(s)) return true;
+    if (['false', '0', 'no', 'off'].includes(s)) return false;
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Expected true or false' });
+    return z.NEVER;
+  });
+
 const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
+const optionalString = () => z.preprocess(emptyToUndefined, z.string().trim().optional());
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -26,8 +40,32 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1).default('file:./data/leados.db'),
   JWT_SECRET: z.string().default(DEV_JWT_SECRET),
   APP_ORIGIN: z.string().url().default('http://localhost:5173'),
-  OPENAI_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
-  OPENAI_MODEL: z.preprocess(emptyToUndefined, z.string().default('gpt-4o-mini')),
+  // AI provider (lead scoring + Instagram replies). See modules/ai/ai.provider.ts.
+  AI_PROVIDER: z.preprocess(
+    (v) => (typeof v === 'string' ? emptyToUndefined(v.trim().toLowerCase()) : v),
+    z.enum(['gemini', 'groq', 'openai']).optional(),
+  ),
+  AI_MODEL: optionalString(),
+  GEMINI_API_KEY: optionalString(),
+  GROQ_API_KEY: optionalString(),
+  OPENAI_API_KEY: optionalString(),
+  OPENAI_MODEL: optionalString(), // legacy alias for AI_MODEL when the provider is openai
+  // Instagram
+  INSTAGRAM_GRAPH_VERSION: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^v\d+\.\d+$/, 'Expected a version like v23.0')
+      .default('v23.0'),
+  ),
+  INSTAGRAM_TEST_MODE: optionalBooleanFlag,
+  META_APP_SECRET: optionalString(),
+  META_WEBHOOK_VERIFY_TOKEN: optionalString(),
+  PUBLIC_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  ENCRYPTION_KEY: z.preprocess(
+    emptyToUndefined,
+    z.string().min(32, 'ENCRYPTION_KEY must be at least 32 characters').optional(),
+  ),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
   BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
   TRUST_PROXY: booleanFlag(false),
@@ -36,7 +74,12 @@ const schema = z.object({
   SEED_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
 });
 
-export type Env = z.infer<typeof schema> & { LOG_LEVEL: string; DATABASE_URL: string };
+export type Env = Omit<z.infer<typeof schema>, 'INSTAGRAM_TEST_MODE'> & {
+  LOG_LEVEL: string;
+  DATABASE_URL: string;
+  /** Sandbox Instagram adapter + simulate endpoint. Default: on in development only. */
+  INSTAGRAM_TEST_MODE: boolean;
+};
 
 /**
  * Prisma resolves relative SQLite paths against the directory of schema.prisma when running
@@ -89,6 +132,8 @@ function loadEnv(): Env {
     ...env,
     DATABASE_URL: resolveDatabaseUrl(env.DATABASE_URL),
     LOG_LEVEL: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
+    INSTAGRAM_TEST_MODE: env.INSTAGRAM_TEST_MODE ?? env.NODE_ENV === 'development',
+    PUBLIC_URL: env.PUBLIC_URL?.replace(/\/+$/, ''),
   };
 }
 

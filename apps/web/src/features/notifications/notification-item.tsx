@@ -4,6 +4,11 @@ import {
   Briefcase,
   CheckSquare,
   Flame,
+  Hand,
+  Instagram,
+  MessageCircle,
+  MessageSquare,
+  Sparkles,
   UserPlus,
   Workflow,
   type LucideIcon,
@@ -21,11 +26,26 @@ const icons: Record<NotificationType, LucideIcon> = {
   TASK_DUE: AlarmClock,
   LEAD_SCORED: Flame,
   WORKFLOW: Workflow,
+  INSTAGRAM_MESSAGE: MessageCircle,
+  INSTAGRAM_COMMENT: MessageSquare,
+  AI_HANDOFF: Hand,
+  AI_DRAFT_READY: Sparkles,
+  INSTAGRAM_CONNECTION: Instagram,
 };
 
 function targetOf(n: Notification): string | null {
-  if (!n.entityType) return null;
-  if (n.entityType === 'task') return '/tasks';
+  switch (n.entityType) {
+    case null:
+      return null;
+    case 'task':
+      return '/tasks';
+    case 'ig_comment':
+      return '/inbox/comments';
+    case 'instagram':
+      return '/settings/instagram';
+    case 'ig_conversation':
+      return n.entityId ? `/inbox/${n.entityId}` : '/inbox';
+  }
   if (!n.entityId) return null;
   const base = { lead: '/leads', contact: '/contacts', deal: '/deals' }[n.entityType];
   return `${base}/${n.entityId}`;

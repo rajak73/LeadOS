@@ -2,7 +2,8 @@ import type { LeadContext } from './ai.types.js';
 
 export const SYSTEM_PROMPT =
   'You are an experienced B2B/B2C sales assistant for a small business CRM. You score leads so ' +
-  'sales reps know whom to follow up with first. Be concise, concrete and base every factor on the data given.';
+  'sales reps know whom to follow up with first. Be concise, concrete and base every factor on the data given. ' +
+  'Always answer with a single JSON object and nothing else.';
 
 /** The user message: lead fields, tags, open deals and the last 20 activities. */
 export function buildScoringPrompt(ctx: LeadContext): string {
@@ -42,28 +43,8 @@ ${activities}
 INSTRUCTIONS
 1. Give an integer score from 0 to 100.
 2. List 2–6 factors. Each factor is POSITIVE or NEGATIVE with a short description a sales rep would understand, e.g. "Referred by an existing customer" or "No reply in 10 days".
-3. Give one short, actionable recommendation, e.g. "Call today — they asked for pricing yesterday."`;
-}
+3. Give one short, actionable recommendation, e.g. "Call today — they asked for pricing yesterday."
 
-/** JSON schema for structured output (strict mode). */
-export const SCORE_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['score', 'factors', 'recommendation'],
-  properties: {
-    score: { type: 'integer', description: 'Conversion likelihood from 0 to 100' },
-    factors: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['type', 'description'],
-        properties: {
-          type: { type: 'string', enum: ['POSITIVE', 'NEGATIVE'] },
-          description: { type: 'string' },
-        },
-      },
-    },
-    recommendation: { type: 'string' },
-  },
-} as const;
+Respond with JSON exactly in this shape:
+{"score": 0-100, "factors": [{"type": "POSITIVE" | "NEGATIVE", "description": "..."}], "recommendation": "..."}`;
+}

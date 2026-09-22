@@ -1,5 +1,4 @@
 import type { AiScore, LeadSource, LeadStatus } from '@leados/shared';
-import { env } from '../../config/env.js';
 import { recordActivity } from '../../lib/activity.js';
 import { emit, on } from '../../lib/events.js';
 import { notFound } from '../../lib/errors.js';
@@ -10,7 +9,8 @@ import { debounce } from '../../lib/queue.js';
 import { asTags, toAiScore } from '../../lib/serializers.js';
 import { notify } from '../notifications/index.js';
 import { getSettings } from '../settings/index.js';
-import { scoreWithOpenAI } from './ai.openai.js';
+import { scoreWithLlm } from './ai.llm.js';
+import { resolveProvider } from './ai.provider.js';
 import { scoreWithRules } from './ai.rules.js';
 import type { LeadContext, ScoreResult } from './ai.types.js';
 
@@ -60,13 +60,13 @@ async function buildContext(leadId: string): Promise<LeadContext> {
   };
 }
 
-/** OpenAI when configured, otherwise (or on any failure/timeout) the deterministic rules scorer. */
+/** The configured AI provider, otherwise (or on any failure/timeout) the deterministic rules scorer. */
 async function computeScore(ctx: LeadContext): Promise<ScoreResult> {
-  if (env.OPENAI_API_KEY) {
+  if (resolveProvider().provider !== 'rules') {
     try {
-      return await scoreWithOpenAI(ctx);
+      return await scoreWithLlm(ctx);
     } catch (err) {
-      logger.warn({ err }, 'OpenAI scoring failed; using the rules scorer');
+      logger.warn({ err }, 'AI scoring failed; using the rules scorer');
     }
   }
   return scoreWithRules(ctx);

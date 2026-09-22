@@ -3,6 +3,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useSettings } from '@/api/account';
+import { useInboxCounts } from '@/api/instagram';
 import { mainNav, settingsNav, type NavItem } from './nav-items';
 
 export function BrandMark({ collapsed }: { collapsed?: boolean }) {
@@ -26,21 +27,34 @@ export function BrandMark({ collapsed }: { collapsed?: boolean }) {
   );
 }
 
+/** Conversations that are unread or waiting for a person; 0 while loading or on error. */
+function useInboxBadge(): number {
+  const { data } = useInboxCounts();
+  return data ? data.unreadConversations + data.needsAttention : 0;
+}
+
 function NavEntry({
   item,
   collapsed,
   onNavigate,
+  count = 0,
 }: {
   item: NavItem;
   collapsed: boolean;
   onNavigate?: () => void;
+  count?: number;
 }) {
+  const countText = count > 99 ? '99+' : String(count);
   const link = (
     <NavLink
       to={item.to}
       end={item.end}
       onClick={onNavigate}
-      aria-label={collapsed ? item.label : undefined}
+      aria-label={
+        collapsed || count > 0
+          ? `${item.label}${count > 0 ? `, ${countText} need${count === 1 ? 's' : ''} you` : ''}`
+          : undefined
+      }
       className={({ isActive }) =>
         cn(
           'flex h-9 items-center gap-3 rounded-md px-2.5 type-body font-medium transition-colors',
@@ -51,8 +65,24 @@ function NavEntry({
         )
       }
     >
-      <item.icon aria-hidden className="size-4 shrink-0" />
+      <span className="relative flex">
+        <item.icon aria-hidden className="size-4 shrink-0" />
+        {collapsed && count > 0 && (
+          <span
+            aria-hidden
+            className="absolute -top-1 -right-1.5 size-2 rounded-full bg-primary ring-2 ring-surface"
+          />
+        )}
+      </span>
       {!collapsed && <span className="truncate">{item.label}</span>}
+      {!collapsed && count > 0 && (
+        <span
+          aria-hidden
+          className="ml-auto rounded-full bg-primary px-1.5 type-caption font-semibold text-primary-fg tabular-nums"
+        >
+          {countText}
+        </span>
+      )}
     </NavLink>
   );
   return collapsed ? (
@@ -71,10 +101,17 @@ interface SidebarNavProps {
 
 /** Navigation list shared by the desktop sidebar and the mobile drawer. NavLink sets aria-current. */
 export function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
+  const inboxCount = useInboxBadge();
   return (
     <nav aria-label="Main" className="flex flex-1 flex-col gap-0.5 px-2 py-2">
       {mainNav.map((item) => (
-        <NavEntry key={item.to} item={item} collapsed={collapsed} onNavigate={onNavigate} />
+        <NavEntry
+          key={item.to}
+          item={item}
+          collapsed={collapsed}
+          onNavigate={onNavigate}
+          count={item.badge === 'inbox' ? inboxCount : 0}
+        />
       ))}
       <div className="mt-auto pt-2">
         <NavEntry item={settingsNav} collapsed={collapsed} onNavigate={onNavigate} />

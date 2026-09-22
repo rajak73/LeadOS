@@ -2,7 +2,16 @@
 
 import type {
   ActivityType,
+  AiProvider,
+  AutoReplyMode,
+  CommentReplyMode,
+  CommentReplyStatus,
   ConditionOperator,
+  IgAccountStatus,
+  IgAttachment,
+  MessageAuthor,
+  MessageDirection,
+  MessageStatus,
   DealStatus,
   LeadSource,
   LeadStatus,
@@ -129,6 +138,10 @@ export const activityTypeLabels: Record<ActivityType, string> = {
   TASK_COMPLETED: 'Task completed',
   NOTE_ADDED: 'Note added',
   WORKFLOW_ACTION: 'Automation',
+  INSTAGRAM_MESSAGE_RECEIVED: 'Instagram message received',
+  INSTAGRAM_MESSAGE_SENT: 'Instagram message sent',
+  INSTAGRAM_COMMENT_RECEIVED: 'Instagram comment received',
+  INSTAGRAM_COMMENT_REPLIED: 'Instagram comment answered',
 };
 
 export const notificationTypeLabels: Record<NotificationType, string> = {
@@ -138,6 +151,11 @@ export const notificationTypeLabels: Record<NotificationType, string> = {
   TASK_DUE: 'Task due',
   LEAD_SCORED: 'Hot lead',
   WORKFLOW: 'Automation',
+  INSTAGRAM_MESSAGE: 'Instagram message',
+  INSTAGRAM_COMMENT: 'Instagram comment',
+  AI_HANDOFF: 'Needs a person',
+  AI_DRAFT_READY: 'AI draft ready',
+  INSTAGRAM_CONNECTION: 'Instagram connection',
 };
 
 export const workflowTriggerLabels: Record<WorkflowTrigger, string> = {
@@ -217,6 +235,97 @@ export const dashboardRangeLabels: Record<'7d' | '30d' | '90d' | '365d', string>
   '30d': 'Last 30 days',
   '90d': 'Last 90 days',
   '365d': 'Last 12 months',
+};
+
+// ─── Instagram & auto-reply ──────────────────────────────────────────────────
+
+export const igAccountStatusLabels: Record<IgAccountStatus, string> = {
+  ACTIVE: 'Connected',
+  EXPIRED: 'Token expired',
+  ERROR: 'Needs attention',
+};
+
+export const igAccountStatusTones: Record<IgAccountStatus, Tone> = {
+  ACTIVE: 'success',
+  EXPIRED: 'warning',
+  ERROR: 'danger',
+};
+
+export const messageDirectionLabels: Record<MessageDirection, string> = {
+  INBOUND: 'Received',
+  OUTBOUND: 'Sent',
+};
+
+export const messageAuthorLabels: Record<MessageAuthor, string> = {
+  CUSTOMER: 'Customer',
+  USER: 'You',
+  AI: 'AI assistant',
+  INSTAGRAM_APP: 'Sent from Instagram app',
+};
+
+export const messageStatusLabels: Record<MessageStatus, string> = {
+  RECEIVED: 'Received',
+  DRAFT: 'Draft',
+  SENDING: 'Sending…',
+  SENT: 'Sent',
+  FAILED: 'Not sent',
+  DISCARDED: 'Discarded',
+};
+
+export const commentReplyStatusLabels: Record<CommentReplyStatus, string> = {
+  NONE: 'Needs reply',
+  DRAFT: 'Draft ready',
+  REPLIED: 'Replied',
+  SKIPPED: 'Skipped',
+  FAILED: 'Failed',
+};
+
+export const commentReplyStatusTones: Record<CommentReplyStatus, Tone> = {
+  NONE: 'warning',
+  DRAFT: 'primary',
+  REPLIED: 'success',
+  SKIPPED: 'neutral',
+  FAILED: 'danger',
+};
+
+export const autoReplyModeLabels: Record<AutoReplyMode, string> = {
+  AUTO: 'Send automatically',
+  DRAFT: 'Save as draft for me to approve',
+};
+
+export const autoReplyModeDescriptions: Record<AutoReplyMode, string> = {
+  AUTO: 'Replies go out straight away — good once you trust the answers.',
+  DRAFT: 'The AI writes a reply and waits for you to send, edit or discard it.',
+};
+
+export const commentReplyModeLabels: Record<CommentReplyMode, string> = {
+  PUBLIC: 'Public reply',
+  PRIVATE: 'Private DM',
+  BOTH: 'Both',
+};
+
+export const commentReplyModeDescriptions: Record<CommentReplyMode, string> = {
+  PUBLIC: 'Answer under the comment, where everyone can see it.',
+  PRIVATE: 'Send the commenter a direct message instead.',
+  BOTH: 'A short public reply plus a direct message with the details.',
+};
+
+export const aiProviderLabels: Record<AiProvider, string> = {
+  gemini: 'Gemini',
+  groq: 'Groq',
+  openai: 'OpenAI',
+  rules: 'Built-in rules',
+};
+
+export const attachmentTypeLabels: Record<IgAttachment['type'], string> = {
+  image: 'Photo',
+  video: 'Video',
+  audio: 'Voice message',
+  file: 'File',
+  share: 'Shared post',
+  story_mention: 'Story mention',
+  reel: 'Reel',
+  unknown: 'Attachment',
 };
 
 /** Label for any enum value used by workflow condition fields (status, source, …). */

@@ -15,6 +15,7 @@ import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/api-client';
+import { aiSummary } from './auto-reply/provider-card';
 import { applyApiErrors } from '@/lib/forms';
 import { notify } from '@/lib/toast';
 
@@ -167,9 +168,18 @@ function SettingsForm({ settings }: { settings: AppSettings }) {
           />
           <p className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 type-small text-fg-muted">
             <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0" />
-            {settings.aiProvider === 'openai'
-              ? 'Scores come from OpenAI (GPT-4o mini).'
-              : "Scores come from LeadOS's built-in rules. Add an OpenAI key on the server for smarter scoring."}
+            <span>
+              <span className="font-medium text-fg">
+                {settings.aiProvider === 'rules'
+                  ? aiSummary('rules', null)
+                  : `AI: ${aiSummary(settings.aiProvider, settings.aiModel)}`}
+              </span>
+              <span className="block">
+                {settings.aiProvider === 'rules'
+                  ? 'Scores come from built-in rules and AI replies are off. Add a Gemini or Groq key on the server to use AI.'
+                  : 'The same AI scores leads and writes Instagram replies.'}
+              </span>
+            </span>
           </p>
         </CardBody>
       </Card>

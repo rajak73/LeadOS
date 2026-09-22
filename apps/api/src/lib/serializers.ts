@@ -5,7 +5,21 @@ import type { Prisma } from '@prisma/client';
 import type {
   Activity,
   ActivityType,
+  AiProvider,
   AiScore,
+  AutoReplyMode,
+  AutoReplySettings,
+  CommentReplyMode,
+  CommentReplyStatus,
+  IgAccountStatus,
+  IgAttachment,
+  IgComment,
+  IgConversation,
+  IgMessage,
+  InstagramStatus,
+  MessageAuthor,
+  MessageDirection,
+  MessageStatus,
   Contact,
   Deal,
   DealStatus,
@@ -33,6 +47,7 @@ import type {
   WorkflowTrigger,
 } from '@leados/shared';
 import { fullName } from './labels.js';
+import type { Tx } from './prisma.js';
 
 const iso = (d: Date) => d.toISOString();
 const isoOrNull = (d: Date | null | undefined) => (d ? d.toISOString() : null);
@@ -296,5 +311,189 @@ export function toWorkflowRun(r: Prisma.WorkflowRunGetPayload<object>): Workflow
     error: r.error,
     startedAt: iso(r.startedAt),
     finishedAt: isoOrNull(r.finishedAt),
+  };
+}
+
+// ─── Instagram & auto-reply ──────────────────────────────────────────────────
+
+/** 24 hours after the customer's last message — Instagram's standard messaging window. */
+export const REPLY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export function replyWindowEndsAt(lastInboundAt: Date | null): Date | null {
+  return lastInboundAt ? new Date(lastInboundAt.getTime() + REPLY_WINDOW_MS) : null;
+}
+
+export function toInstagramStatus(
+  a: Prisma.IgAccountGetPayload<object> | null,
+  extra: {
+    callbackUrl: string;
+    verifyToken: string;
+    isPublicUrl: boolean;
+    appSecretConfigured: boolean;
+    testMode: boolean;
+  },
+): InstagramStatus {
+  // Deliberately never exposes accessTokenEnc.
+  return {
+    connected: !!a,
+    account: a
+      ? {
+          igUserId: a.igUserId,
+          username: a.username,
+          name: a.name,
+          profilePictureUrl: a.profilePictureUrl,
+          status: a.status as IgAccountStatus,
+          statusMessage: a.statusMessage,
+          tokenExpiresAt: isoOrNull(a.tokenExpiresAt),
+          lastWebhookAt: isoOrNull(a.lastWebhookAt),
+          connectedAt: iso(a.connectedAt),
+        }
+      : null,
+    webhook: {
+      callbackUrl: extra.callbackUrl,
+      verifyToken: extra.verifyToken,
+      isPublicUrl: extra.isPublicUrl,
+    },
+    appSecretConfigured: extra.appSecretConfigured,
+    testMode: extra.testMode,
+  };
+}
+
+export const igConversationInclude = {
+  lead: { select: { id: true, firstName: true, lastName: true, status: true, deletedAt: true } },
+  messages: { where: { status: 'DRAFT' }, select: { id: true }, take: 1 },
+} as const satisfies Prisma.IgConversationInclude;
+export type IgConversationRow = Prisma.IgConversationGetPayload<{
+  include: typeof igConversationInclude;
+}>;
+
+export function toIgConversation(c: IgConversationRow, now = new Date()): IgConversation {
+  const windowEnd = replyWindowEndsAt(c.lastInboundAt);
+  return {
+    id: c.id,
+    igsid: c.igsid,
+    username: c.username,
+    name: c.name,
+    profilePictureUrl: c.profilePictureUrl,
+    lead:
+      c.lead && !c.lead.deletedAt
+        ? {
+            id: c.lead.id,
+            firstName: c.lead.firstName,
+            lastName: c.lead.lastName,
+            status: c.lead.status as LeadStatus,
+          }
+        : null,
+    aiEnabled: c.aiEnabled,
+    aiPausedReason: c.aiPausedReason,
+    needsAttention: c.needsAttention,
+    hasDraft: c.messages.length > 0,
+    unreadCount: c.unreadCount,
+    lastMessageAt: isoOrNull(c.lastMessageAt),
+    lastMessagePreview: c.lastMessagePreview,
+    replyWindowEndsAt: isoOrNull(windowEnd),
+    canReply: !!windowEnd && windowEnd > now,
+    createdAt: iso(c.createdAt),
+  };
+}
+
+const ATTACHMENT_TYPES: ReadonlySet<string> = new Set([
+  'image',
+  'video',
+  'audio',
+  'file',
+  'share',
+  'story_mention',
+  'reel',
+]);
+
+export function asAttachments(value: Prisma.JsonValue): IgAttachment[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((a) => {
+    if (!a || typeof a !== 'object' || Array.isArray(a)) return [];
+    const type = typeof a.type === 'string' && ATTACHMENT_TYPES.has(a.type) ? a.type : 'unknown';
+    return [{ type: type as IgAttachment['type'], url: typeof a.url === 'string' ? a.url : null }];
+  });
+}
+
+/** Users referenced by id without a Prisma relation (sentById / repliedById). */
+export type UserRefMap = Map<string, UserRef>;
+
+export async function loadUserRefs(
+  db: Tx,
+  ids: Array<string | null | undefined>,
+): Promise<UserRefMap> {
+  const unique = [...new Set(ids.filter((id): id is string => !!id))];
+  if (unique.length === 0) return new Map();
+  const rows = await db.user.findMany({ where: { id: { in: unique } }, select: userRefSelect });
+  return new Map(rows.map((u) => [u.id, toUserRef(u)]));
+}
+
+export function toIgMessage(m: Prisma.IgMessageGetPayload<object>, users: UserRefMap): IgMessage {
+  return {
+    id: m.id,
+    conversationId: m.conversationId,
+    direction: m.direction as MessageDirection,
+    text: m.text,
+    attachments: asAttachments(m.attachments),
+    author: m.author as MessageAuthor,
+    sentBy: (m.sentById && users.get(m.sentById)) || null,
+    status: m.status as MessageStatus,
+    error: m.error,
+    createdAt: iso(m.createdAt),
+    sentAt: isoOrNull(m.sentAt),
+  };
+}
+
+export const igCommentInclude = {
+  lead: { select: { id: true, firstName: true, lastName: true, deletedAt: true } },
+} as const satisfies Prisma.IgCommentInclude;
+export type IgCommentRow = Prisma.IgCommentGetPayload<{ include: typeof igCommentInclude }>;
+
+export function toIgComment(c: IgCommentRow, users: UserRefMap): IgComment {
+  return {
+    id: c.id,
+    commentId: c.commentId,
+    parentCommentId: c.parentCommentId,
+    media: {
+      id: c.mediaId,
+      permalink: c.mediaPermalink,
+      caption: c.mediaCaption,
+      thumbnailUrl: c.mediaThumbnail,
+    },
+    fromUsername: c.fromUsername,
+    text: c.text,
+    lead:
+      c.lead && !c.lead.deletedAt
+        ? { id: c.lead.id, firstName: c.lead.firstName, lastName: c.lead.lastName }
+        : null,
+    replyStatus: c.replyStatus as CommentReplyStatus,
+    publicReply: c.publicReply,
+    privateReply: c.privateReply,
+    privateReplySent: c.privateReplySent,
+    replyError: c.replyError,
+    skipReason: c.skipReason,
+    repliedBy: (c.repliedById && users.get(c.repliedById)) || null,
+    commentedAt: iso(c.commentedAt),
+  };
+}
+
+export function toAutoReplySettings(
+  s: Prisma.AutoReplySettingsGetPayload<object>,
+  ai: { provider: AiProvider; model: string | null },
+): AutoReplySettings {
+  return {
+    dmEnabled: s.dmEnabled,
+    commentsEnabled: s.commentsEnabled,
+    mode: s.mode as AutoReplyMode,
+    commentReplyMode: s.commentReplyMode as CommentReplyMode,
+    businessInfo: s.businessInfo,
+    tone: s.tone,
+    handoffMessage: s.handoffMessage,
+    replyDelaySeconds: s.replyDelaySeconds,
+    maxRepliesPerDay: s.maxRepliesPerDay,
+    createLeads: s.createLeads,
+    aiProvider: ai.provider,
+    aiModel: ai.model,
   };
 }

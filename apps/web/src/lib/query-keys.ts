@@ -58,6 +58,19 @@ export const qk = {
     runs: (id: string, page: number) => ['workflows', 'runs', id, page] as const,
     meta: () => ['workflows', 'meta'] as const,
   },
+  instagram: {
+    all: ['instagram'] as const,
+    status: () => ['instagram', 'status'] as const,
+    counts: () => ['instagram', 'counts'] as const,
+    conversations: () => ['instagram', 'conversations'] as const,
+    conversationList: (q: QueryParams) => ['instagram', 'conversations', 'list', q] as const,
+    conversation: (id: string) => ['instagram', 'conversations', 'detail', id] as const,
+    comments: () => ['instagram', 'comments'] as const,
+    commentList: (q: QueryParams) => ['instagram', 'comments', 'list', q] as const,
+  },
+  autoReply: {
+    settings: ['auto-reply', 'settings'] as const,
+  },
   search: (q: string) => ['search', q] as const,
   dashboard: (range: string) => ['dashboard', range] as const,
 };

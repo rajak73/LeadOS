@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_TYPES,
+  AI_PROVIDERS,
+  AUTO_REPLY_MODES,
+  COMMENT_REPLY_MODES,
+  COMMENT_REPLY_STATUSES,
+  IG_ACCOUNT_STATUSES,
+  MESSAGE_AUTHORS,
+  MESSAGE_DIRECTIONS,
+  MESSAGE_STATUSES,
   CONDITION_OPERATORS,
   DEAL_STATUSES,
   LEAD_SOURCES,
@@ -33,6 +41,16 @@ const cases: Array<[string, readonly string[], Record<string, string>]> = [
   ['workflow action description', WORKFLOW_ACTIONS, labels.workflowActionDescriptions],
   ['workflow run status', WORKFLOW_RUN_STATUSES, labels.workflowRunStatusLabels],
   ['condition operator', CONDITION_OPERATORS, labels.conditionOperatorLabels],
+  ['Instagram account status', IG_ACCOUNT_STATUSES, labels.igAccountStatusLabels],
+  ['message direction', MESSAGE_DIRECTIONS, labels.messageDirectionLabels],
+  ['message author', MESSAGE_AUTHORS, labels.messageAuthorLabels],
+  ['message status', MESSAGE_STATUSES, labels.messageStatusLabels],
+  ['comment reply status', COMMENT_REPLY_STATUSES, labels.commentReplyStatusLabels],
+  ['auto-reply mode', AUTO_REPLY_MODES, labels.autoReplyModeLabels],
+  ['auto-reply mode description', AUTO_REPLY_MODES, labels.autoReplyModeDescriptions],
+  ['comment reply mode', COMMENT_REPLY_MODES, labels.commentReplyModeLabels],
+  ['comment reply mode description', COMMENT_REPLY_MODES, labels.commentReplyModeDescriptions],
+  ['AI provider', AI_PROVIDERS, labels.aiProviderLabels],
 ];
 
 describe('label maps', () => {
@@ -54,7 +72,7 @@ describe('label maps', () => {
         // Later words are lower case unless they are proper nouns/acronyms we allow.
         for (const w of words)
           expect(
-            w === w.toLowerCase() || /^(AI|HTTPS|WhatsApp|Instagram|Facebook|LeadOS)$/.test(w),
+            w === w.toLowerCase() || /^(AI|HTTPS|WhatsApp|Instagram|Facebook|LeadOS|DM)$/.test(w),
           ).toBe(true);
       }
     }
@@ -66,6 +84,12 @@ describe('label maps', () => {
     expect(Object.keys(labels.taskPriorityTones).sort()).toEqual([...TASK_PRIORITIES].sort());
     expect(Object.keys(labels.workflowRunStatusTones).sort()).toEqual(
       [...WORKFLOW_RUN_STATUSES].sort(),
+    );
+    expect(Object.keys(labels.igAccountStatusTones).sort()).toEqual(
+      [...IG_ACCOUNT_STATUSES].sort(),
+    );
+    expect(Object.keys(labels.commentReplyStatusTones).sort()).toEqual(
+      [...COMMENT_REPLY_STATUSES].sort(),
     );
   });
 

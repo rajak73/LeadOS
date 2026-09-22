@@ -16,7 +16,7 @@ export interface NotificationInput {
   type: NotificationType;
   title: string;
   body: string;
-  entityType?: 'lead' | 'contact' | 'deal' | 'task' | null;
+  entityType?: Notification['entityType'];
   entityId?: string | null;
 }
 
@@ -31,6 +31,47 @@ export async function notify(input: NotificationInput, db: Tx = prisma): Promise
       entityId: input.entityId ?? null,
     },
   });
+}
+
+/**
+ * Notifies every active admin. With `collapse`, an admin who still has an unread notification
+ * of the same type for the same entity gets that one updated (and bumped to the top) instead of
+ * a new one — so a chatty conversation produces one notification, not twenty.
+ */
+export async function notifyAdmins(
+  input: Omit<NotificationInput, 'userId'>,
+  options: { collapse?: boolean } = {},
+): Promise<void> {
+  const admins = await prisma.user.findMany({
+    where: { role: 'ADMIN', status: 'ACTIVE' },
+    select: { id: true },
+  });
+  for (const admin of admins) {
+    if (options.collapse) {
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: admin.id,
+          type: input.type,
+          entityType: input.entityType ?? null,
+          entityId: input.entityId ?? null,
+          readAt: null,
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        await prisma.notification.update({
+          where: { id: existing.id },
+          data: {
+            title: input.title.slice(0, 200),
+            body: input.body.slice(0, 1000),
+            createdAt: new Date(),
+          },
+        });
+        continue;
+      }
+    }
+    await notify({ ...input, userId: admin.id });
+  }
 }
 
 export async function listNotifications(

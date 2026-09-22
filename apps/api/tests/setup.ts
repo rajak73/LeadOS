@@ -15,7 +15,21 @@ process.env.DATABASE_URL = `file:${dbFile}`;
 process.env.BCRYPT_COST = '4';
 process.env.JWT_SECRET = 'test-secret-that-is-long-enough-for-hs256-signing';
 process.env.LOG_LEVEL = 'silent';
-delete process.env.OPENAI_API_KEY;
+// Never let a developer's real AI or Meta settings leak into tests.
+for (const key of [
+  'AI_PROVIDER',
+  'AI_MODEL',
+  'GEMINI_API_KEY',
+  'GROQ_API_KEY',
+  'OPENAI_API_KEY',
+  'OPENAI_MODEL',
+  'META_APP_SECRET',
+  'META_WEBHOOK_VERIFY_TOKEN',
+  'PUBLIC_URL',
+  'ENCRYPTION_KEY',
+  'INSTAGRAM_TEST_MODE',
+])
+  delete process.env[key];
 
 afterAll(async () => {
   const { prisma } = await import('../src/lib/prisma.js');

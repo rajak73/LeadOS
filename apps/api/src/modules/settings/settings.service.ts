@@ -1,9 +1,9 @@
 import type { AppSettings as AppSettingsDto, UpdateSettingsInput } from '@leados/shared';
 import type { AppSettings } from '@prisma/client';
-import { env } from '../../config/env.js';
 import { fieldError } from '../../lib/errors.js';
 import { prisma, type Tx } from '../../lib/prisma.js';
 import { isValidTimeZone } from '../../lib/time.js';
+import { currentProvider } from '../ai/index.js';
 
 export const SETTINGS_ID = 1;
 
@@ -15,8 +15,7 @@ export async function getSettings(db: Tx = prisma): Promise<AppSettings> {
   });
 }
 
-export const aiProvider = (): AppSettingsDto['aiProvider'] =>
-  env.OPENAI_API_KEY ? 'openai' : 'rules';
+export const aiProvider = (): AppSettingsDto['aiProvider'] => currentProvider().provider;
 
 export function toSettings(s: AppSettings): AppSettingsDto {
   return {
@@ -24,7 +23,8 @@ export function toSettings(s: AppSettings): AppSettingsDto {
     defaultCurrency: s.defaultCurrency,
     timezone: s.timezone,
     aiScoringAuto: s.aiScoringAuto,
-    aiProvider: aiProvider(),
+    aiProvider: currentProvider().provider,
+    aiModel: currentProvider().model,
   };
 }
 

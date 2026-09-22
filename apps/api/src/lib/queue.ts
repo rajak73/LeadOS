@@ -54,6 +54,24 @@ export function debounce(key: string, ms: number, name: string, run: () => Promi
   debounced.set(key, { timer, job });
 }
 
+/** Drops a pending debounced job (no-op if it already ran or was never scheduled). */
+export function cancelDebounce(key: string): boolean {
+  const existing = debounced.get(key);
+  if (!existing) return false;
+  clearTimeout(existing.timer);
+  debounced.delete(key);
+  return true;
+}
+
+/** Drops every pending debounced job whose key starts with `prefix`. */
+export function cancelDebouncePrefix(prefix: string): number {
+  let n = 0;
+  for (const key of [...debounced.keys()]) if (key.startsWith(prefix) && cancelDebounce(key)) n++;
+  return n;
+}
+
+export const isDebounced = (key: string) => debounced.has(key);
+
 /** Resolves once no job is queued or running (debounced jobs not yet due are ignored). */
 export function idle(): Promise<void> {
   return new Promise((resolve) => {

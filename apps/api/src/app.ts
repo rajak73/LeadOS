@@ -19,6 +19,11 @@ import { analyticsRouter } from './modules/analytics/index.js';
 import { authRouter, meRouter } from './modules/auth/index.js';
 import { contactsRouter } from './modules/contacts/index.js';
 import { dealsRouter } from './modules/deals/index.js';
+import {
+  autoReplyRouter,
+  instagramRouter,
+  instagramWebhookRouter,
+} from './modules/instagram/index.js';
 import { leadsRouter } from './modules/leads/index.js';
 import { notesRouter } from './modules/notes/index.js';
 import {
@@ -88,6 +93,10 @@ export function createApp(options: AppOptions = {}): Express {
     }),
   );
 
+  // Meta webhooks: public, raw body (signature is computed over the exact bytes), and not
+  // behind the per-IP rate limit (Meta delivers bursts from a few addresses).
+  app.use('/api/webhooks/instagram', instagramWebhookRouter);
+
   const api = Router();
   api.use(
     rateLimit({
@@ -136,6 +145,8 @@ export function createApp(options: AppOptions = {}): Express {
   secured.use('/workflows', workflowsRouter);
   secured.use('/search', searchRouter);
   secured.use('/analytics', analyticsRouter);
+  secured.use('/instagram', instagramRouter);
+  secured.use('/auto-reply', autoReplyRouter);
   api.use(secured);
   api.use(notFoundHandler);
 
