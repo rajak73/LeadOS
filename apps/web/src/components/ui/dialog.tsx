@@ -68,7 +68,9 @@ export function DialogContent({
             />
           </DialogPrimitive.Close>
         </div>
-        {children && <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5">{children}</div>}
+        {children && (
+          <div className="relative min-h-0 flex-1 overflow-y-auto px-4 pb-5">{children}</div>
+        )}
         {footer && (
           <div className="flex flex-col-reverse gap-2 border-t border-border px-4 py-3 sm:flex-row sm:justify-end">
             {footer}

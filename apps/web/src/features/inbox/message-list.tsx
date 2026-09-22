@@ -64,7 +64,7 @@ export function MessageList({
       // Scrollable region: must be reachable by keyboard so it can be scrolled.
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
-      className="min-h-0 flex-1 overflow-y-auto px-3 py-4 focus-visible:outline-offset-[-2px] sm:px-5"
+      className="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 focus-visible:outline-offset-[-2px] sm:px-5"
     >
       {shown.length === 0 ? (
         <EmptyState

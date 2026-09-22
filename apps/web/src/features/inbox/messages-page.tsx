@@ -17,7 +17,7 @@ export default function MessagesPage() {
   useDocumentTitle('Inbox');
 
   return (
-    <div className="@container flex h-[calc(100dvh-14rem)] min-h-[22rem] overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <div className="@container relative flex h-[calc(100dvh-14rem)] min-h-[22rem] overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
       <section
         aria-label="Conversations"
         className={cn(

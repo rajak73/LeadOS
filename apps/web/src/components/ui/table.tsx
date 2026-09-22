@@ -10,10 +10,12 @@ export function TableContainer({ className, ...rest }: HTMLAttributes<HTMLDivEle
   return (
     <div
       // Focusable so keyboard users can scroll the rows and columns (WCAG 2.1.1).
+      // `relative` keeps sr-only (absolutely positioned) labels inside this scroller; without
+      // it they escape to the page and stretch it far below the content.
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
       className={cn(
-        'max-h-[calc(100dvh-17.5rem)] min-h-40 w-full overflow-auto overscroll-contain focus-visible:ring-inset',
+        'relative max-h-[calc(100dvh-17.5rem)] min-h-40 w-full overflow-auto overscroll-contain focus-visible:ring-inset',
         className,
       )}
       {...rest}

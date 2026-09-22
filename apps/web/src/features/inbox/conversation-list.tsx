@@ -196,7 +196,8 @@ export function ConversationList({ activeId }: { activeId?: string }) {
           }
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* relative: the rows' sr-only labels must not stretch the page (see ui/table.tsx). */}
+      <div className="relative min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <ListSkeleton />
         ) : error && !data ? (

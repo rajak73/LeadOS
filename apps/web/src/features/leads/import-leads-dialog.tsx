@@ -58,7 +58,7 @@ function ResultSummary({ result }: { result: ImportResult }) {
         <div>
           <h3 className="mb-2 type-small font-medium text-fg">Rows we couldn't import</h3>
           <ul
-            className="max-h-48 overflow-y-auto rounded-lg border border-border bg-surface type-small"
+            className="relative max-h-48 overflow-y-auto rounded-lg border border-border bg-surface type-small"
             aria-label="Import errors"
           >
             {result.errors.map((e) => (

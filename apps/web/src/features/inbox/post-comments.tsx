@@ -124,7 +124,7 @@ export function PostComments({ mediaId, post }: { mediaId: string; post?: IgComm
           />
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="relative min-h-0 flex-1 overflow-y-auto">
         {olderLeft > 0 && !isLoading && (
           <div className="flex justify-center border-b border-border p-3">
             <Button
