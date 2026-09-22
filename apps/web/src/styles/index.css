@@ -1,0 +1,291 @@
+@import 'tailwindcss';
+
+/* Dark mode is driven by the `.dark` class on <html> (set by the theme provider
+   and by the inline script in index.html before first paint). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Raw token values ────────────────────────────────────────────────────────
+   Components never reference these directly; they use the semantic Tailwind
+   colours registered in @theme below (bg-surface, text-fg-muted, …).
+   Contrast notes: fg-subtle is ≥ 4.5:1 on background, surface and muted in
+   both themes. */
+:root {
+  --background: #f6f6f8;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --muted: #efeff2;
+  --border: #e3e3e8;
+  --border-strong: #cfcfd6;
+  --fg: #17171c;
+  --fg-muted: #4b4b57;
+  --fg-subtle: #646470;
+  --overlay: rgb(15 15 20 / 0.45);
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-fg: #ffffff;
+  --primary-subtle: #eef0ff;
+  --primary-subtle-fg: #3730a3;
+  --primary-text: #4338ca;
+
+  --success: #15803d;
+  --success-subtle: #e9f9ef;
+  --success-fg: #166534;
+  --warning: #b45309;
+  --warning-subtle: #fff6e0;
+  --warning-fg: #92400e;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #fdeeee;
+  --danger-fg: #b91c1c;
+  --info: #0369a1;
+  --info-subtle: #e8f5fd;
+  --info-fg: #075985;
+
+  --focus: #6366f1;
+
+  --chart-1: #4f46e5;
+  --chart-2: #0284c7;
+  --chart-3: #059669;
+  --chart-4: #d97706;
+  --chart-5: #e11d48;
+  --chart-6: #7c3aed;
+  --chart-7: #c026d3;
+  --chart-8: #475569;
+
+  --shadow-color: 220 15% 20%;
+}
+
+.dark {
+  --background: #0c0c10;
+  --surface: #141419;
+  --surface-raised: #1b1b22;
+  --muted: #202029;
+  --border: #282831;
+  --border-strong: #3b3b47;
+  --fg: #ededf1;
+  --fg-muted: #b0b0bc;
+  --fg-subtle: #9090a0;
+  --overlay: rgb(0 0 0 / 0.6);
+
+  --primary: #4f46e5;
+  --primary-hover: #5b53ee;
+  --primary-fg: #ffffff;
+  --primary-subtle: #1f1f3d;
+  --primary-subtle-fg: #c7cdfe;
+  --primary-text: #a5b0fc;
+
+  --success: #22a559;
+  --success-subtle: #0f2a1b;
+  --success-fg: #6ee7a0;
+  --warning: #d68a1a;
+  --warning-subtle: #2d2210;
+  --warning-fg: #fcd34d;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #321417;
+  --danger-fg: #fca5a5;
+  --info: #0ea5e9;
+  --info-subtle: #0c2434;
+  --info-fg: #7dd3fc;
+
+  --focus: #818cf8;
+
+  --chart-1: #818cf8;
+  --chart-2: #38bdf8;
+  --chart-3: #34d399;
+  --chart-4: #fbbf24;
+  --chart-5: #fb7185;
+  --chart-6: #c4a5fd;
+  --chart-7: #f0abfc;
+  --chart-8: #94a3b8;
+
+  --shadow-color: 0 0% 0%;
+  color-scheme: dark;
+}
+
+/* ─── Theme ───────────────────────────────────────────────────────────────────
+   The default Tailwind palette is removed on purpose: only semantic tokens
+   exist, so `text-red-600` simply does not compile to anything. */
+@theme inline {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-overlay: var(--overlay);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-subtle-fg: var(--primary-subtle-fg);
+  --color-primary-text: var(--primary-text);
+
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-fg: var(--success-fg);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-fg: var(--warning-fg);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-fg: var(--danger-fg);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-fg: var(--info-fg);
+
+  --color-focus: var(--focus);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.06);
+  --shadow-md:
+    0 1px 2px hsl(var(--shadow-color) / 0.06), 0 4px 12px hsl(var(--shadow-color) / 0.08);
+  --shadow-lg:
+    0 4px 8px hsl(var(--shadow-color) / 0.08), 0 16px 40px hsl(var(--shadow-color) / 0.16);
+
+  --animate-fade-in: fade-in 150ms ease-out;
+  --animate-slide-in-left: slide-in-left 200ms ease-out;
+  --animate-slide-in-right: slide-in-right 200ms ease-out;
+  --animate-scale-in: scale-in 150ms ease-out;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ─── Type scale ──────────────────────────────────────────────────────────── */
+@utility type-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+@utility type-section {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@utility type-body {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+@utility type-small {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+@utility type-caption {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+@utility type-metric {
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  /* A visible focus ring on everything interactive, keyboard only. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary-subtle-fg);
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

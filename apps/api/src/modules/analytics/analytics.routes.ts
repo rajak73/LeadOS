@@ -1,13 +1,10 @@
 import { Router } from 'express';
-import type { RequestHandler } from 'express';
-import { createAnalyticsController } from './analytics.controller.js';
-import { asyncHandler } from '../../core/http/async-handler.js';
+import { analyticsQuerySchema } from '@leados/shared';
+import { ok, query } from '../../lib/http.js';
+import { getDashboard } from './analytics.service.js';
 
-export function buildAnalyticsRouter(requirePermission: (permission: string) => RequestHandler): Router {
-  const router = Router();
-  const ctrl = createAnalyticsController();
+export const analyticsRouter = Router();
 
-  router.get('/dashboard', requirePermission('leads.read'), asyncHandler(ctrl.getDashboardSummary));
-
-  return router;
-}
+analyticsRouter.get('/dashboard', async (req, res) =>
+  ok(res, await getDashboard(query(analyticsQuerySchema, req).range)),
+);

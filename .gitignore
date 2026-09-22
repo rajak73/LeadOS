@@ -32,3 +32,5 @@ pnpm-debug.log*
 
 # prisma local
 prisma/*.db
+prisma/data/
+apps/api/tests/.tmp/

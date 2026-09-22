@@ -1,39 +1,25 @@
-// Vitest global setup — runs once before any test module is evaluated.
-// Loads the workspace-root .env file into process.env so that DATABASE_URL,
-// DATABASE_APP_URL, REDIS_URL etc. are available when isPostgresUp() and
-// isRedisUp() are called at test-file top level.
-//
-// In CI these vars are already in the environment (set by ci.yml / docker-compose),
-// so this file is a no-op there (we never overwrite existing values).
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+const here = path.dirname(fileURLToPath(import.meta.url));
+export const TMP_DIR = path.join(here, '.tmp');
+export const TEMPLATE_DB = path.join(TMP_DIR, 'template.db');
 
-export function setup(): void {
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const envPath = resolve(__dirname, '../../../.env');
-
-  let raw: string;
-  try {
-    raw = readFileSync(envPath, 'utf8');
-  } catch {
-    return; // .env absent (e.g. fresh CI checkout without dotenv step) — skip
-  }
-
-  for (const line of raw.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
-    // Never overwrite vars already set in the environment (CI sets them explicitly).
-    // Skip empty values — they are documentation placeholders in .env.example/.env
-    // and letting them through would cause Zod's min(1) validation to fail for
-    // JWT_ACCESS_SECRET etc. (which have secure defaults when absent).
-    if (key && val && !(key in process.env)) {
-      process.env[key] = val;
-    }
-  }
+/** Applies the real migrations to a template database that each test file copies. */
+export default function setup(): () => void {
+  fs.rmSync(TMP_DIR, { recursive: true, force: true });
+  fs.mkdirSync(TMP_DIR, { recursive: true });
+  const cli = createRequire(import.meta.url).resolve('prisma/build/index.js');
+  execFileSync(
+    process.execPath,
+    [cli, 'migrate', 'deploy', `--schema=${path.resolve(here, '../../../prisma/schema.prisma')}`],
+    {
+      env: { ...process.env, DATABASE_URL: `file:${TEMPLATE_DB}` },
+      stdio: 'pipe',
+    },
+  );
+  return () => fs.rmSync(TMP_DIR, { recursive: true, force: true });
 }

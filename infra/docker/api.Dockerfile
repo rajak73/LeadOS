@@ -1,27 +1,48 @@
-# API process image. The worker image (worker.Dockerfile) is the same build with a
-# different entrypoint — one codebase, two processes (FINAL_ARCHITECTURE §1).
-FROM node:20-bookworm AS base
-RUN corepack enable
-WORKDIR /app
+# LeadOS — single image serving the API and the built web app from one origin.
+#   docker build -f infra/docker/api.Dockerfile -t leados .
+#   docker run -p 4000:4000 -v leados-data:/data -e JWT_SECRET=$(openssl rand -base64 48) leados
+# The SQLite database lives in the /data volume; migrations run on every start.
 
-# Install workspace deps (cached on lockfile).
-FROM base AS deps
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc ./
+FROM node:22-slim AS base
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
+# Prisma's query engine needs OpenSSL.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && corepack enable
+
+# ── Build ────────────────────────────────────────────────────────────────────
+FROM base AS build
+WORKDIR /repo
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY packages ./packages
 COPY apps/api/package.json ./apps/api/package.json
+COPY apps/web/package.json ./apps/web/package.json
 COPY prisma ./prisma
-RUN pnpm install --frozen-lockfile || pnpm install
-
-# Build shared + api.
-FROM deps AS build
+RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN pnpm --filter @leados/shared build \
- && pnpm --filter @leados/api exec prisma generate --schema=../../prisma/schema.prisma \
+RUN pnpm --filter @leados/api exec prisma generate --schema=../../prisma/schema.prisma \
+ && pnpm --filter @leados/shared build \
+ && pnpm --filter @leados/web build \
  && pnpm --filter @leados/api build
+# Self-contained production install of the API (no dev dependencies).
+RUN pnpm --filter @leados/api deploy --prod --ignore-scripts /out \
+ && cp -r prisma /out/prisma && rm -rf /out/prisma/data \
+ && cp -r apps/web/dist /out/web \
+ && cd /out && node node_modules/prisma/build/index.js generate --schema=prisma/schema.prisma \
+ && rm -rf /out/src /out/tests /out/*.config.ts /out/tsconfig.json
 
+# ── Runtime ──────────────────────────────────────────────────────────────────
 FROM base AS runtime
-ENV NODE_ENV=production
-COPY --from=build /app /app
-WORKDIR /app/apps/api
+ENV NODE_ENV=production \
+    PORT=4000 \
+    DATABASE_URL=file:/data/leados.db \
+    WEB_DIST_DIR=/app/web
+WORKDIR /app
+COPY --from=build --chown=node:node /out /app
+RUN mkdir -p /data && chown node:node /data
+VOLUME ["/data"]
+USER node
 EXPOSE 4000
-CMD ["node", "dist/server.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["sh", "-c", "node dist/scripts/migrate.js && exec node dist/server.js"]

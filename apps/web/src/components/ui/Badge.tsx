@@ -1,25 +1,41 @@
-'use client';
+import type { HTMLAttributes } from 'react';
+import { cn } from '@/lib/cn';
+import type { Tone } from '@/lib/labels';
 
-interface BadgeProps {
-  variant?: 'default' | 'overdue' | 'stale' | 'won' | 'lost' | 'open';
-  children: React.ReactNode;
-  className?: string;
-}
-
-const variantClasses: Record<string, string> = {
-  default: 'bg-bg-elevated text-text-secondary border border-border',
-  overdue: 'bg-red-500/15 text-red-400 border border-red-500/30',
-  stale: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30',
-  won: 'bg-green-500/15 text-green-400 border border-green-500/30',
-  lost: 'bg-red-500/15 text-red-400 border border-red-500/30',
-  open: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+const tones: Record<Tone, string> = {
+  neutral: 'bg-muted text-fg-muted border-border',
+  primary: 'bg-primary-subtle text-primary-subtle-fg border-transparent',
+  success: 'bg-success-subtle text-success-fg border-transparent',
+  warning: 'bg-warning-subtle text-warning-fg border-transparent',
+  danger: 'bg-danger-subtle text-danger-fg border-transparent',
+  info: 'bg-info-subtle text-info-fg border-transparent',
 };
 
-export function Badge({ variant = 'default', children, className = '' }: BadgeProps) {
+const dots: Record<Tone, string> = {
+  neutral: 'bg-fg-subtle',
+  primary: 'bg-primary',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
+};
+
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  tone?: Tone;
+  dot?: boolean;
+}
+
+export function Badge({ tone = 'neutral', dot, className, children, ...rest }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded ${variantClasses[variant]} ${className}`}
+      className={cn(
+        'inline-flex h-5 items-center gap-1.5 rounded-full border px-2 type-caption font-medium whitespace-nowrap',
+        tones[tone],
+        className,
+      )}
+      {...rest}
     >
+      {dot && <span aria-hidden className={cn('size-1.5 rounded-full', dots[tone])} />}
       {children}
     </span>
   );

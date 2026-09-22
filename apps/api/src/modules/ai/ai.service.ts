@@ -1,249 +1,174 @@
-import { createHash } from 'node:crypto';
-import type { LeadContext, ScoreResult, AiUsageStatus } from '@leados/shared';
-import { ErrorCode, PLAN_LIMITS } from '@leados/shared';
-import { AppError } from '../../core/errors/app-error.js';
-import { cacheRedis } from '../../core/redis/client.js';
-import type { TenantTransactionClient } from '../../core/tenancy/with-tenant.js';
-import type { AiAdapter } from './ai.adapter.js';
+import type { AiScore, LeadSource, LeadStatus } from '@leados/shared';
+import { env } from '../../config/env.js';
+import { recordActivity } from '../../lib/activity.js';
+import { emit, on } from '../../lib/events.js';
+import { notFound } from '../../lib/errors.js';
+import { fullName } from '../../lib/labels.js';
+import { logger } from '../../lib/logger.js';
+import { prisma } from '../../lib/prisma.js';
+import { debounce } from '../../lib/queue.js';
+import { asTags, toAiScore } from '../../lib/serializers.js';
+import { notify } from '../notifications/index.js';
+import { getSettings } from '../settings/index.js';
+import { scoreWithOpenAI } from './ai.openai.js';
+import { scoreWithRules } from './ai.rules.js';
+import type { LeadContext, ScoreResult } from './ai.types.js';
 
-export class AiService {
-  constructor(private readonly adapter: AiAdapter) {}
+export const AUTO_SCORE_DEBOUNCE_MS = 10_000;
+export const HOT_SCORE = 70;
 
-  /**
-   * Scores a lead by checking caches, quotas, and limits, and then calling the LLM adapter.
-   */
-  async scoreLead(
-    db: TenantTransactionClient,
-    organizationId: string,
-    leadId: string,
-    bypassCache = false,
-  ): Promise<ScoreResult> {
-    // 1. Compile context from database
-    const lead = await db.lead.findUnique({
-      where: { id: leadId },
-    });
-    if (!lead) {
-      throw AppError.notFound('Lead not found');
-    }
-
-    const activities = await db.activity.findMany({
-      where: { relatedLeadId: leadId },
+async function buildContext(leadId: string): Promise<LeadContext> {
+  const lead = await prisma.lead.findFirst({ where: { id: leadId, deletedAt: null } });
+  if (!lead) throw notFound('lead');
+  const [deals, activities] = await Promise.all([
+    prisma.deal.findMany({
+      where: { leadId, deletedAt: null, status: 'OPEN' },
+      include: { stage: { select: { name: true } } },
+      take: 10,
+    }),
+    prisma.activity.findMany({
+      where: { relatedLeadId: leadId, type: { not: 'LEAD_SCORED' } },
       orderBy: { createdAt: 'desc' },
       take: 20,
-    });
-
-    const context: LeadContext = {
-      lead: {
-        id: lead.id,
-        firstName: lead.firstName,
-        lastName: lead.lastName,
-        email: lead.email,
-        phone: lead.phone,
-        source: lead.source,
-        status: lead.status,
-        tags: lead.tags,
-        customFields: (lead.customFields as Record<string, unknown>) || {},
-      },
-      activities: activities.map((a) => ({
-        type: a.type,
-        description: a.description,
-        createdAt: a.createdAt.toISOString(),
-      })),
-    };
-
-    // 2. Resolve limits based on organization subscription plan
-    const sub = await db.subscription.findUnique({
-      where: { organizationId },
-    });
-    const plan = (sub?.plan ?? 'TRIAL') as keyof typeof PLAN_LIMITS;
-    const monthlyLimit = PLAN_LIMITS[plan].aiCallsPerMonth;
-    const hourlyLimit = PLAN_LIMITS[plan].aiCallsPerHour;
-
-    const periodMonth = new Date().toISOString().slice(0, 7);
-
-    // 3. Enforce monthly quota limits
-    if (monthlyLimit !== Number.POSITIVE_INFINITY) {
-      const counter = await db.aiUsageCounter.findUnique({
-        where: { organizationId_periodMonth: { organizationId, periodMonth } },
-      });
-      if (counter && counter.callCount >= monthlyLimit) {
-        throw new AppError(ErrorCode.AI_QUOTA_EXCEEDED, 'Monthly AI scoring quota exceeded');
-      }
-    }
-
-    // 4. Enforce Redis sliding-window hourly burst limits
-    if (hourlyLimit !== Number.POSITIVE_INFINITY) {
-      const limitKey = `ai:rate_limit:hourly:${organizationId}`;
-      const now = Date.now();
-      const oneHourAgo = now - 3600000;
-
-      const pipeline = cacheRedis.pipeline();
-      pipeline.zremrangebyscore(limitKey, 0, oneHourAgo);
-      pipeline.zcard(limitKey);
-      const results = await pipeline.exec();
-      const count = (results?.[1]?.[1] as number) || 0;
-
-      if (count >= hourlyLimit) {
-        throw new AppError(ErrorCode.RATE_LIMITED, 'Hourly AI rate limit exceeded');
-      }
-
-      await cacheRedis.zadd(limitKey, now, now.toString());
-      await cacheRedis.expire(limitKey, 3600);
-    }
-
-    // 5. Prompt Cache lookup
-    const payloadForHash = {
-      status: lead.status,
-      tags: lead.tags,
-      source: lead.source,
+    }),
+  ]);
+  return {
+    lead: {
+      firstName: lead.firstName,
+      lastName: lead.lastName,
       email: lead.email,
       phone: lead.phone,
-      customFields: lead.customFields,
-      lastActivityAt: lead.lastActivityAt?.toISOString() || lead.createdAt.toISOString(),
-    };
-    const hash = createHash('sha256').update(JSON.stringify(payloadForHash)).digest('hex');
-    const cacheKey = `ai:score_cache:${organizationId}:${leadId}`;
+      company: lead.company,
+      source: lead.source as LeadSource,
+      status: lead.status as LeadStatus,
+      tags: asTags(lead.tags),
+      createdAt: lead.createdAt,
+      lastActivityAt: lead.lastActivityAt,
+    },
+    openDeals: deals.map((d) => ({
+      title: d.title,
+      value: d.value,
+      currency: d.currency,
+      stageName: d.stage.name,
+    })),
+    activities: activities.map((a) => ({
+      type: a.type,
+      description: a.description,
+      createdAt: a.createdAt,
+    })),
+    now: new Date(),
+  };
+}
 
-    if (!bypassCache) {
-      const cached = await cacheRedis.hgetall(cacheKey);
-      if (cached && cached.hash === hash && cached.score) {
-        return JSON.parse(cached.score) as ScoreResult;
-      }
-    }
-
-    // 6. Enforce Circuit Breaker
-    const breakerOpenKey = 'ai:circuit_breaker:open';
-    const isBreakerOpen = await cacheRedis.get(breakerOpenKey);
-    if (isBreakerOpen) {
-      throw new AppError(
-        ErrorCode.AI_PROVIDER_UNAVAILABLE,
-        'AI provider is temporarily unavailable (circuit breaker open)',
-      );
-    }
-
-    // 7. Execute provider call using circuit breaker tracking
-    let result: ScoreResult;
+/** OpenAI when configured, otherwise (or on any failure/timeout) the deterministic rules scorer. */
+async function computeScore(ctx: LeadContext): Promise<ScoreResult> {
+  if (env.OPENAI_API_KEY) {
     try {
-      result = await this.adapter.scoreLead(context);
-      await cacheRedis.del('ai:circuit_breaker:failures');
+      return await scoreWithOpenAI(ctx);
     } catch (err) {
-      const failuresKey = 'ai:circuit_breaker:failures';
-      const failures = await cacheRedis.incr(failuresKey);
-      if (failures >= 5) {
-        await cacheRedis.set(breakerOpenKey, 'true', 'EX', 300); // open breaker for 5 mins
-        await cacheRedis.del(failuresKey);
-      }
-      throw err;
+      logger.warn({ err }, 'OpenAI scoring failed; using the rules scorer');
     }
-
-    // 8. Update Redis Prompt Cache
-    await cacheRedis.hset(cacheKey, {
-      hash,
-      score: JSON.stringify(result),
-    });
-    await cacheRedis.expire(cacheKey, 86400); // 24 hours TTL
-
-    // 9. Increment monthly counter
-    await db.aiUsageCounter.upsert({
-      where: { organizationId_periodMonth: { organizationId, periodMonth } },
-      create: { organizationId, periodMonth, callCount: 1, tokenCount: 0 },
-      update: { callCount: { increment: 1 } },
-    });
-
-    return result;
   }
+  return scoreWithRules(ctx);
+}
 
-  /**
-   * Retrieves organization monthly AI usage status.
-   */
-  async getUsageStatus(db: TenantTransactionClient, organizationId: string): Promise<AiUsageStatus> {
-    const sub = await db.subscription.findUnique({
-      where: { organizationId },
-    });
-    const plan = (sub?.plan ?? 'TRIAL') as keyof typeof PLAN_LIMITS;
-    const limit = PLAN_LIMITS[plan].aiCallsPerMonth;
+export async function scoreLead(
+  leadId: string,
+  triggeredBy: AiScore['triggeredBy'],
+  depth = 0,
+): Promise<AiScore> {
+  const ctx = await buildContext(leadId);
+  const result = await computeScore(ctx);
 
-    const periodMonth = new Date().toISOString().slice(0, 7);
-    const counter = await db.aiUsageCounter.findUnique({
-      where: { organizationId_periodMonth: { organizationId, periodMonth } },
-    });
-
-    const callCount = counter?.callCount ?? 0;
-    const tokenCount = counter?.tokenCount ?? 0;
-
-    return {
-      periodMonth,
-      callCount,
-      tokenCount,
-      quotaLimit: limit,
-      isOverQuota: limit !== Number.POSITIVE_INFINITY && callCount >= limit,
-    };
-  }
-
-  /**
-   * Generates a follow-up draft suggestion using the AI provider.
-   */
-  async draftFollowup(
-    db: TenantTransactionClient,
-    organizationId: string,
-    leadId: string,
-  ): Promise<{ channel: 'EMAIL' | 'INSTAGRAM_DM'; draft: string }> {
-    const lead = await db.lead.findUnique({
-      where: { id: leadId },
-    });
-    if (!lead) {
-      throw AppError.notFound('Lead not found');
-    }
-
-    const activities = await db.activity.findMany({
-      where: { relatedLeadId: leadId },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
-
-    const context: LeadContext = {
-      lead: {
-        id: lead.id,
-        firstName: lead.firstName,
-        lastName: lead.lastName,
-        email: lead.email,
-        phone: lead.phone,
-        source: lead.source,
-        status: lead.status,
-        tags: lead.tags,
-        customFields: (lead.customFields as Record<string, unknown>) || {},
-      },
-      activities: activities.map((a) => ({
-        type: a.type,
-        description: a.description,
-        createdAt: a.createdAt.toISOString(),
-      })),
-    };
-
-    const sub = await db.subscription.findUnique({
-      where: { organizationId },
-    });
-    const plan = (sub?.plan ?? 'TRIAL') as keyof typeof PLAN_LIMITS;
-    const monthlyLimit = PLAN_LIMITS[plan].aiCallsPerMonth;
-    const periodMonth = new Date().toISOString().slice(0, 7);
-
-    if (monthlyLimit !== Number.POSITIVE_INFINITY) {
-      const counter = await db.aiUsageCounter.findUnique({
-        where: { organizationId_periodMonth: { organizationId, periodMonth } },
+  const { saved, previousScore, firstTimeHot, assignedToId, name } = await prisma.$transaction(
+    async (tx) => {
+      const lead = await tx.lead.findUniqueOrThrow({ where: { id: leadId } });
+      const priorHot = await tx.aiScore.count({ where: { leadId, score: { gte: HOT_SCORE } } });
+      const saved = await tx.aiScore.create({
+        data: {
+          leadId,
+          score: result.score,
+          factors: result.factors as unknown as object[],
+          recommendation: result.recommendation,
+          modelVersion: result.modelVersion,
+          triggeredBy,
+        },
       });
-      if (counter && counter.callCount >= monthlyLimit) {
-        throw new AppError(ErrorCode.AI_QUOTA_EXCEEDED, 'Monthly AI quota exceeded');
-      }
-    }
+      await tx.lead.update({
+        where: { id: leadId },
+        data: { aiScore: result.score, aiScoreUpdatedAt: saved.createdAt },
+      });
+      await recordActivity(tx, {
+        type: 'LEAD_SCORED',
+        description:
+          lead.aiScore === null
+            ? `AI score set to ${result.score}`
+            : `AI score changed from ${lead.aiScore} to ${result.score}`,
+        metadata: {
+          score: result.score,
+          previous: lead.aiScore,
+          modelVersion: result.modelVersion,
+          triggeredBy,
+        },
+        performedById: null,
+        leadId,
+        touch: false, // scoring isn't engagement
+      });
+      return {
+        saved,
+        previousScore: lead.aiScore,
+        firstTimeHot: result.score >= HOT_SCORE && priorHot === 0,
+        assignedToId: lead.assignedToId,
+        name: fullName(lead),
+      };
+    },
+  );
 
-    const result = await this.adapter.draftFollowup(context);
-
-    await db.aiUsageCounter.upsert({
-      where: { organizationId_periodMonth: { organizationId, periodMonth } },
-      create: { organizationId, periodMonth, callCount: 1, tokenCount: 0 },
-      update: { callCount: { increment: 1 } },
+  if (firstTimeHot && assignedToId) {
+    await notify({
+      userId: assignedToId,
+      type: 'LEAD_SCORED',
+      title: `${name} is a hot lead (${result.score})`,
+      body: result.recommendation,
+      entityType: 'lead',
+      entityId: leadId,
     });
-
-    return result;
   }
+  emit({ type: 'lead.scored', leadId, score: result.score, previousScore, depth });
+  return toAiScore(saved);
+}
+
+export async function listScores(leadId: string): Promise<AiScore[]> {
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!lead) throw notFound('lead');
+  const rows = await prisma.aiScore.findMany({
+    where: { leadId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });
+  return rows.map(toAiScore);
+}
+
+function scheduleAutoScore(leadId: string, depth: number): Promise<void> {
+  return getSettings().then((s) => {
+    if (!s.aiScoringAuto) return;
+    debounce(`ai-score:${leadId}`, AUTO_SCORE_DEBOUNCE_MS, 'ai.auto-score', async () => {
+      const exists = await prisma.lead.count({ where: { id: leadId, deletedAt: null } });
+      if (exists) await scoreLead(leadId, 'auto', depth);
+    });
+  });
+}
+
+/** Rescores leads (debounced per lead) after create, status change and new notes. */
+export function registerAiSubscribers(): void {
+  on('lead.created', 'ai-auto-score', async (e) => {
+    if (!e.imported) await scheduleAutoScore(e.leadId, e.depth);
+  });
+  on('lead.status_changed', 'ai-auto-score', (e) => scheduleAutoScore(e.leadId, e.depth));
+  on('note.created', 'ai-auto-score', async (e) => {
+    if (e.leadId) await scheduleAutoScore(e.leadId, e.depth);
+  });
 }

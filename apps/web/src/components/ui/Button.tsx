@@ -1,30 +1,87 @@
-'use client';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
-import type { ButtonHTMLAttributes } from 'react';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-}
-
-const variantClasses: Record<string, string> = {
-  primary: 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50',
-  secondary: 'bg-bg-elevated border border-border text-text-primary hover:bg-bg-subtle disabled:opacity-50',
-  ghost: 'text-text-secondary hover:text-text-primary hover:bg-bg-subtle disabled:opacity-50',
-  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50',
+const variants: Record<ButtonVariant, string> = {
+  primary: 'bg-primary text-primary-fg shadow-sm hover:bg-primary-hover',
+  secondary:
+    'border border-border bg-surface text-fg shadow-sm hover:bg-muted hover:border-border-strong',
+  ghost: 'text-fg-muted hover:bg-muted hover:text-fg',
+  danger: 'bg-danger text-white shadow-sm hover:bg-danger-hover',
+  link: 'text-primary-text underline-offset-4 hover:underline px-0! h-auto!',
 };
 
-const sizeClasses: Record<string, string> = {
-  sm: 'px-2.5 py-1 text-xs rounded',
-  md: 'px-3.5 py-1.5 text-sm rounded-lg',
-  lg: 'px-5 py-2 text-base rounded-lg',
+const sizes: Record<ButtonSize, string> = {
+  sm: 'h-8 gap-1.5 rounded-md px-2.5 type-small',
+  md: 'h-9 gap-2 rounded-md px-3.5 type-body',
+  lg: 'h-10 gap-2 rounded-lg px-4 type-body',
 };
 
-export function Button({ variant = 'secondary', size = 'md', className = '', ...props }: ButtonProps) {
-  return (
-    <button
-      {...props}
-      className={`inline-flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-    />
+const iconSizes: Record<ButtonSize, string> = { sm: 'size-8', md: 'size-9', lg: 'size-10' };
+
+type BaseProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
+  /** Icon shown before the label (hidden while loading). */
+  icon?: ReactNode;
+};
+
+/** Icon-only buttons must have an accessible name. */
+type IconOnlyProps = BaseProps & { iconOnly: true; 'aria-label': string };
+type LabelledProps = BaseProps & { iconOnly?: false };
+export type ButtonProps = IconOnlyProps | LabelledProps;
+
+export function buttonClasses({
+  variant = 'secondary',
+  size = 'md',
+  iconOnly = false,
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  iconOnly?: boolean;
+  className?: string;
+}) {
+  return cn(
+    'inline-flex shrink-0 select-none items-center justify-center font-medium whitespace-nowrap transition-colors',
+    'disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+    variants[variant],
+    sizes[size],
+    iconOnly && cn(iconSizes[size], 'px-0'),
+    className,
   );
 }
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = 'secondary',
+    size = 'md',
+    loading,
+    icon,
+    iconOnly,
+    className,
+    children,
+    disabled,
+    type = 'button',
+    ...rest
+  },
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={buttonClasses({ variant, size, iconOnly, className })}
+      {...rest}
+    >
+      {loading ? <Loader2 aria-hidden className="animate-spin" /> : icon}
+      {children}
+    </button>
+  );
+});

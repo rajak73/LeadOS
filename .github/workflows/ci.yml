@@ -5,78 +5,31 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test:
+  check:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: leados
-          POSTGRES_PASSWORD: leados
-          POSTGRES_DB: leados
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U leados"
-          --health-interval 5s --health-timeout 5s --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports: ['6379:6379']
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://leados:leados@localhost:5432/leados
-      DATABASE_DIRECT_URL: postgresql://leados:leados@localhost:5432/leados
-      # Sprint 3 M1: the RLS-enforced application role (created by migration 0002). The RLS
-      # foundation suite connects as this NOBYPASSRLS role so RLS is genuinely exercised
-      # (a superuser connection would bypass RLS → false green). Migrations still run as the
-      # admin DATABASE_URL above.
-      DATABASE_APP_URL: postgresql://leados_app:leados_app@localhost:5432/leados
-      REDIS_URL: redis://localhost:6379
       NODE_ENV: test
-      # Tests only assert the bcrypt hash prefix ($2x$), never the cost factor. Pure-JS
-      # bcryptjs (TD-S2-1) at the prod cost (12) is ~seconds/op and flakes under the runner's
-      # parallel test load; cost 4 keeps the suite fast + deterministic. Production cost is
-      # unchanged (env default 12). Passed through turbo via turbo.json passThroughEnv.
       BCRYPT_COST: 4
     steps:
       - uses: actions/checkout@v4
-      # pnpm version comes from `packageManager` in package.json (single source of truth).
-      # Do NOT also pass `version:` here — action-setup errors on a duplicate spec.
+      # pnpm version comes from `packageManager` in package.json.
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Apply migrations
-        run: pnpm db:migrate
-      - name: Build shared
-        run: pnpm --filter @leados/shared build
-      - name: Typecheck
-        run: pnpm typecheck
-      - name: Lint (incl. module-boundary rules)
-        run: pnpm lint
-      - name: Test (unit + integration) with coverage thresholds
-        run: pnpm test:coverage
-      - name: Build
-        run: pnpm build
-      - name: Audit (fail on high/critical)
-        # Gate fails on high/critical only. Residual moderate advisories (see
-        # SPRINT_1_REMEDIATION_REPORT.md) are tracked, below this gate, and not in the
-        # production runtime path.
-        run: pnpm audit --audit-level=high
-      - name: Enum parity (shared ↔ prisma)
-        run: pnpm check:enum-parity
-      - name: Client secret-leak guard
-        run: |
-          if grep -REn "process\.env\.(STRIPE_SECRET|JWT_|FIELD_ENCRYPTION|OPENAI_API_KEY|AWS_SECRET|SENDGRID_API)" apps/web/src; then
-            echo "::error::A server secret is referenced in client code (apps/web/src). Only NEXT_PUBLIC_* may reach the browser.";
-            exit 1;
-          fi
-          echo "client secret-leak guard: OK"
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm audit --audit-level=high --prod

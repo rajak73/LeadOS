@@ -4,12 +4,28 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**"]
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "NODE_ENV",
+        "PORT",
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "APP_ORIGIN",
+        "TRUST_PROXY",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "LOG_LEVEL",
+        "BCRYPT_COST",
+        "WEB_DIST_DIR",
+        "SEED_ADMIN_EMAIL",
+        "SEED_ADMIN_PASSWORD",
+        "CI"
+      ]
     },
     "lint": {
       "dependsOn": ["^build"]
@@ -21,14 +37,19 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
       "passThroughEnv": [
-        "DATABASE_URL",
-        "DATABASE_DIRECT_URL",
-        "DATABASE_REPLICA_URL",
-        "DATABASE_APP_URL",
-        "DATABASE_PLATFORM_URL",
-        "REDIS_URL",
         "NODE_ENV",
+        "PORT",
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "APP_ORIGIN",
+        "TRUST_PROXY",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "LOG_LEVEL",
         "BCRYPT_COST",
+        "WEB_DIST_DIR",
+        "SEED_ADMIN_EMAIL",
+        "SEED_ADMIN_PASSWORD",
         "CI"
       ]
     },
@@ -36,14 +57,19 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
       "passThroughEnv": [
-        "DATABASE_URL",
-        "DATABASE_DIRECT_URL",
-        "DATABASE_REPLICA_URL",
-        "DATABASE_APP_URL",
-        "DATABASE_PLATFORM_URL",
-        "REDIS_URL",
         "NODE_ENV",
+        "PORT",
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "APP_ORIGIN",
+        "TRUST_PROXY",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "LOG_LEVEL",
         "BCRYPT_COST",
+        "WEB_DIST_DIR",
+        "SEED_ADMIN_EMAIL",
+        "SEED_ADMIN_PASSWORD",
         "CI"
       ]
     }

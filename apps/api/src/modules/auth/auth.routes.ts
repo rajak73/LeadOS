@@ -1,76 +1,93 @@
-// Auth routes (Sprint 2). PUBLIC — no auth/tenant middleware. Auth endpoints carry the
-// strict per-IP rate limit (doc 10 §10.9). Mounted at /api/v1/auth.
-
-import { Router } from 'express';
+import { Router, type RequestHandler, type Response } from 'express';
 import {
-  registerSchema,
+  changePasswordSchema,
   loginSchema,
-  verifyEmailSchema,
-  resendVerificationSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
+  setupSchema,
+  updateProfileSchema,
 } from '@leados/shared';
-import { validate } from '../../core/middleware/validate.js';
-import { authRateLimit } from '../../core/middleware/rate-limit.js';
-import { csrfGuard } from '../../core/middleware/csrf.js';
-import { authMiddleware, requireAuth } from '../../core/middleware/auth.middleware.js';
-import { asyncHandler } from '../../core/http/async-handler.js';
-import type { AuthController } from './auth.controller.js';
+import { isProduction } from '../../config/env.js';
+import { authenticate, requireFetchHeader } from '../../lib/auth.js';
+import { body, created, ok } from '../../lib/http.js';
+import {
+  REFRESH_TTL_MS,
+  changePassword,
+  getAuthStatus,
+  getMe,
+  login,
+  logout,
+  refresh,
+  setup,
+  updateMe,
+  type IssuedSession,
+} from './auth.service.js';
 
-export function buildAuthRouter(controller: AuthController): Router {
+export const REFRESH_COOKIE = 'leados_rt';
+const COOKIE_PATH = '/api/auth';
+
+const cookieOptions = () => ({
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: isProduction,
+  path: COOKIE_PATH,
+});
+
+function sendSession(res: Response, issued: IssuedSession, status = 200): void {
+  if (issued.refreshToken) {
+    res.cookie(REFRESH_COOKIE, issued.refreshToken, { ...cookieOptions(), maxAge: REFRESH_TTL_MS });
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  if (status === 201) created(res, issued.session);
+  else ok(res, issued.session);
+}
+
+const readCookie = (cookies: unknown): string | undefined => {
+  const v = (cookies as Record<string, unknown> | undefined)?.[REFRESH_COOKIE];
+  return typeof v === 'string' && v.length > 0 ? v : undefined;
+};
+
+/** /api/auth — public endpoints. `credentialLimiter` throttles login and setup per IP. */
+export function authRouter(credentialLimiter: RequestHandler): Router {
   const router = Router();
 
-  router.post(
-    '/register',
-    authRateLimit,
-    validate(registerSchema),
-    asyncHandler(controller.register),
+  router.get('/status', async (_req, res) => ok(res, await getAuthStatus()));
+
+  router.post('/setup', credentialLimiter, async (req, res) =>
+    sendSession(res, await setup(body(setupSchema, req)), 201),
   );
 
-  router.post('/login', authRateLimit, validate(loginSchema), asyncHandler(controller.login));
-
-  // Cookie-driven endpoints: CSRF-guarded (no Bearer token).
-  router.post('/refresh', csrfGuard, asyncHandler(controller.refresh));
-  router.post('/logout', csrfGuard, asyncHandler(controller.logout));
-
-  // Password reset (public, rate-limited).
-  router.post(
-    '/forgot-password',
-    authRateLimit,
-    validate(forgotPasswordSchema),
-    asyncHandler(controller.forgotPassword),
-  );
-  router.post(
-    '/reset-password',
-    authRateLimit,
-    validate(resetPasswordSchema),
-    asyncHandler(controller.resetPassword),
+  router.post('/login', credentialLimiter, async (req, res) =>
+    sendSession(res, await login(body(loginSchema, req))),
   );
 
-  // Current user (Bearer access token).
-  router.get('/me', authMiddleware, requireAuth, asyncHandler(controller.me));
+  router.post('/refresh', requireFetchHeader, async (req, res) => {
+    try {
+      sendSession(res, await refresh(readCookie(req.cookies)));
+    } catch (err) {
+      res.clearCookie(REFRESH_COOKIE, cookieOptions());
+      throw err;
+    }
+  });
 
-  // Authenticated session management (Bearer access token).
-  router.get('/sessions', authMiddleware, requireAuth, asyncHandler(controller.listSessions));
-  router.delete(
-    '/sessions/:id',
-    authMiddleware,
-    requireAuth,
-    asyncHandler(controller.revokeSession),
-  );
-
-  router.post(
-    '/verify-email',
-    validate(verifyEmailSchema),
-    asyncHandler(controller.verifyEmail),
-  );
-
-  router.post(
-    '/resend-verification',
-    authRateLimit,
-    validate(resendVerificationSchema),
-    asyncHandler(controller.resendVerification),
-  );
+  router.post('/logout', requireFetchHeader, async (req, res) => {
+    await logout(readCookie(req.cookies));
+    res.clearCookie(REFRESH_COOKIE, cookieOptions());
+    ok(res, null);
+  });
 
   return router;
 }
+
+/** /api/me — the signed-in user's own profile. */
+export const meRouter = Router();
+meRouter.use(authenticate);
+
+meRouter.get('/', async (req, res) => ok(res, await getMe(req.user!.id)));
+
+meRouter.patch('/', async (req, res) =>
+  ok(res, await updateMe(req.user!.id, body(updateProfileSchema, req))),
+);
+
+meRouter.post('/password', async (req, res) => {
+  await changePassword(req.user!.id, req.user!.sessionFamily, body(changePasswordSchema, req));
+  ok(res, null);
+});

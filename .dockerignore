@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/.env
+**/.env.*
+!.env.example
+.git
+.github
+.husky
+prisma/data
+apps/api/tests/.tmp
+**/*.db
+**/*.db-journal
+**/*.log
+.DS_Store

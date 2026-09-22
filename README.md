@@ -1,58 +1,78 @@
 # LeadOS
 
-AI-powered Revenue Operating System. Modular-monolith backend (Express + TypeScript) +
-Next.js 15 web app, on PostgreSQL (Neon) / Prisma / Redis / BullMQ.
+A CRM for one company and its sales team. It covers leads, contacts, a deals pipeline,
+tasks, notes, AI lead scoring and simple automation.
 
-> **Source of truth:** [`docs/planning/FINAL_ARCHITECTURE.md`](docs/planning/FINAL_ARCHITECTURE.md).
-> **Current state:** Sprint 1 — Platform Spine (see [`docs/planning/SPRINT_1_EXECUTION_PLAN.md`](docs/planning/SPRINT_1_EXECUTION_PLAN.md)).
-> No domain modules, auth, or tenancy logic exist yet — those are Sprints 2–3.
+- **Backend:** Node.js 22, Express 5 and TypeScript, with Prisma on SQLite
+- **Frontend:** React 19 (Vite), Tailwind CSS v4, TanStack Query and Radix UI
+- **One process:** in production the API also serves the web app, so a single server and a
+  single database file is all you run
 
-## Layout
+## Features
 
-```
-apps/api        Express modular monolith + worker entrypoint (api.leados.app)
-apps/web        Next.js 15 + BFF route handlers (app.leados.app)
-packages/shared Zod schemas, PLAN_LIMITS, permission keys, error codes, enums
-packages/config Shared ESLint/Prettier presets
-packages/tsconfig Shared TypeScript presets
-prisma/         Schema + migrations + seeds
-infra/          Dockerfiles, local compose, runbooks
-```
+- **Leads:** search and filters, bulk actions, CSV import and export, and converting a lead
+  into a contact and a deal
+- **Contacts**
+- **Pipelines:** a drag-and-drop kanban board, several pipelines, and custom stages
+- **Tasks:** due dates, reminders and priorities, grouped into Overdue, Today and Upcoming
+- **Notes and activity:** a timeline on every lead, contact and deal
+- **AI lead scoring:** uses OpenAI `gpt-4o-mini`. Without an API key it falls back to a
+  built-in rules scorer, and no data leaves your server.
+- **Workflows:** automation in three steps: _when_ something happens, _only if_ conditions
+  match, _then_ do something. Actions: change status, assign (to a person or round robin),
+  add a tag, create a task, notify, rescore, or call a webhook.
+- **Dashboard:** KPIs, charts and team performance
+- **Team:** Admin and Member roles, with in-app notifications
+- **Interface:** light and dark themes, works on phones, keyboard accessible, and a
+  <kbd>⌘K</kbd> command palette
 
-## Prerequisites
+## Getting started
 
-- Node 20 (`nvm use`)
-- pnpm 9 (`npm i -g pnpm` or `corepack enable`)
-- Docker (for local Postgres + Redis)
-
-## Local bootstrap
+You need Node 22 or newer and pnpm 9 (`corepack enable`).
 
 ```bash
-nvm use
 pnpm install
-cp .env.example apps/api/.env        # fill local values
-cp .env.example apps/web/.env.local  # fill NEXT_PUBLIC_* values
-docker compose -f infra/docker/docker-compose.dev.yml up -d   # Postgres + Redis
-pnpm db:migrate
-pnpm dev                              # runs api + worker + web with watch
+cp .env.example .env            # the defaults work for local development
+pnpm db:migrate                 # creates prisma/data/leados.db
+pnpm db:seed -- --demo          # creates an admin account plus demo data (omit --demo for an empty CRM)
+pnpm dev                        # API on :4000, web app on http://localhost:5173
 ```
 
-Web on http://localhost:3000 → BFF → API on http://localhost:4000.
+The seed prints the admin login. You can choose it with `SEED_ADMIN_EMAIL` and
+`SEED_ADMIN_PASSWORD` in `.env`. If you skip the seed, the app opens a first-run setup screen
+where you create the admin account.
 
-## Common scripts
+## Scripts
 
-| Script | Purpose |
-|---|---|
-| `pnpm dev` | run all workspaces in watch mode |
-| `pnpm build` | build all workspaces |
-| `pnpm lint` | ESLint (incl. module-boundary rules) |
-| `pnpm typecheck` | TypeScript strict typecheck |
-| `pnpm test` | unit + integration tests |
-| `pnpm db:migrate` | apply Prisma migrations |
-| `pnpm check:enum-parity` | assert shared enums match Prisma |
+| Command                                        | What it does                                                |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| `pnpm dev`                                     | Runs the API and web app with hot reload                    |
+| `pnpm build`                                   | Builds the shared package, the API and the web app          |
+| `pnpm start`                                   | Starts the production server (API + built web app)          |
+| `pnpm test`                                    | Runs all tests                                              |
+| `pnpm typecheck` / `pnpm lint` / `pnpm format` | Code checks                                                 |
+| `pnpm db:migrate`                              | Applies database migrations                                 |
+| `pnpm db:migrate:create`                       | Creates a migration after you change `prisma/schema.prisma` |
+| `pnpm db:seed`                                 | Creates the first admin (`-- --demo` adds sample data)      |
+| `pnpm db:studio`                               | Opens Prisma Studio to browse the data                      |
 
-## Definition of "spine green" (Sprint 1 / M0)
+## Deploying
 
-A request flows browser → web (BFF) → API → Postgres with envelope + structured logging;
-a job enqueued by the API is processed by a **separate** worker process; CI is green;
-preview deploys work on same-site custom domains.
+```bash
+docker build -f infra/docker/api.Dockerfile -t leados .
+docker run -p 4000:4000 -v leados-data:/data -e JWT_SECRET="$(openssl rand -base64 48)" leados
+```
+
+The container applies migrations on start and keeps the SQLite database in the `/data`
+volume, so back that volume up. Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse
+proxy sits in front. See [`.env.example`](.env.example) for every setting.
+
+## Project layout
+
+```
+apps/api         Express API: src/modules/<area>/ (routes + service), src/lib/ (shared helpers)
+apps/web         React app: src/features/<area>/ (pages), src/components/ui/ (design system)
+packages/shared  Enums, zod validation schemas and API types used by both apps
+prisma/          Database schema and migrations
+docs/API.md      API reference
+```

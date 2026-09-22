@@ -3,8 +3,9 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
+    "declaration": false,
     "types": ["node"]
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "vitest.config.ts", "tsup.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

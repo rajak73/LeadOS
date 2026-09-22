@@ -1,13 +1,12 @@
 {
-  "extends": "@leados/tsconfig/next.json",
+  "extends": "@leados/tsconfig/react.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "verbatimModuleSyntax": false,
-    "types": ["@testing-library/jest-dom"]
+    "types": ["vite/client", "@testing-library/jest-dom", "vitest/globals"]
   },
-  "include": ["next-env.d.ts", "src", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", ".next"]
+  "include": ["src", "vite.config.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }

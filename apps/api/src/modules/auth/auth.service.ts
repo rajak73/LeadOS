@@ -1,332 +1,254 @@
-// Auth service — registration + email verification (Sprint 2, M2).
-// Depends on the AuthRepository + EmailSender INTERFACES (constructor injection) so it is
-// fully unit-testable without a database or real email delivery.
+import crypto from 'node:crypto';
+import type { User as UserRow } from '@prisma/client';
+import {
+  ErrorCode,
+  type AuthSession,
+  type AuthStatus,
+  type ChangePasswordInput,
+  type LoginInput,
+  type SetupInput,
+  type UpdateProfileInput,
+  type User,
+  type UserRole,
+} from '@leados/shared';
+import { ACCESS_TOKEN_TTL_SECONDS, signAccessToken } from '../../lib/auth.js';
+import { AppError, conflict, fieldError, notFound, unauthorized } from '../../lib/errors.js';
+import { getDummyHash, hashPassword, verifyPassword } from '../../lib/password.js';
+import { prisma } from '../../lib/prisma.js';
+import { toUser } from '../../lib/serializers.js';
+import { createDefaultPipeline } from '../pipelines/index.js';
+import { SETTINGS_ID } from '../settings/index.js';
 
-import { randomUUID } from 'node:crypto';
-import { ErrorCode } from '@leados/shared';
-import { AppError } from '../../core/errors/app-error.js';
-import { hashPassword, verifyPassword } from '../../core/crypto/password.js';
-import { generateToken, hashVerificationToken, hashRefreshToken } from '../../core/auth/tokens.js';
-import { signAccessToken } from '../../core/auth/jwt.js';
-import { logger } from '../../core/observability/logger.js';
-import { env } from '../../core/config/env.js';
-import { uniqueSlug } from './slug.js';
-import type { AuthRepository, SessionRecord } from './auth.repository.js';
-import type { EmailSender } from './email.js';
-import type { RegisterInput, LoginInput } from '@leados/shared';
+export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const REFRESH_GRACE_MS = 30 * 1000;
+export const MAX_FAILED_LOGINS = 5;
+export const LOCK_DURATION_MS = 15 * 60 * 1000;
 
-const TRIAL_DAYS = 14;
-const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-const MAX_FAILED_LOGINS = 5;
-const LOCKOUT_MS = 15 * 60 * 1000; // 15 min
-// Precomputed bcrypt hash of a random string — compared against when a user is not found,
-// to equalize response timing (mitigates user-enumeration via timing).
-const DUMMY_HASH = '$2b$12$C6UzMDM.H6dfI/f/IKcEeO3Q6cVQ2gQ8m6Yx6m6Yx6m6Yx6m6Yx6';
+const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+const newToken = () => crypto.randomBytes(32).toString('base64url');
 
-export interface RegisterResult {
-  userId: string;
-  organizationId: string;
+/** A session to return to the client. `refreshToken` is null when the cookie must not change. */
+export interface IssuedSession {
+  session: AuthSession;
+  refreshToken: string | null;
 }
 
-export interface LoginResult {
-  accessToken: string;
-  accessTokenExpiresIn: number;
-  refreshToken: string;
-  refreshTokenExpiresAt: Date;
-  user: { id: string; email: string; firstName: string; lastName: string; emailVerified: boolean };
-  organization: { id: string; role: string };
-  organizations: { id: string; name: string; role: string }[];
+function accessSession(user: UserRow, family: string): AuthSession {
+  return {
+    accessToken: signAccessToken({ sub: user.id, role: user.role as UserRole, sid: family }),
+    expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+    user: toUser(user),
+  };
 }
 
-export interface LoginContext {
-  deviceInfo?: string | undefined;
-  ipAddress?: string | undefined;
-}
-
-export interface RefreshResult {
-  accessToken: string;
-  accessTokenExpiresIn: number;
-  refreshToken: string;
-  refreshTokenExpiresAt: Date;
-}
-
-export interface MeResult {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  emailVerified: boolean;
-  isSuperAdmin: boolean;
-  organizations: { id: string; name: string; role: string }[];
-}
-
-export class AuthService {
-  constructor(
-    private readonly repo: AuthRepository,
-    private readonly email: EmailSender,
-  ) {}
-
-  async register(input: RegisterInput): Promise<RegisterResult> {
-    const existing = await this.repo.findUserByEmail(input.email);
-    if (existing) {
-      throw new AppError(ErrorCode.CONFLICT, 'An account with this email already exists');
-    }
-
-    const passwordHash = await hashPassword(input.password);
-    const slug = await uniqueSlug(input.organizationName, (s) => this.repo.isSlugTaken(s));
-
-    const { userId, organizationId } = await this.repo.bootstrapOrganization({
-      email: input.email,
-      passwordHash,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      organizationName: input.organizationName,
-      slug,
-      trialDays: TRIAL_DAYS,
-    });
-
-    await this.issueVerificationEmail(userId, input.email);
-    return { userId, organizationId };
-  }
-
-  async login(input: LoginInput, ctx: LoginContext = {}): Promise<LoginResult> {
-    const user = await this.repo.findUserByEmail(input.email);
-
-    // Timing-equalized credential check; generic error to avoid user enumeration.
-    if (!user) {
-      await verifyPassword(input.password, DUMMY_HASH);
-      throw new AppError(ErrorCode.UNAUTHORIZED, 'Invalid email or password');
-    }
-
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      throw new AppError(ErrorCode.RATE_LIMITED, 'Account temporarily locked. Try again later.');
-    }
-
-    const passwordOk = await verifyPassword(input.password, user.passwordHash);
-    if (!passwordOk) {
-      const count = await this.repo.incrementFailedLogin(user.id);
-      if (count >= MAX_FAILED_LOGINS) {
-        await this.repo.lockUser(user.id, new Date(Date.now() + LOCKOUT_MS));
-      }
-      throw new AppError(ErrorCode.UNAUTHORIZED, 'Invalid email or password');
-    }
-
-    if (user.status !== 'ACTIVE') {
-      throw new AppError(ErrorCode.FORBIDDEN, 'This account is not active');
-    }
-    if (!user.emailVerifiedAt) {
-      throw new AppError(ErrorCode.FORBIDDEN, 'Please verify your email before signing in');
-    }
-
-    const memberships = await this.repo.getActiveMemberships(user.id);
-    if (memberships.length === 0) {
-      throw new AppError(ErrorCode.FORBIDDEN, 'This account has no active organization');
-    }
-    // Single-org issue: token for the first (oldest) membership. Multi-org switching is a
-    // follow-up; all orgs are returned so the UI is aware.
-    const primary = memberships[0]!;
-
-    await this.repo.recordSuccessfulLogin(user.id);
-
-    const accessToken = signAccessToken({
-      sub: user.id,
-      orgId: primary.organizationId,
-      role: primary.roleName,
-      isSuperAdmin: user.isSuperAdmin,
-    });
-
-    const rawRefresh = generateToken(48);
-    const ttlDays = input.rememberMe ? env.REFRESH_TOKEN_REMEMBER_TTL_DAYS : env.REFRESH_TOKEN_TTL_DAYS;
-    const refreshTokenExpiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-    await this.repo.createRefreshToken({
+async function startSession(
+  user: UserRow,
+  family: string = crypto.randomUUID(),
+): Promise<IssuedSession> {
+  const refreshToken = newToken();
+  await prisma.refreshToken.create({
+    data: {
       userId: user.id,
-      organizationId: primary.organizationId,
-      tokenHash: hashRefreshToken(rawRefresh),
-      family: randomUUID(),
-      deviceInfo: ctx.deviceInfo,
-      ipAddress: ctx.ipAddress,
-      expiresAt: refreshTokenExpiresAt,
-    });
+      tokenHash: hashToken(refreshToken),
+      family,
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+    },
+  });
+  return { session: accessSession(user, family), refreshToken };
+}
 
-    return {
-      accessToken,
-      accessTokenExpiresIn: env.ACCESS_TOKEN_TTL_SECONDS,
-      refreshToken: rawRefresh,
-      refreshTokenExpiresAt,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailVerified: true,
+export async function getAuthStatus(): Promise<AuthStatus> {
+  const [users, settings] = await Promise.all([
+    prisma.user.count(),
+    prisma.appSettings.findUnique({ where: { id: SETTINGS_ID } }),
+  ]);
+  return { needsSetup: users === 0, companyName: settings?.companyName ?? null };
+}
+
+export async function setup(input: SetupInput): Promise<IssuedSession> {
+  const passwordHash = await hashPassword(input.password);
+  const user = await prisma.$transaction(async (tx) => {
+    if ((await tx.user.count()) > 0) throw conflict('LeadOS is already set up. Sign in instead.');
+    await tx.appSettings.upsert({
+      where: { id: SETTINGS_ID },
+      create: { id: SETTINGS_ID, companyName: input.companyName },
+      update: { companyName: input.companyName },
+    });
+    if ((await tx.pipeline.count()) === 0) await createDefaultPipeline(tx);
+    return tx.user.create({
+      data: {
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: 'ADMIN',
+        passwordHash,
+        lastLoginAt: new Date(),
       },
-      organization: { id: primary.organizationId, role: primary.roleName },
-      organizations: memberships.map((m) => ({
-        id: m.organizationId,
-        name: m.organizationName,
-        role: m.roleName,
-      })),
-    };
+    });
+  });
+  return startSession(user);
+}
+
+const INVALID_LOGIN = 'Incorrect email or password.';
+
+export async function login(input: LoginInput): Promise<IssuedSession> {
+  const now = new Date();
+  let user = await prisma.user.findUnique({ where: { email: input.email } });
+  if (!user) {
+    await verifyPassword(input.password, await getDummyHash()); // same work as a real check
+    throw unauthorized(INVALID_LOGIN);
   }
 
-  /**
-   * Rotate a refresh token. Detects family-reuse attacks (a token presented after it was
-   * already used) → revokes the entire family and rejects (doc 19 §19.1).
-   */
-  async refresh(rawToken: string, ctx: LoginContext = {}): Promise<RefreshResult> {
-    const record = await this.repo.findRefreshTokenByHash(hashRefreshToken(rawToken));
-    if (!record || record.revokedAt || record.expiresAt < new Date()) {
-      throw new AppError(ErrorCode.UNAUTHORIZED, 'Invalid or expired session');
-    }
+  if (user.lockedUntil && user.lockedUntil > now) {
+    const minutes = Math.ceil((user.lockedUntil.getTime() - now.getTime()) / 60_000);
+    throw new AppError(
+      ErrorCode.RATE_LIMITED,
+      `Too many failed sign-in attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+    );
+  }
+  if (user.lockedUntil) {
+    // The lock has expired: start counting failures afresh.
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { lockedUntil: null, failedLoginCount: 0 },
+    });
+  }
 
-    // Reuse of an already-used token → token family compromise.
-    if (record.usedAt) {
-      await this.repo.revokeRefreshTokenFamily(record.family);
-      logger.warn({
-        message: 'auth.refresh.reuse_detected',
-        userId: record.userId,
-        family: record.family,
+  if (!(await verifyPassword(input.password, user.passwordHash))) {
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginCount: { increment: 1 } },
+      select: { failedLoginCount: true },
+    });
+    if (updated.failedLoginCount >= MAX_FAILED_LOGINS) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lockedUntil: new Date(now.getTime() + LOCK_DURATION_MS), failedLoginCount: 0 },
       });
-      throw new AppError(ErrorCode.UNAUTHORIZED, 'Session reuse detected; please sign in again');
     }
+    throw unauthorized(INVALID_LOGIN);
+  }
 
-    await this.repo.markRefreshTokenUsed(record.id);
+  if (user.status !== 'ACTIVE') {
+    throw unauthorized('Your account has been disabled. Ask an admin to re-enable it.');
+  }
 
-    const role = await this.repo.getMembershipRole(record.userId, record.organizationId);
-    const user = await this.repo.findUserById(record.userId);
-    if (!role || !user || user.status !== 'ACTIVE') {
-      await this.repo.revokeRefreshTokenFamily(record.family);
-      throw new AppError(ErrorCode.UNAUTHORIZED, 'Session no longer valid');
-    }
+  const fresh = await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: now },
+  });
+  return startSession(fresh);
+}
 
-    const accessToken = signAccessToken({
-      sub: user.id,
-      orgId: record.organizationId,
-      role,
-      isSuperAdmin: user.isSuperAdmin,
+const SESSION_EXPIRED = 'Your session has expired. Please sign in again.';
+
+/**
+ * Rotates a refresh token. The token is claimed atomically (`usedAt` null → now), so two
+ * concurrent refreshes can't both rotate it. The loser — or any reuse within the 30 s grace
+ * window — gets a fresh access token for the same session and leaves the cookie alone (the
+ * winner already set it; tabs share cookies). Reuse after the window revokes the family.
+ */
+export async function refresh(rawToken: string | undefined): Promise<IssuedSession> {
+  if (!rawToken) throw unauthorized(SESSION_EXPIRED);
+  const now = new Date();
+  const token = await prisma.refreshToken.findUnique({
+    where: { tokenHash: hashToken(rawToken) },
+    include: { user: true },
+  });
+  if (!token || token.revokedAt || token.expiresAt <= now) throw unauthorized(SESSION_EXPIRED);
+  if (token.user.status !== 'ACTIVE') {
+    await revokeFamily(token.family);
+    throw unauthorized(SESSION_EXPIRED);
+  }
+
+  const claimed = await prisma.refreshToken.updateMany({
+    where: { id: token.id, usedAt: null },
+    data: { usedAt: now },
+  });
+  if (claimed.count === 1) return startSession(token.user, token.family);
+
+  const usedAt = (
+    await prisma.refreshToken.findUnique({ where: { id: token.id }, select: { usedAt: true } })
+  )?.usedAt;
+  if (usedAt && now.getTime() - usedAt.getTime() <= REFRESH_GRACE_MS) {
+    const familyAlive = await prisma.refreshToken.count({
+      where: { family: token.family, revokedAt: null, usedAt: null, expiresAt: { gt: now } },
     });
+    if (familyAlive > 0)
+      return { session: accessSession(token.user, token.family), refreshToken: null };
+  }
 
-    const rawRefresh = generateToken(48);
-    const refreshTokenExpiresAt = new Date(
-      Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
-    );
-    await this.repo.createRefreshToken({
-      userId: user.id,
-      organizationId: record.organizationId,
-      tokenHash: hashRefreshToken(rawRefresh),
-      family: record.family, // same family across the rotation chain
-      deviceInfo: ctx.deviceInfo,
-      ipAddress: ctx.ipAddress,
-      expiresAt: refreshTokenExpiresAt,
+  // Reuse of an old token: assume it was stolen and end every session in this family.
+  await revokeFamily(token.family);
+  throw unauthorized(SESSION_EXPIRED);
+}
+
+async function revokeFamily(family: string): Promise<void> {
+  await prisma.refreshToken.updateMany({
+    where: { family, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
+export async function logout(rawToken: string | undefined): Promise<void> {
+  if (!rawToken) return;
+  const token = await prisma.refreshToken.findUnique({
+    where: { tokenHash: hashToken(rawToken) },
+    select: { family: true },
+  });
+  if (token) await revokeFamily(token.family);
+}
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
+
+export async function getMe(userId: string): Promise<User> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw notFound('account');
+  return toUser(user);
+}
+
+export async function updateMe(userId: string, input: UpdateProfileInput): Promise<User> {
+  if (input.email) {
+    const existing = await prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true },
     });
-
-    return {
-      accessToken,
-      accessTokenExpiresIn: env.ACCESS_TOKEN_TTL_SECONDS,
-      refreshToken: rawRefresh,
-      refreshTokenExpiresAt,
-    };
-  }
-
-  /** Revoke the presented session's token (idempotent). */
-  async logout(rawToken: string): Promise<void> {
-    const record = await this.repo.findRefreshTokenByHash(hashRefreshToken(rawToken));
-    if (record && !record.revokedAt) {
-      await this.repo.revokeSession(record.userId, record.id);
+    if (existing && existing.id !== userId) {
+      throw conflict('Someone on your team already uses that email address.', {
+        email: ['This email is already in use'],
+      });
     }
   }
+  return toUser(await prisma.user.update({ where: { id: userId }, data: input }));
+}
 
-  async listSessions(userId: string): Promise<SessionRecord[]> {
-    return this.repo.listSessions(userId);
+export async function changePassword(
+  userId: string,
+  currentFamily: string | null,
+  input: ChangePasswordInput,
+): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw notFound('account');
+  if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
+    throw fieldError('currentPassword', 'Your current password is incorrect');
   }
+  const passwordHash = await hashPassword(input.newPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+    prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+        ...(currentFamily ? { family: { not: currentFamily } } : {}),
+      },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
+}
 
-  async revokeSession(userId: string, sessionId: string): Promise<void> {
-    const ok = await this.repo.revokeSession(userId, sessionId);
-    if (!ok) throw new AppError(ErrorCode.NOT_FOUND, 'Session not found');
-  }
-
-  async revokeAllSessions(userId: string): Promise<void> {
-    await this.repo.revokeAllUserSessions(userId);
-  }
-
-  async verifyEmail(token: string): Promise<void> {
-    const record = await this.repo.findValidVerificationToken(
-      hashVerificationToken(token),
-      'EMAIL_VERIFICATION',
-    );
-    if (!record) {
-      throw new AppError(ErrorCode.VALIDATION_ERROR, 'Invalid or expired verification token');
-    }
-    await this.repo.consumeVerificationToken(record.id);
-    await this.repo.markEmailVerified(record.userId);
-  }
-
-  /** Request a password reset. Generic (no enumeration) — always resolves. */
-  async forgotPassword(emailAddress: string): Promise<void> {
-    const user = await this.repo.findUserByEmail(emailAddress);
-    if (!user) return; // silent no-op
-    const raw = generateToken(32);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h (doc 19)
-    await this.repo.createVerificationToken(
-      user.id,
-      'PASSWORD_RESET',
-      hashVerificationToken(raw),
-      expiresAt,
-    );
-    const resetUrl = `${env.APP_WEB_ORIGIN}/reset-password?token=${raw}`;
-    await this.email.sendPasswordResetEmail(emailAddress, resetUrl);
-  }
-
-  /** Reset the password with a single-use token, then revoke ALL sessions (doc 19 §19.1). */
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    const record = await this.repo.findValidVerificationToken(
-      hashVerificationToken(token),
-      'PASSWORD_RESET',
-    );
-    if (!record) {
-      throw new AppError(ErrorCode.VALIDATION_ERROR, 'Invalid or expired reset token');
-    }
-    await this.repo.updatePassword(record.userId, await hashPassword(newPassword));
-    await this.repo.consumeVerificationToken(record.id);
-    await this.repo.revokeAllUserSessions(record.userId);
-  }
-
-  async getMe(userId: string): Promise<MeResult> {
-    const user = await this.repo.findUserById(userId);
-    if (!user) throw new AppError(ErrorCode.NOT_FOUND, 'User not found');
-    const memberships = await this.repo.getActiveMemberships(userId);
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      emailVerified: user.emailVerifiedAt !== null,
-      isSuperAdmin: user.isSuperAdmin,
-      organizations: memberships.map((m) => ({
-        id: m.organizationId,
-        name: m.organizationName,
-        role: m.roleName,
-      })),
-    };
-  }
-
-  /** Resend verification. Responds the same whether or not the email exists (no enumeration). */
-  async resendVerification(emailAddress: string): Promise<void> {
-    const user = await this.repo.findUserByEmail(emailAddress);
-    if (!user || user.emailVerifiedAt) return; // silent no-op
-    await this.issueVerificationEmail(user.id, emailAddress);
-  }
-
-  private async issueVerificationEmail(userId: string, emailAddress: string): Promise<void> {
-    const raw = generateToken(32);
-    const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
-    await this.repo.createVerificationToken(
-      userId,
-      'EMAIL_VERIFICATION',
-      hashVerificationToken(raw),
-      expiresAt,
-    );
-    const verifyUrl = `${env.APP_WEB_ORIGIN}/verify-email?token=${raw}`;
-    await this.email.sendVerificationEmail(emailAddress, verifyUrl);
-  }
+/** Housekeeping: drop refresh tokens that expired more than a day ago. */
+export async function purgeExpiredRefreshTokens(): Promise<void> {
+  await prisma.refreshToken.deleteMany({
+    where: { expiresAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+  });
 }

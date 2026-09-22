@@ -1,39 +1,73 @@
-'use client';
-
-import * as RadixTabs from '@radix-ui/react-tabs';
 import type { ReactNode } from 'react';
+import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { cn } from '@/lib/cn';
 
-interface TabItem {
-  value: string;
-  label: string;
-  content: ReactNode;
-}
+export const Tabs = TabsPrimitive.Root;
 
-interface TabsProps {
-  defaultValue: string;
-  tabs: TabItem[];
+export function TabsList({
+  children,
+  className,
+  label,
+}: {
+  children: ReactNode;
   className?: string;
+  label: string;
+}) {
+  return (
+    <TabsPrimitive.List
+      aria-label={label}
+      className={cn(
+        'flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none]',
+        className,
+      )}
+    >
+      {children}
+    </TabsPrimitive.List>
+  );
 }
 
-export function Tabs({ defaultValue, tabs, className = '' }: TabsProps) {
+export function TabsTrigger({
+  value,
+  children,
+  count,
+}: {
+  value: string;
+  children: ReactNode;
+  count?: number;
+}) {
   return (
-    <RadixTabs.Root defaultValue={defaultValue} className={`flex flex-col h-full ${className}`}>
-      <RadixTabs.List className="flex gap-1 border-b border-border px-1 shrink-0">
-        {tabs.map((tab) => (
-          <RadixTabs.Trigger
-            key={tab.value}
-            value={tab.value}
-            className="px-3 py-2 text-sm text-text-secondary data-[state=active]:text-text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary-500 -mb-px transition-colors"
-          >
-            {tab.label}
-          </RadixTabs.Trigger>
-        ))}
-      </RadixTabs.List>
-      {tabs.map((tab) => (
-        <RadixTabs.Content key={tab.value} value={tab.value} className="flex-1 overflow-auto pt-4">
-          {tab.content}
-        </RadixTabs.Content>
-      ))}
-    </RadixTabs.Root>
+    <TabsPrimitive.Trigger
+      value={value}
+      className={cn(
+        '-mb-px inline-flex h-10 items-center gap-2 border-b-2 border-transparent px-3 type-body font-medium whitespace-nowrap text-fg-muted transition-colors',
+        'hover:text-fg data-[state=active]:border-primary data-[state=active]:text-fg',
+      )}
+    >
+      {children}
+      {count !== undefined && (
+        <span className="rounded-full bg-muted px-1.5 type-caption text-fg-muted tabular-nums">
+          {count}
+        </span>
+      )}
+    </TabsPrimitive.Trigger>
+  );
+}
+
+export function TabsContent({
+  value,
+  children,
+  className,
+}: {
+  value: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <TabsPrimitive.Content
+      value={value}
+      className={cn('pt-4 focus-visible:outline-offset-4', className)}
+    >
+      {children}
+    </TabsPrimitive.Content>
   );
 }
