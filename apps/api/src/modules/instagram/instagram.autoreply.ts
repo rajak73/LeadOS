@@ -4,7 +4,7 @@ import { withLock } from '../../lib/lock.js';
 import { prisma } from '../../lib/prisma.js';
 import { cancelDebounce, cancelDebouncePrefix, debounce } from '../../lib/queue.js';
 import { REPLY_WINDOW_MS } from '../../lib/serializers.js';
-import { resolveProvider } from '../ai/index.js';
+import { AiError, resolveProvider } from '../ai/index.js';
 import { notifyAdmins } from '../notifications/index.js';
 import { getSettings } from '../settings/index.js';
 import { getAutoReplySettings } from './autoreply.settings.js';
@@ -209,6 +209,18 @@ export async function runDmAutoReply(conversationId: string): Promise<SkipReason
       where: { id: conversationId },
       data: { needsAttention: true },
     });
+    // Without this the chat just sits there: say why the AI stayed quiet, in the app.
+    await notifyAdmins(
+      {
+        type: 'AI_HANDOFF',
+        title: `The AI couldn't reply to ${handleOf(conv)}`,
+        body:
+          err instanceof AiError ? err.message : 'The AI request failed. Answer this one yourself.',
+        entityType: 'ig_conversation',
+        entityId: conversationId,
+      },
+      { collapse: true },
+    );
     return 'ai_failed';
   }
 

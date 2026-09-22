@@ -96,6 +96,24 @@ export class AiError extends Error {
   }
 }
 
+/**
+ * What the provider actually said, so the person reading it can fix it: a wrong key, a model
+ * that no longer exists and a spent quota all look the same otherwise. Keys are never echoed
+ * back by these APIs, so the message is safe to show.
+ */
+export function providerReason(err: unknown): string {
+  const e = err as { status?: number; message?: string; error?: { message?: string } };
+  const detail = (e?.error?.message ?? e?.message ?? '').replace(/\s+/g, ' ').trim().slice(0, 160);
+  const status = typeof e?.status === 'number' ? e.status : null;
+  if (status === 401 || status === 403)
+    return `rejected the API key: ${detail || 'not authorised'}`;
+  if (status === 404) return `doesn't know this model: ${detail || 'model not found'}`;
+  if (status === 429) return `is rate limited or out of quota: ${detail || 'too many requests'}`;
+  if (status && status >= 500) return `had a server error (${status}). Try again in a moment.`;
+  if (status === 400) return `refused the request: ${detail || 'bad request'}`;
+  return detail ? `didn't respond: ${detail}` : "didn't respond. Try again in a moment.";
+}
+
 let cached: { key: string; client: OpenAI } | null = null;
 function clientFor(cfg: Extract<ProviderConfig, { apiKey: string }>): OpenAI {
   const key = `${cfg.provider}|${cfg.baseURL ?? ''}|${cfg.apiKey}`;
@@ -163,7 +181,7 @@ export async function chatJson<T>(
     } catch (err) {
       logger.warn({ err, provider: cfg.provider, model: cfg.model }, 'AI request failed');
       throw new AiError(
-        `${PROVIDERS[cfg.provider].label} didn't respond. Try again in a moment.`,
+        `${PROVIDERS[cfg.provider].label} (${cfg.model}) ${providerReason(err)}`,
         'request_failed',
       );
     }
