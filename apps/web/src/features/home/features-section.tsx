@@ -18,7 +18,7 @@ const features: Array<{ icon: LucideIcon; title: string; text: string }> = [
   {
     icon: Bot,
     title: 'AI replies that sound like you',
-    text: 'Answers only from the prices, services and FAQs you write down — in the customer’s own language.',
+    text: 'Answers only from the products, prices, sizes and FAQs you write down — in the customer’s own language.',
   },
   {
     icon: Gauge,

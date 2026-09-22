@@ -7,7 +7,7 @@ const steps = [
   },
   {
     title: 'Tell the AI about your business',
-    text: 'Write your services, price ranges, timings and common questions in plain words. Try a sample message and see the answer before going live.',
+    text: 'Write your products, sizes, prices, delivery and return rules in plain words. Try a sample message and see the answer before going live.',
   },
   {
     title: 'Watch leads come in',

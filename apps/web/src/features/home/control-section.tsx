@@ -62,18 +62,18 @@ function DraftPreview() {
       </figcaption>
       <div aria-hidden className="rounded-2xl border border-border bg-surface p-5 shadow-lg">
         <div className="flex items-center justify-between">
-          <p className="type-small font-medium text-fg">Reply to @rohit_builds</p>
+          <p className="type-small font-medium text-fg">Reply to @neha.wears</p>
           <span className="rounded-full bg-warning-subtle px-2 py-0.5 type-caption font-medium text-warning-fg">
             Draft ready
           </span>
         </div>
         <p className="mt-4 rounded-xl border border-border bg-background px-4 py-3 type-body text-fg-muted">
-          <span className="text-fg">Customer:</span> Hello, do you do full home interiors for a 3BHK
-          in Whitefield?
+          <span className="text-fg">Customer:</span> Is the black co-ord set available in L? How
+          many days for delivery to Pune?
         </p>
         <div className="mt-3 rounded-xl border border-primary/40 bg-primary-subtle px-4 py-3 type-body text-primary-subtle-fg">
-          Yes, we do! Full-home interiors for a 3BHK usually start around ₹6 lakh, depending on the
-          design and materials. Would you like a free site visit in Whitefield this week?
+          Yes, the black co-ord set is available in L for ₹1,599. Delivery to Pune takes 3–5 days,
+          and size exchanges are free within 7 days. Shall I keep one aside for you?
         </div>
         <div className="mt-4 flex items-center justify-end gap-2">
           <span className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 type-small text-fg-muted">

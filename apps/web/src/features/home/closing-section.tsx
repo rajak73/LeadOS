@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
 import { ArrowRight } from 'lucide-react';
 import { buttonClasses } from '@/components/ui/button';
-import { HomeLogo } from './logo';
 import { useHomeCta } from './use-home-cta';
 
 export function ClosingCta() {
@@ -44,8 +43,7 @@ export function ClosingCta() {
 export function HomeFooter() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
-        <HomeLogo />
+      <div className="mx-auto max-w-6xl px-4 py-8 text-center sm:px-6">
         <p className="type-small text-fg-subtle">
           © {new Date().getFullYear()} LeadOS. Leads, conversations and follow-ups in one place.
         </p>

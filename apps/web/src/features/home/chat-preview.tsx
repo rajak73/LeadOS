@@ -8,8 +8,8 @@ export function ChatPreview() {
   return (
     <figure className="relative mx-auto w-full max-w-md">
       <figcaption className="sr-only">
-        Example: a customer asks for the price of a modular kitchen in Hinglish, and LeadOS replies
-        in Hinglish, creates a lead and scores it as hot.
+        Example: a customer asks in Hinglish whether a kurti set is available in her size, and
+        LeadOS replies in Hinglish, creates a lead and scores it as hot.
       </figcaption>
       <div
         aria-hidden
@@ -21,11 +21,11 @@ export function ChatPreview() {
       >
         <div className="flex items-center gap-3 border-b border-border px-4 py-3">
           <span className="flex size-9 items-center justify-center rounded-full bg-chart-5/15 type-small font-semibold text-fg">
-            AK
+            PS
           </span>
           <div className="min-w-0 flex-1">
-            <p className="type-body font-medium text-fg">Asha Kulkarni</p>
-            <p className="type-caption text-fg-subtle">@asha.homes · Instagram</p>
+            <p className="type-body font-medium text-fg">Priya Sharma</p>
+            <p className="type-caption text-fg-subtle">@priya.styles · Instagram</p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 type-caption font-medium text-success-fg">
             <Bot className="size-3.5" /> Auto-reply on
@@ -33,24 +33,21 @@ export function ChatPreview() {
         </div>
 
         <div className="space-y-3 bg-background/60 px-4 py-5">
-          <Bubble side="left">
-            Hi! 2BHK ke modular kitchen ka price kya hoga? HSR Layout mein hoon.
-          </Bubble>
+          <Bubble side="left">Hi! Ye maroon kurti set M size mein hai? Price kya hai?</Bubble>
           <Bubble side="right" label="AI assistant · 12 seconds later">
-            Hi Asha! 2BHK modular kitchen usually ₹1.8–3.5 lakh tak hota hai, material aur size pe
-            depend karta hai. HSR Layout mein free site visit bhi hai — kaunsa din aapke liye theek
-            rahega?
+            Hi Priya! Haan, maroon kurti set M size mein available hai — ₹1,299, free delivery ke
+            saath. COD bhi hai. Order ke liye apna naam aur phone number bhej dijiye?
           </Bubble>
-          <Bubble side="left">Saturday morning chalega 👍</Bubble>
+          <Bubble side="left">Priya Sharma, 98XXXXXX21. COD pe bhej do 👍</Bubble>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
           <Chip icon={<UserPlus className="size-3.5" />}>Lead created</Chip>
           <Chip icon={<Flame className="size-3.5" />} tone="warning">
-            AI score 86 · Hot
+            AI score 88 · Hot
           </Chip>
           <Chip icon={<Check className="size-3.5" />} tone="success">
-            Task: confirm site visit
+            Task: confirm order
           </Chip>
         </div>
       </div>
