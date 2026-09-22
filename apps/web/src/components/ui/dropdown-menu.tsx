@@ -1,9 +1,16 @@
-import { forwardRef, type ReactNode } from 'react';
+import { forwardRef, type ComponentProps, type ReactNode } from 'react';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-export const DropdownMenu = Menu.Root;
+/**
+ * Non-modal by default. A modal menu locks the page (pointer-events: none on <body>); when a
+ * menu item opens a Dialog, the two locks can race on close and leave the whole page
+ * unclickable until a refresh. Menus still close on outside click and Escape.
+ */
+export function DropdownMenu({ modal = false, ...props }: ComponentProps<typeof Menu.Root>) {
+  return <Menu.Root modal={modal} {...props} />;
+}
 export const DropdownMenuTrigger = Menu.Trigger;
 export const DropdownMenuGroup = Menu.Group;
 export const DropdownMenuRadioGroup = Menu.RadioGroup;
