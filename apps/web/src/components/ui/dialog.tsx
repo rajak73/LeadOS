@@ -36,6 +36,8 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay animate-fade-in" />
       <DialogPrimitive.Content
         {...(!description && { 'aria-describedby': undefined })}
+        // A stray tap outside must not throw away a half-filled form: close with ✕, Cancel or Esc.
+        onInteractOutside={(e) => e.preventDefault()}
         className={cn(
           'fixed z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] flex-col',
           'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
