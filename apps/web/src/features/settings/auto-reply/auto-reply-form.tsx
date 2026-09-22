@@ -45,6 +45,7 @@ export function toFormValues(s: AutoReplySettings): FormIn {
     replyDelaySeconds: s.replyDelaySeconds,
     maxRepliesPerDay: s.maxRepliesPerDay,
     createLeads: s.createLeads,
+    collectContactDetails: s.collectContactDetails,
   };
 }
 
@@ -84,7 +85,7 @@ export function AutoReplyForm({
   });
 
   const switchField = (
-    name: 'dmEnabled' | 'commentsEnabled' | 'createLeads',
+    name: 'dmEnabled' | 'commentsEnabled' | 'createLeads' | 'collectContactDetails',
     label: string,
     description: string,
     needsAi: boolean,
@@ -238,6 +239,12 @@ export function AutoReplyForm({
               'createLeads',
               'Create leads from new Instagram contacts',
               'Everyone who messages or comments for the first time becomes a lead, tagged “instagram”.',
+              false,
+            )}
+            {switchField(
+              'collectContactDetails',
+              'Ask for name and phone number',
+              'After answering, the AI politely asks new customers for their name and number — at most twice — and saves them to the lead.',
               false,
             )}
           </CardBody>

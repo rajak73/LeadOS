@@ -423,6 +423,8 @@ export interface AutoReplySettings {
   replyDelaySeconds: number;
   maxRepliesPerDay: number;
   createLeads: boolean;
+  /** AI asks for the customer's name and phone number (after answering) when the lead has no phone. */
+  collectContactDetails: boolean;
   /** Read-only: which AI answers. 'rules' means no key is set and AI replies are off. */
   aiProvider: AiProvider;
   aiModel: string | null;
@@ -433,7 +435,7 @@ export interface AiReplyPreview {
   reply: string | null; // null when the AI decided a person should answer
   handoff: boolean;
   handoffReason: string | null;
-  extracted: { email: string | null; phone: string | null };
+  extracted: { name: string | null; email: string | null; phone: string | null };
   provider: AiProvider;
   model: string | null;
 }

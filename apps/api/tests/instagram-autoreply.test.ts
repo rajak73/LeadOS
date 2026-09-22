@@ -85,6 +85,7 @@ beforeEach(async () => {
       maxRepliesPerDay: 20,
       businessInfo: 'Sharma Interiors. Modular kitchens from ₹1.5 lakh. Free site visit.',
       handoffMessage: 'Thanks! Someone from our team will reply shortly.',
+      collectContactDetails: true,
     })
     .expect(200);
 });
@@ -236,6 +237,61 @@ describe('DM auto-reply', () => {
     await flush();
     const lead = await prisma.lead.findUniqueOrThrow({ where: { id: c.leadId! } });
     expect(lead).toMatchObject({ email: 'kept@example.com', phone: null });
+  });
+
+  it('asks for name and phone, then saves what the customer shares', async () => {
+    dmAnswer = {
+      reply: 'Kitchens start at ₹1.5 lakh. Aapka naam aur phone number share kar dijiye?',
+      handoff: false,
+    };
+    await deliver(app, dmPayload('1010', 'price kya hai?'));
+    await flush();
+    const [first] = callsOf('dm')[0]! as [Body];
+    expect(first.messages[0]!.content).toContain('Collecting contact details');
+    expect(first.messages[1]!.content).toContain('Phone on file: none');
+
+    dmAnswer = {
+      reply: 'Thanks Rahul! Hamari team aapko jaldi call karegi.',
+      handoff: false,
+      name: 'rahul sharma',
+      phone: '+91 98765 43210',
+    };
+    await deliver(app, dmPayload('1010', 'mera naam Rahul Sharma hai, 98765 43210'));
+    await flush();
+    const c = await conv('1010');
+    const lead = await prisma.lead.findUniqueOrThrow({ where: { id: c.leadId! } });
+    expect(lead).toMatchObject({
+      firstName: 'Rahul',
+      lastName: 'Sharma',
+      phone: '+91 98765 43210',
+    });
+    const activity = await prisma.activity.findFirst({
+      where: { relatedLeadId: lead.id, type: 'LEAD_UPDATED' },
+    });
+    expect(activity?.description).toBe(
+      'Name and phone number added from the Instagram conversation',
+    );
+  });
+
+  it('keeps a name someone typed by hand and skips the ask when turned off', async () => {
+    await api(app, admin)
+      .patch('/auto-reply/settings', { collectContactDetails: false })
+      .expect(200);
+    await deliver(app, dmPayload('1011', 'hi'));
+    await idle();
+    const c = await conv('1011');
+    await prisma.lead.update({
+      where: { id: c.leadId! },
+      data: { firstName: 'Neha', lastName: 'K' },
+    });
+    dmAnswer = { reply: 'Hello!', handoff: false, name: 'Someone Else' };
+    await flush();
+    const [body] = callsOf('dm')[0]! as [Body];
+    expect(body.messages[0]!.content).not.toContain('Collecting contact details');
+    const lead = await prisma.lead.findUniqueOrThrow({ where: { id: c.leadId! } });
+    expect(lead).toMatchObject({ firstName: 'Neha', lastName: 'K' });
+    const settings = await api(app, admin).get('/auto-reply/settings').expect(200);
+    expect(settings.body.data.collectContactDetails).toBe(false);
   });
 
   it('pauses AI at the daily limit', async () => {
@@ -422,7 +478,7 @@ describe('previews', () => {
       reply: 'Haan ji, kitchen ₹1.5 lakh se start hota hai.',
       handoff: false,
       handoffReason: null,
-      extracted: { email: null, phone: null },
+      extracted: { name: null, email: null, phone: null },
       provider: 'gemini',
       model: 'gemini-2.5-flash',
     });

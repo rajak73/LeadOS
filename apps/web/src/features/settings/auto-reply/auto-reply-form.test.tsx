@@ -21,6 +21,7 @@ const settings: AutoReplySettings = {
   replyDelaySeconds: 20,
   maxRepliesPerDay: 10,
   createLeads: true,
+  collectContactDetails: true,
   aiProvider: 'gemini',
   aiModel: 'gemini-2.5-flash',
 };
@@ -68,6 +69,7 @@ describe('AutoReplyForm', () => {
       replyDelaySeconds: 5,
       maxRepliesPerDay: 10,
       createLeads: true,
+      collectContactDetails: true,
     });
   });
 

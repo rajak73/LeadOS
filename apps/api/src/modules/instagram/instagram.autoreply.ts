@@ -34,7 +34,12 @@ export type SkipReason =
 
 export async function promptSettings(): Promise<PromptSettings> {
   const [app, auto] = await Promise.all([getSettings(), getAutoReplySettings()]);
-  return { companyName: app.companyName, businessInfo: auto.businessInfo, tone: auto.tone };
+  return {
+    companyName: app.companyName,
+    businessInfo: auto.businessInfo,
+    tone: auto.tone,
+    collectContactDetails: auto.collectContactDetails,
+  };
 }
 
 // ─── Scheduling ──────────────────────────────────────────────────────────────
@@ -207,7 +212,7 @@ export async function runDmAutoReply(conversationId: string): Promise<SkipReason
     return 'ai_failed';
   }
 
-  await fillLeadContact(conv.leadId, result.extracted);
+  await fillLeadContact(conv.leadId, result.extracted, conv);
 
   // Decide and store under the conversation lock; send afterwards (network outside the lock).
   const outcome = await withLock(conversationLock(conversationId), async () => {

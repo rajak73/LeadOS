@@ -472,5 +472,6 @@ model AutoReplySettings {
   replyDelaySeconds   Int      @default(20) // wait so several quick messages get one reply
   maxRepliesPerDay    Int      @default(20) // per conversation
   createLeads         Boolean  @default(true)
+  collectContactDetails Boolean @default(true) // AI asks for name + phone when the lead has no phone
   updatedAt           DateTime @updatedAt
 }

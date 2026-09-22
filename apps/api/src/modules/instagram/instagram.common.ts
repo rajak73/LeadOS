@@ -81,6 +81,9 @@ export async function existingLeadFor(igsid: string): Promise<string | null> {
  * Finds or creates the lead for an Instagram user and links their conversation and comments.
  * Callers hold the per-user lock, so two quick messages can't create two leads.
  */
+/** Name given to a lead when Instagram shares neither a name nor a username. */
+export const INSTAGRAM_PLACEHOLDER_NAME = 'Instagram user';
+
 export async function ensureLeadFor(person: {
   igsid: string;
   username: string | null;
@@ -89,7 +92,7 @@ export async function ensureLeadFor(person: {
   let leadId = await existingLeadFor(person.igsid);
   if (!leadId) {
     const firstName = (
-      person.name?.trim() || (person.username ? `@${person.username}` : 'Instagram user')
+      person.name?.trim() || (person.username ? `@${person.username}` : INSTAGRAM_PLACEHOLDER_NAME)
     ).slice(0, 100);
     const input: CreateLeadInput = {
       firstName,
@@ -119,15 +122,20 @@ export async function ensureLeadFor(person: {
   return leadId;
 }
 
-/** Fills the lead's empty email/phone with what the customer shared. Never overwrites. */
+/**
+ * Fills the lead's empty email/phone with what the customer shared (never overwrites), and
+ * replaces an auto-generated name (@username or the Instagram profile name) with the name
+ * the customer typed. A name someone edited by hand is never touched.
+ */
 export async function fillLeadContact(
   leadId: string | null,
-  found: { email: string | null; phone: string | null },
+  found: { name?: string | null; email: string | null; phone: string | null },
+  conv?: { username: string | null; name: string | null },
 ): Promise<void> {
-  if (!leadId || (!found.email && !found.phone)) return;
+  if (!leadId || (!found.email && !found.phone && !found.name)) return;
   const lead = await prisma.lead.findFirst({ where: { id: leadId, deletedAt: null } });
   if (!lead) return;
-  const data: { email?: string; phone?: string } = {};
+  const data: { email?: string; phone?: string; firstName?: string; lastName?: string | null } = {};
   if (found.email && !lead.email) {
     const taken = await prisma.lead.count({
       where: { email: found.email, deletedAt: null, id: { not: leadId } },
@@ -135,22 +143,51 @@ export async function fillLeadContact(
     if (!taken) data.email = found.email;
   }
   if (found.phone && !lead.phone) data.phone = found.phone;
-  if (!data.email && !data.phone) return;
+  if (found.name && hasAutoName(lead, conv)) {
+    const [first = found.name, ...rest] = found.name.split(' ');
+    if (`${first} ${rest.join(' ')}`.trim() !== fullName(lead)) {
+      data.firstName = first;
+      data.lastName = rest.join(' ') || null;
+    }
+  }
+  if (Object.keys(data).length === 0) return;
   const updated = await prisma.lead.updateMany({
     where: {
       id: leadId,
       ...(data.email ? { email: null } : {}),
       ...(data.phone ? { phone: null } : {}),
+      ...(data.firstName ? { firstName: lead.firstName, lastName: lead.lastName } : {}),
     },
     data,
   });
   if (updated.count === 0) return;
-  const what = [data.email && 'email', data.phone && 'phone number'].filter(Boolean).join(' and ');
+  const what = [
+    data.firstName && 'name',
+    data.email && 'email',
+    data.phone && 'phone number',
+  ].filter(Boolean) as string[];
+  const list = what.length > 1 ? `${what.slice(0, -1).join(', ')} and ${what.at(-1)}` : what[0]!;
   await recordActivity(prisma, {
     type: 'LEAD_UPDATED',
-    description: `${what.charAt(0).toUpperCase()}${what.slice(1)} added from the Instagram conversation`,
+    description: `${list.charAt(0).toUpperCase()}${list.slice(1)} added from the Instagram conversation`,
     metadata: { fields: Object.keys(data), source: 'instagram' },
     performedById: null,
     leadId,
   });
+}
+
+const fullName = (l: { firstName: string; lastName: string | null }) =>
+  [l.firstName, l.lastName].filter(Boolean).join(' ').trim();
+
+/** True when the lead still carries the name LeadOS generated from Instagram. */
+function hasAutoName(
+  lead: { firstName: string; lastName: string | null },
+  conv?: { username: string | null; name: string | null },
+): boolean {
+  const current = fullName(lead).toLowerCase();
+  if (lead.firstName.startsWith('@') || current === INSTAGRAM_PLACEHOLDER_NAME.toLowerCase())
+    return true;
+  if (conv?.username && current === conv.username.toLowerCase()) return true;
+  if (conv?.name && current === conv.name.trim().toLowerCase()) return true;
+  return false;
 }

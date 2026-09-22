@@ -156,3 +156,16 @@ describe('lead scoring', () => {
     );
   });
 });
+
+describe('cleanName', () => {
+  it('keeps real names in any script and rejects usernames and junk', async () => {
+    const { cleanName } = await import('../src/modules/instagram/instagram.ai.js');
+    expect(cleanName('rahul sharma')).toBe('Rahul Sharma');
+    expect(cleanName('राहुल')).toBe('राहुल');
+    expect(cleanName("D'Souza")).toBe("D'Souza");
+    expect(cleanName('@rahul_s')).toBeNull();
+    expect(cleanName('rahul_123')).toBeNull();
+    expect(cleanName('a')).toBeNull();
+    expect(cleanName('one two three four five')).toBeNull();
+  });
+});

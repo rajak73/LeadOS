@@ -493,6 +493,7 @@ export function toAutoReplySettings(
     replyDelaySeconds: s.replyDelaySeconds,
     maxRepliesPerDay: s.maxRepliesPerDay,
     createLeads: s.createLeads,
+    collectContactDetails: s.collectContactDetails,
     aiProvider: ai.provider,
     aiModel: ai.model,
   };

@@ -640,6 +640,7 @@ export const updateAutoReplySettingsSchema = z.object({
   replyDelaySeconds: z.coerce.number().int().min(0).max(300).optional(),
   maxRepliesPerDay: z.coerce.number().int().min(1).max(200).optional(),
   createLeads: z.boolean().optional(),
+  collectContactDetails: z.boolean().optional(),
 });
 export type UpdateAutoReplySettingsInput = z.infer<typeof updateAutoReplySettingsSchema>;
 

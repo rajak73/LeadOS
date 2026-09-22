@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { FlaskConical, Lock, Mail, Phone, Sparkles } from 'lucide-react';
+import { FlaskConical, Lock, Mail, Phone, Sparkles, UserRound } from 'lucide-react';
 import { testAutoReplySchema, type TestAutoReplyInput } from '@leados/shared';
 import { useTestAutoReply, type AutoReplyTestResult } from '@/api/auto-reply';
 import { Button } from '@/components/ui/button';
@@ -56,9 +56,17 @@ function Result({ result }: { result: AutoReplyTestResult }) {
               {result.preview.handoffReason || 'The AI would hand this conversation to you.'}
             </Callout>
           )}
-          {(result.preview.extracted.email || result.preview.extracted.phone) && (
+          {(result.preview.extracted.name ||
+            result.preview.extracted.email ||
+            result.preview.extracted.phone) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 type-small text-fg-muted">
               <span className="font-medium text-fg">Would be saved to the lead:</span>
+              {result.preview.extracted.name && (
+                <span className="inline-flex items-center gap-1">
+                  <UserRound aria-hidden className="size-3.5" />
+                  {result.preview.extracted.name}
+                </span>
+              )}
               {result.preview.extracted.email && (
                 <span className="inline-flex items-center gap-1">
                   <Mail aria-hidden className="size-3.5" />

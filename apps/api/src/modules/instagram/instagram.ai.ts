@@ -36,6 +36,7 @@ const dmSchema = z.object({
   reply: text,
   handoff: bool,
   handoffReason: text,
+  name: text,
   email: text,
   phone: text,
 });
@@ -78,6 +79,19 @@ const emailSchema = z.string().trim().toLowerCase().email().max(255);
 export function cleanEmail(value: string | null): string | null {
   const r = emailSchema.safeParse(value);
   return r.success ? r.data : null;
+}
+
+/** A person's name as the customer typed it: letters (any script), spaces, dots, hyphens, apostrophes. */
+export function cleanName(value: string | null): string | null {
+  if (!value) return null;
+  const s = value.replace(/\s+/g, ' ').trim();
+  if (s.length < 2 || s.length > 60 || s.startsWith('@')) return null;
+  if (!/^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u.test(s)) return null;
+  if (s.split(' ').length > 4) return null;
+  return s
+    .split(' ')
+    .map((w) => (/^[a-z]/.test(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ');
 }
 
 export function cleanPhone(value: string | null): string | null {
@@ -130,7 +144,11 @@ export async function generateDmReply(
     handoffReason: handoff
       ? (data.handoffReason?.slice(0, 200) ?? 'The assistant didn’t have an answer for this')
       : null,
-    extracted: { email: cleanEmail(data.email), phone: cleanPhone(data.phone) },
+    extracted: {
+      name: cleanName(data.name),
+      email: cleanEmail(data.email),
+      phone: cleanPhone(data.phone),
+    },
     provider,
     model,
   };
