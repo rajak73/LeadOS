@@ -7,7 +7,6 @@ import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/api-client';
 import { useSession } from '@/providers/session';
 import { AutoReplyForm } from './auto-reply/auto-reply-form';
-import { ProviderCard } from './auto-reply/provider-card';
 import { TryItPanel } from './auto-reply/try-it-panel';
 
 export default function AutoReplyPage() {
@@ -39,7 +38,13 @@ export default function AutoReplyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ProviderCard provider={settings.aiProvider} model={settings.aiModel} />
+      {settings.aiProvider === 'rules' && (
+        <Callout tone="warning" title="AI replies are off">
+          Add <code className="font-mono">GEMINI_API_KEY</code> or{' '}
+          <code className="font-mono">GROQ_API_KEY</code> on the server and restart LeadOS to turn
+          on AI replies. Both have a free tier.
+        </Callout>
+      )}
       {!isAdmin && (
         <Callout tone="info" title="Only admins can change these settings">
           You can see how auto-reply is set up and try it below.

@@ -7,7 +7,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDate } from '@/lib/format';
 import { notify } from '@/lib/toast';
 import { ConnectForm } from './connect-form';
-import { Disclosure } from './disclosure';
+import { Disclosure } from '@/components/ui/disclosure';
 import { WebhookValues } from './webhook-values';
 
 /** Webhook values, token details, switching accounts and disconnecting — hidden by default. */

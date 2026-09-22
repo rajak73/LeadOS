@@ -7,7 +7,7 @@ import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/api-client';
 import { AccountCard } from './instagram/account-card';
 import { AdvancedSection } from './instagram/advanced-section';
-import { Disclosure } from './instagram/disclosure';
+import { Disclosure } from '@/components/ui/disclosure';
 import { SetupGuide } from './instagram/setup-guide';
 import { SimulateCard } from './instagram/simulate-card';
 

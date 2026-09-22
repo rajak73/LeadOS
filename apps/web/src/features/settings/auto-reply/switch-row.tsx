@@ -29,7 +29,8 @@ export function SwitchRow({
         <p id={`${id}-desc`} className="type-small text-fg-muted">
           {description}
           {disabled && disabledReason && (
-            <span className="mt-0.5 block font-medium text-warning-fg">{disabledReason}</span>
+            // The page shows the reason visibly once; screen readers still hear it per switch.
+            <span className="sr-only">{disabledReason}</span>
           )}
         </p>
       </div>

@@ -4,12 +4,12 @@ import { testAutoReplySchema, type TestAutoReplyInput } from '@leados/shared';
 import { useTestAutoReply, type AutoReplyTestResult } from '@/api/auto-reply';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { Card, CardBody, CardHeader } from '@/components/ui/card';
+import { Disclosure } from '@/components/ui/disclosure';
 import { FormField } from '@/components/ui/form-field';
 import { Textarea } from '@/components/ui/input';
 import { SegmentedControl } from '@/features/tasks/segmented-control';
 import { errorMessage, isApiError } from '@/lib/api-client';
-import { aiSummary } from './provider-card';
+import { aiSummary } from './ai-summary';
 
 const KINDS = [
   { value: 'dm', label: 'Direct message' },
@@ -134,57 +134,54 @@ export function TryItPanel() {
     (test.error.status === 503 || test.error.code === 'AI_UNAVAILABLE');
 
   return (
-    <Card>
-      <CardHeader
-        title="Try it"
-        description="See how the AI would answer, using your saved settings. Nothing is sent."
-      />
-      <CardBody>
-        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-          <SegmentedControl
-            label="Sample type"
-            value={kind}
-            onChange={setKind}
-            options={KINDS}
-            className="self-start"
+    <Disclosure
+      title="Try it"
+      description="See how the AI would answer, using your saved settings. Nothing is sent."
+    >
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        <SegmentedControl
+          label="Sample type"
+          value={kind}
+          onChange={setKind}
+          options={KINDS}
+          className="self-start"
+        />
+        <FormField label="Sample message" error={fieldError}>
+          <Textarea
+            rows={3}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={
+              kind === 'dm'
+                ? 'Hi! Price kya hai? Sunday ko visit kar sakte hain?'
+                : 'Price please? 😍'
+            }
           />
-          <FormField label="Sample message" error={fieldError}>
-            <Textarea
-              rows={3}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={
-                kind === 'dm'
-                  ? 'Hi! Price kya hai? Sunday ko visit kar sakte hain?'
-                  : 'Price please? 😍'
-              }
-            />
-          </FormField>
-          <Button
-            type="submit"
-            variant="primary"
-            className="self-start"
-            icon={<FlaskConical aria-hidden />}
-            loading={test.isPending}
+        </FormField>
+        <Button
+          type="submit"
+          variant="primary"
+          className="self-start"
+          icon={<FlaskConical aria-hidden />}
+          loading={test.isPending}
+        >
+          {test.isPending ? 'Asking the AI…' : 'Try it'}
+        </Button>
+      </form>
+      <div aria-live="polite" className="mt-4 empty:mt-0">
+        {test.error ? (
+          <Callout
+            tone="danger"
+            title={unavailable ? 'The AI isn’t available' : 'That didn’t work'}
           >
-            {test.isPending ? 'Asking the AI…' : 'Try it'}
-          </Button>
-        </form>
-        <div aria-live="polite" className="mt-4 empty:mt-0">
-          {test.error ? (
-            <Callout
-              tone="danger"
-              title={unavailable ? 'The AI isn’t available' : 'That didn’t work'}
-            >
-              {unavailable
-                ? 'Check that an AI key is set on the server, then try again in a moment.'
-                : errorMessage(test.error)}
-            </Callout>
-          ) : test.data ? (
-            <Result result={test.data} />
-          ) : null}
-        </div>
-      </CardBody>
-    </Card>
+            {unavailable
+              ? 'Check that an AI key is set on the server, then try again in a moment.'
+              : errorMessage(test.error)}
+          </Callout>
+        ) : test.data ? (
+          <Result result={test.data} />
+        ) : null}
+      </div>
+    </Disclosure>
   );
 }

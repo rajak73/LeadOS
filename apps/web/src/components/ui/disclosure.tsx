@@ -5,14 +5,20 @@ import { ChevronRight } from 'lucide-react';
 export function Disclosure({
   title,
   description,
+  forceOpen = false,
   children,
 }: {
   title: string;
   description?: string;
+  /** Opens the section (e.g. when a field inside has an error). */
+  forceOpen?: boolean;
   children: ReactNode;
 }) {
   return (
-    <details className="group rounded-xl border border-border bg-surface shadow-sm [&_summary::-webkit-details-marker]:hidden">
+    <details
+      open={forceOpen || undefined}
+      className="group rounded-xl border border-border bg-surface shadow-sm [&_summary::-webkit-details-marker]:hidden"
+    >
       <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-5 py-4">
         <ChevronRight
           aria-hidden

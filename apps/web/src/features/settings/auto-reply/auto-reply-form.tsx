@@ -9,7 +9,9 @@ import {
   type AutoReplySettings,
 } from '@leados/shared';
 import { useUpdateAutoReplySettings } from '@/api/auto-reply';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Disclosure } from '@/components/ui/disclosure';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
 import { Input, Textarea } from '@/components/ui/input';
@@ -21,6 +23,7 @@ import {
   commentReplyModeLabels,
 } from '@/lib/labels';
 import { notify } from '@/lib/toast';
+import { aiSummary } from './ai-summary';
 import { RadioCards } from './radio-cards';
 import { SwitchRow } from './switch-row';
 
@@ -74,6 +77,14 @@ export function AutoReplyForm({
 
   useEffect(() => reset(toFormValues(settings)), [settings, reset]);
 
+  const hasAdvancedError = Boolean(
+    errors.commentReplyMode ||
+    errors.tone ||
+    errors.handoffMessage ||
+    errors.replyDelaySeconds ||
+    errors.maxRepliesPerDay,
+  );
+
   const onSubmit = handleSubmit(async (values) => {
     try {
       await update.mutateAsync(values);
@@ -110,7 +121,7 @@ export function AutoReplyForm({
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
       <fieldset disabled={!canEdit} className="flex min-w-0 flex-col gap-6">
         <Card>
-          <CardHeader title="Replies" description="What the AI answers and how." />
+          <CardHeader title="Auto-reply" />
           <CardBody className="flex flex-col gap-5">
             {switchField(
               'dmEnabled',
@@ -142,24 +153,6 @@ export function AutoReplyForm({
                 />
               )}
             />
-            <Controller
-              control={control}
-              name="commentReplyMode"
-              render={({ field }) => (
-                <RadioCards
-                  legend="Comment reply style"
-                  name="commentReplyMode"
-                  columns={3}
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={COMMENT_REPLY_MODES.map((m) => ({
-                    value: m,
-                    label: commentReplyModeLabels[m],
-                    description: commentReplyModeDescriptions[m],
-                  }))}
-                />
-              )}
-            />
           </CardBody>
         </Card>
 
@@ -168,87 +161,110 @@ export function AutoReplyForm({
             title="What the AI knows"
             description="The AI only uses what you write here. It never makes up prices or offers."
           />
-          <CardBody className="flex flex-col gap-4">
+          <CardBody>
             <FormField
               label="Business info"
               description="Services, price ranges, location and hours, how booking works, and answers to common questions."
               error={errors.businessInfo?.message}
             >
               <Textarea
-                rows={10}
+                rows={8}
                 placeholder={BUSINESS_INFO_EXAMPLE}
                 {...register('businessInfo')}
-              />
-            </FormField>
-            <FormField
-              label="Tone"
-              description="How replies should sound."
-              error={errors.tone?.message}
-            >
-              <Input
-                placeholder="Friendly and short, like a helpful receptionist"
-                {...register('tone')}
-              />
-            </FormField>
-            <FormField
-              label="Handoff message"
-              description="Sent when the AI decides a person should answer. Leave empty to send nothing."
-              error={errors.handoffMessage?.message}
-            >
-              <Textarea
-                rows={2}
-                placeholder="Thanks! Someone from our team will reply shortly."
-                {...register('handoffMessage')}
               />
             </FormField>
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader title="Limits and leads" />
-          <CardBody className="flex flex-col gap-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                label="Reply delay (seconds)"
-                description="Waits this long so a burst of messages gets one answer. 0–300."
-                error={errors.replyDelaySeconds?.message}
-              >
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={300}
-                  {...register('replyDelaySeconds')}
-                />
-              </FormField>
-              <FormField
-                label="Daily limit per conversation"
-                description="After this many AI replies in 24 hours, the AI pauses and asks you to step in."
-                error={errors.maxRepliesPerDay?.message}
-              >
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={200}
-                  {...register('maxRepliesPerDay')}
-                />
-              </FormField>
-            </div>
-            {switchField(
-              'createLeads',
-              'Create leads from new Instagram contacts',
-              'Everyone who messages or comments for the first time becomes a lead, tagged “instagram”.',
-              false,
+        <Disclosure
+          title="More options"
+          description="Comment style, tone, limits and lead capture."
+          forceOpen={hasAdvancedError}
+        >
+          <p className="flex items-center gap-2 type-small text-fg-muted">
+            <Sparkles aria-hidden className="size-4 text-fg-subtle" />
+            AI: {aiSummary(settings.aiProvider, settings.aiModel)}
+          </p>
+          <Controller
+            control={control}
+            name="commentReplyMode"
+            render={({ field }) => (
+              <RadioCards
+                legend="Comment reply style"
+                name="commentReplyMode"
+                columns={3}
+                value={field.value}
+                onChange={field.onChange}
+                options={COMMENT_REPLY_MODES.map((m) => ({
+                  value: m,
+                  label: commentReplyModeLabels[m],
+                  description: commentReplyModeDescriptions[m],
+                }))}
+              />
             )}
-            {switchField(
-              'collectContactDetails',
-              'Ask for name and phone number',
-              'After answering, the AI politely asks new customers for their name and number — at most twice — and saves them to the lead.',
-              false,
-            )}
-          </CardBody>
-        </Card>
+          />
+          <FormField
+            label="Tone"
+            description="How replies should sound."
+            error={errors.tone?.message}
+          >
+            <Input
+              placeholder="Friendly and short, like a helpful receptionist"
+              {...register('tone')}
+            />
+          </FormField>
+          <FormField
+            label="Handoff message"
+            description="Sent when the AI decides a person should answer. Leave empty to send nothing."
+            error={errors.handoffMessage?.message}
+          >
+            <Textarea
+              rows={2}
+              placeholder="Thanks! Someone from our team will reply shortly."
+              {...register('handoffMessage')}
+            />
+          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Reply delay (seconds)"
+              description="Waits this long so a burst of messages gets one answer. 0–300."
+              error={errors.replyDelaySeconds?.message}
+            >
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={300}
+                {...register('replyDelaySeconds')}
+              />
+            </FormField>
+            <FormField
+              label="Daily limit per conversation"
+              description="After this many AI replies in 24 hours, the AI pauses and asks you to step in."
+              error={errors.maxRepliesPerDay?.message}
+            >
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={200}
+                {...register('maxRepliesPerDay')}
+              />
+            </FormField>
+          </div>
+          {switchField(
+            'createLeads',
+            'Create leads from new Instagram contacts',
+            'Everyone who messages or comments for the first time becomes a lead, tagged “instagram”.',
+            false,
+          )}
+          {switchField(
+            'collectContactDetails',
+            'Ask for name and phone number',
+            'After answering, the AI politely asks new customers for their name and number — at most twice — and saves them to the lead.',
+            false,
+          )}
+        </Disclosure>
       </fieldset>
 
       {canEdit && (

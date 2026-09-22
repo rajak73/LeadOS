@@ -46,6 +46,8 @@ describe('AutoReplyForm', () => {
     const user = userEvent.setup();
     const api = renderForm(settings);
 
+    // Everything beyond the essentials starts tucked away in "More options".
+    expect(screen.getByText('More options').closest('details')).not.toHaveAttribute('open');
     await user.click(screen.getByRole('switch', { name: 'Reply to DMs automatically' }));
     await user.click(screen.getByRole('radio', { name: 'Send automatically' }));
     await user.click(screen.getByRole('radio', { name: 'Both' }));

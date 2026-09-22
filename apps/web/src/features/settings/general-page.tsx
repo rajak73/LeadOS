@@ -15,7 +15,7 @@ import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/api-client';
-import { aiSummary } from './auto-reply/provider-card';
+import { aiSummary } from './auto-reply/ai-summary';
 import { applyApiErrors } from '@/lib/forms';
 import { notify } from '@/lib/toast';
 
