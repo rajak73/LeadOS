@@ -9,6 +9,7 @@ import type {
   ConversationListQuery,
   DraftActionInput,
   IgComment,
+  IgCommentPost,
   IgConversation,
   IgConversationDetail,
   IgMessage,
@@ -294,7 +295,7 @@ export async function listComments(
     prisma.igComment.findMany({
       where,
       include: igCommentInclude,
-      orderBy: { commentedAt: 'desc' },
+      orderBy: [{ commentedAt: q.sortOrder }, { id: q.sortOrder }],
       skip: (q.page - 1) * q.limit,
       take: q.limit,
     }),
@@ -305,6 +306,79 @@ export async function listComments(
     rows.map((r) => r.repliedById),
   );
   return { data: rows.map((r) => toIgComment(r, users)), meta: pageMeta(q.page, q.limit, total) };
+}
+
+const PENDING = new Set(['NONE', 'FAILED', 'DRAFT']);
+const later = (a: Date | null, b: Date | null) => (!a ? b : !b ? a : a > b ? a : b);
+
+/**
+ * One row per post with comment counts. A single groupBy (per post, status and media fields)
+ * feeds everything; media fields come from the newest comment that has them.
+ */
+export async function listCommentPosts(): Promise<IgCommentPost[]> {
+  const groups = await prisma.igComment.groupBy({
+    by: ['mediaId', 'replyStatus', 'mediaPermalink', 'mediaCaption', 'mediaThumbnail'],
+    _count: { _all: true },
+    _max: { commentedAt: true },
+  });
+  type Acc = Omit<IgCommentPost, 'latestCommentAt' | 'latestPendingAt'> & {
+    latest: Date | null;
+    pending: Date | null;
+    mediaAt: { permalink?: Date; caption?: Date; thumbnailUrl?: Date };
+  };
+  const posts = new Map<string, Acc>();
+  for (const g of groups) {
+    const at = g._max.commentedAt;
+    let p = posts.get(g.mediaId);
+    if (!p) {
+      p = {
+        mediaId: g.mediaId,
+        permalink: null,
+        caption: null,
+        thumbnailUrl: null,
+        commentCount: 0,
+        needsReplyCount: 0,
+        draftCount: 0,
+        latest: null,
+        pending: null,
+        mediaAt: {},
+      };
+      posts.set(g.mediaId, p);
+    }
+    const n = g._count._all;
+    p.commentCount += n;
+    if (g.replyStatus === 'NONE' || g.replyStatus === 'FAILED') p.needsReplyCount += n;
+    if (g.replyStatus === 'DRAFT') p.draftCount += n;
+    p.latest = later(p.latest, at);
+    if (PENDING.has(g.replyStatus)) p.pending = later(p.pending, at);
+    const media = {
+      permalink: g.mediaPermalink,
+      caption: g.mediaCaption,
+      thumbnailUrl: g.mediaThumbnail,
+    } as const;
+    for (const key of ['permalink', 'caption', 'thumbnailUrl'] as const) {
+      const value = media[key];
+      const seen = p.mediaAt[key];
+      if (value && at && (!seen || at > seen)) {
+        p[key] = value;
+        p.mediaAt[key] = at;
+      }
+    }
+  }
+  const time = (d: Date | null) => d?.getTime() ?? 0;
+  return [...posts.values()]
+    .sort(
+      (a, b) =>
+        Number(Boolean(b.pending)) - Number(Boolean(a.pending)) ||
+        time(b.pending) - time(a.pending) ||
+        time(b.latest) - time(a.latest) ||
+        a.mediaId.localeCompare(b.mediaId),
+    )
+    .map(({ latest, pending, mediaAt: _mediaAt, ...p }) => ({
+      ...p,
+      latestCommentAt: (latest ?? new Date(0)).toISOString(),
+      latestPendingAt: pending ? pending.toISOString() : null,
+    }));
 }
 
 export async function replyToCommentManually(
@@ -338,6 +412,17 @@ export async function skipComment(actor: Actor, id: string): Promise<IgComment> 
       replyError: null,
       ...(c.replyStatus === 'DRAFT' ? { publicReply: null, privateReply: null } : {}),
     },
+  });
+  return toCommentDto(id);
+}
+
+/** Drops an AI draft; the comment goes back to needing a reply. */
+export async function discardCommentDraft(id: string): Promise<IgComment> {
+  const c = await loadComment(id);
+  if (c.replyStatus !== 'DRAFT') throw conflict('This comment has no draft to discard.');
+  await prisma.igComment.update({
+    where: { id },
+    data: { replyStatus: 'NONE', publicReply: null, privateReply: null, replyError: null },
   });
   return toCommentDto(id);
 }

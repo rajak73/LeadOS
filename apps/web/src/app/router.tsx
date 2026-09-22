@@ -48,8 +48,9 @@ export const routes: RouteObject[] = [
                     path: 'inbox',
                     ...page(() => import('@/features/inbox/inbox-layout')),
                     children: [
+                      // One route for /inbox/comments and /inbox/comments/:mediaId so the posts stay mounted.
                       {
-                        path: 'comments',
+                        path: 'comments/:mediaId?',
                         ...page(() => import('@/features/inbox/comments-page')),
                       },
                       // One route for /inbox and /inbox/:id so the list stays mounted.

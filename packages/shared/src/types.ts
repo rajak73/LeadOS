@@ -414,6 +414,20 @@ export interface IgComment {
   commentedAt: ISODate;
 }
 
+/** GET /instagram/comments/posts — one row per post that has comments. */
+export interface IgCommentPost {
+  mediaId: string;
+  permalink: string | null;
+  caption: string | null;
+  thumbnailUrl: string | null;
+  commentCount: number;
+  needsReplyCount: number; // replyStatus NONE or FAILED
+  draftCount: number; // replyStatus DRAFT
+  latestCommentAt: ISODate;
+  /** Newest comment that needs a reply or has a draft; null when all are answered. */
+  latestPendingAt: ISODate | null;
+}
+
 export interface AutoReplySettings {
   dmEnabled: boolean;
   commentsEnabled: boolean;

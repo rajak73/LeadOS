@@ -67,6 +67,7 @@ export const qk = {
     conversation: (id: string) => ['instagram', 'conversations', 'detail', id] as const,
     comments: () => ['instagram', 'comments'] as const,
     commentList: (q: QueryParams) => ['instagram', 'comments', 'list', q] as const,
+    commentPosts: () => ['instagram', 'comments', 'posts'] as const,
   },
   autoReply: {
     settings: ['auto-reply', 'settings'] as const,

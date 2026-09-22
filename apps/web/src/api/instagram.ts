@@ -10,10 +10,10 @@ import type {
   AiReplyPreview,
   CommentReplyInput,
   CommentReplyPreview,
-  CommentReplyStatus,
   ConnectInstagramInput,
   DraftActionInput,
   IgComment,
+  IgCommentPost,
   IgConversation,
   IgConversationDetail,
   IgMessage,
@@ -234,27 +234,62 @@ export function useDraftAction(conversationId: string) {
 
 // ─── Comments ────────────────────────────────────────────────────────────────
 
-export function useComments(params: { status?: CommentReplyStatus[]; page: number }) {
+/** Posts that have comments, with reply counts. Polled every 15 s (paused while hidden). */
+export function useCommentPosts() {
   return useQuery({
-    queryKey: qk.instagram.commentList(params),
+    queryKey: qk.instagram.commentPosts(),
     queryFn: ({ signal }) =>
-      api.list<IgComment>('/instagram/comments', { ...params, limit: 30 }, signal),
-    placeholderData: keepPreviousData,
-    refetchInterval: 30_000,
+      api.get<IgCommentPost[]>('/instagram/comments/posts', undefined, signal),
+    refetchInterval: 15_000,
   });
 }
 
-function useCommentMutation<V>(fn: (vars: V) => Promise<IgComment>) {
+/** Every comment on one post (oldest first, up to 100), including thread replies. */
+export function usePostComments(mediaId: string | undefined) {
+  return useQuery({
+    queryKey: qk.instagram.commentList({ mediaId }),
+    queryFn: ({ signal }) =>
+      api.list<IgComment>(
+        '/instagram/comments',
+        { mediaId, sortOrder: 'asc', limit: 100, page: 1 },
+        signal,
+      ),
+    enabled: Boolean(mediaId),
+    refetchInterval: 15_000,
+  });
+}
+
+const COMMENT_LISTS = ['instagram', 'comments', 'list'] as const;
+
+function patchComment(qc: QueryClient, id: string, patch: (c: IgComment) => IgComment) {
+  qc.setQueriesData<Paged<IgComment[]>>({ queryKey: COMMENT_LISTS }, (old) =>
+    old ? { ...old, data: old.data.map((c) => (c.id === id ? patch(c) : c)) } : old,
+  );
+}
+
+/**
+ * Comment mutations update the cached comment straight away (`optimistic`), put the server's
+ * version in place on success, roll back on error, then refresh posts and inbox counts.
+ */
+function useCommentMutation<V>(
+  fn: (vars: V) => Promise<IgComment>,
+  optimistic?: (vars: V) => { id: string; patch: Partial<IgComment> },
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: (comment) => {
-      qc.setQueriesData<Paged<IgComment[]>>(
-        { queryKey: ['instagram', 'comments', 'list'] },
-        (old) =>
-          old ? { ...old, data: old.data.map((c) => (c.id === comment.id ? comment : c)) } : old,
-      );
+    onMutate: async (vars) => {
+      if (!optimistic) return undefined;
+      await qc.cancelQueries({ queryKey: COMMENT_LISTS });
+      const previous = qc.getQueriesData<Paged<IgComment[]>>({ queryKey: COMMENT_LISTS });
+      const { id, patch } = optimistic(vars);
+      patchComment(qc, id, (c) => ({ ...c, ...patch }));
+      return { previous };
     },
+    onError: (_e, _vars, ctx) => {
+      for (const [key, data] of ctx?.previous ?? []) qc.setQueryData(key, data);
+    },
+    onSuccess: (comment) => patchComment(qc, comment.id, () => comment),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: qk.instagram.comments() });
       void qc.invalidateQueries({ queryKey: qk.instagram.counts() });
@@ -269,7 +304,18 @@ export function useReplyToComment() {
 }
 
 export function useSkipComment() {
-  return useCommentMutation((id: string) => api.post<IgComment>(`/instagram/comments/${id}/skip`));
+  return useCommentMutation(
+    (id: string) => api.post<IgComment>(`/instagram/comments/${id}/skip`),
+    (id) => ({ id, patch: { replyStatus: 'SKIPPED', publicReply: null, privateReply: null } }),
+  );
+}
+
+/** Drop an AI draft; the comment goes back to needing a reply. */
+export function useDiscardCommentDraft() {
+  return useCommentMutation(
+    (id: string) => api.post<IgComment>(`/instagram/comments/${id}/discard`),
+    (id) => ({ id, patch: { replyStatus: 'NONE', publicReply: null, privateReply: null } }),
+  );
 }
 
 export function useSuggestCommentReply() {

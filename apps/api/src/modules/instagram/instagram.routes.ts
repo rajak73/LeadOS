@@ -20,9 +20,11 @@ import { getAutoReplySettingsDto, updateAutoReplySettings } from './autoreply.se
 import { connectInstagram, disconnectInstagram, getInstagramStatus } from './instagram.account.js';
 import {
   createLeadForConversation,
+  discardCommentDraft,
   draftAction,
   getConversationDetail,
   inboxCounts,
+  listCommentPosts,
   listComments,
   listConversations,
   replyToCommentManually,
@@ -94,6 +96,8 @@ instagramRouter.post('/messages/:id/draft', async (req, res) =>
   ok(res, await draftAction(actor(req), idParam(req, 'message'), body(draftActionSchema, req))),
 );
 
+instagramRouter.get('/comments/posts', async (_req, res) => ok(res, await listCommentPosts()));
+
 instagramRouter.get('/comments', async (req, res) => {
   const { data, meta } = await listComments(query(commentListQuerySchema, req));
   ok(res, data, meta);
@@ -112,6 +116,10 @@ instagramRouter.post('/comments/:id/reply', async (req, res) =>
 
 instagramRouter.post('/comments/:id/skip', async (req, res) =>
   ok(res, await skipComment(actor(req), idParam(req, 'comment'))),
+);
+
+instagramRouter.post('/comments/:id/discard', async (req, res) =>
+  ok(res, await discardCommentDraft(idParam(req, 'comment'))),
 );
 
 instagramRouter.post('/comments/:id/suggest', async (req, res) =>

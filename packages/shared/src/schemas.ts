@@ -609,6 +609,8 @@ export const commentListQuerySchema = paginationSchema.extend({
   status: z.preprocess(asArray, z.array(z.enum(COMMENT_REPLY_STATUSES)).optional()),
   mediaId: z.string().max(64).optional(),
   search: z.string().trim().max(100).optional(),
+  /** By commentedAt: newest first (default) or oldest first. */
+  sortOrder,
 });
 export type CommentListQuery = z.infer<typeof commentListQuerySchema>;
 
