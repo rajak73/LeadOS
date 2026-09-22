@@ -15,6 +15,7 @@
     "db:migrate": "tsx --env-file-if-exists=../../.env src/scripts/migrate.ts",
     "db:migrate:create": "tsx --env-file-if-exists=../../.env src/scripts/migrate.ts --create",
     "db:seed": "tsx --env-file-if-exists=../../.env src/scripts/seed.ts",
+    "db:import-legacy": "tsx --env-file-if-exists=../../.env src/scripts/import-legacy.ts",
     "db:studio": "tsx --env-file-if-exists=../../.env src/scripts/migrate.ts --studio"
   },
   "dependencies": {
