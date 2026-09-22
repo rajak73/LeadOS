@@ -86,7 +86,7 @@ function LeadView({ lead }: { lead: LeadDetail }) {
         }
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-surface px-4 py-3">
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-2">
           <span className="type-small text-fg-muted">Status</span>
           <LeadStatusControl lead={lead} />
@@ -119,31 +119,33 @@ function LeadView({ lead }: { lead: LeadDetail }) {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <LeadInfoPanel lead={lead} />
-        <AiScoreCard lead={lead} />
+      {/* Same layout as contacts and deals: the record on the left, its activity on the right. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <LeadInfoPanel lead={lead} />
+          <AiScoreCard lead={lead} />
+        </div>
+        <Tabs defaultValue="activity" className="min-w-0">
+          <TabsList label="Lead records">
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="tasks" count={lead.openTaskCount}>
+              Tasks
+            </TabsTrigger>
+            <TabsTrigger value="deals" count={lead.deals.length}>
+              Deals
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="activity">
+            <RecordTimeline scope={{ leadId: lead.id }} />
+          </TabsContent>
+          <TabsContent value="tasks">
+            <RelatedTasks scope={{ relatedLeadId: lead.id }} record={record} />
+          </TabsContent>
+          <TabsContent value="deals">
+            <RecordDeals deals={lead.deals} record={record} />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="activity" className="mt-8">
-        <TabsList label="Lead records">
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="tasks" count={lead.openTaskCount}>
-            Tasks
-          </TabsTrigger>
-          <TabsTrigger value="deals" count={lead.deals.length}>
-            Deals
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="activity">
-          <RecordTimeline scope={{ leadId: lead.id }} />
-        </TabsContent>
-        <TabsContent value="tasks">
-          <RelatedTasks scope={{ relatedLeadId: lead.id }} record={record} />
-        </TabsContent>
-        <TabsContent value="deals">
-          <RecordDeals deals={lead.deals} record={record} />
-        </TabsContent>
-      </Tabs>
 
       <LeadFormDialog open={editOpen} onOpenChange={setEditOpen} lead={lead} />
       {!converted && (

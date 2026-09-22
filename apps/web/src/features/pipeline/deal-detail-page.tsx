@@ -99,7 +99,7 @@ function DealDetail({ deal }: { deal: Deal }) {
         }
       />
 
-      <Card className="mb-6 flex flex-wrap items-end gap-x-8 gap-y-4 px-5 py-4">
+      <Card className="mb-4 flex flex-wrap items-end gap-x-8 gap-y-4 px-5 py-4">
         <div className="flex flex-col gap-1">
           <span className="type-caption text-fg-muted">Status</span>
           <span className="flex h-9 items-center">
@@ -115,7 +115,7 @@ function DealDetail({ deal }: { deal: Deal }) {
         <StagePicker deal={deal} />
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
         <div className="min-w-0">
           <DealInfoCard deal={deal} />
         </div>

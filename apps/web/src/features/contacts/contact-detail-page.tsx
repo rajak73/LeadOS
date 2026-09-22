@@ -71,7 +71,7 @@ function ContactView({ contact }: { contact: ContactDetail }) {
         }
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-surface px-4 py-3">
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-2">
           <span aria-hidden className="type-small text-fg-muted">
             Owner
@@ -102,26 +102,27 @@ function ContactView({ contact }: { contact: ContactDetail }) {
         )}
       </div>
 
-      <ContactInfoPanel contact={contact} />
-
-      <Tabs defaultValue="activity" className="mt-8">
-        <TabsList label="Contact records">
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="deals" count={contact.deals.length}>
-            Deals
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="activity">
-          <RecordTimeline scope={{ contactId: contact.id }} />
-        </TabsContent>
-        <TabsContent value="tasks">
-          <RelatedTasks scope={{ relatedContactId: contact.id }} record={record} />
-        </TabsContent>
-        <TabsContent value="deals">
-          <RecordDeals deals={contact.deals} record={record} />
-        </TabsContent>
-      </Tabs>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <ContactInfoPanel contact={contact} />
+        <Tabs defaultValue="activity" className="min-w-0">
+          <TabsList label="Contact records">
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="deals" count={contact.deals.length}>
+              Deals
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="activity">
+            <RecordTimeline scope={{ contactId: contact.id }} />
+          </TabsContent>
+          <TabsContent value="tasks">
+            <RelatedTasks scope={{ relatedContactId: contact.id }} record={record} />
+          </TabsContent>
+          <TabsContent value="deals">
+            <RecordDeals deals={contact.deals} record={record} />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <ContactFormDialog open={editOpen} onOpenChange={setEditOpen} contact={contact} />
       <ConfirmDialog

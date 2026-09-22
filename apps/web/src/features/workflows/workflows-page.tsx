@@ -92,7 +92,7 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <PageHeader
         title="Workflows"
         description="Automate the busywork: when something happens, LeadOS does the next step."

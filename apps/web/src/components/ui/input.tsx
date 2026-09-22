@@ -30,7 +30,7 @@ export const Textarea = forwardRef<
     <textarea
       ref={ref}
       rows={rows}
-      className={cn(fieldBase, 'min-h-20 px-3 py-2 type-body', className)}
+      className={cn(fieldBase, 'min-h-16 px-3 py-2 type-body', className)}
       {...rest}
     />
   );

@@ -47,7 +47,7 @@ export function NoteComposer({ scope }: { scope: RecordScope }) {
           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') void submit();
         }}
         placeholder="Write a note… (Ctrl + Enter to save)"
-        rows={3}
+        rows={2}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className="border-0 p-0 shadow-none focus-visible:outline-0"

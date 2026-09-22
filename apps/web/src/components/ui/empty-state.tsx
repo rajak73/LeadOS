@@ -24,7 +24,7 @@ export function EmptyState({
     <div
       className={cn(
         'flex flex-col items-center justify-center text-center',
-        compact ? 'px-4 py-8' : 'px-6 py-16',
+        compact ? 'px-4 py-6' : 'px-6 py-10',
         className,
       )}
     >
@@ -60,7 +60,7 @@ export function ErrorState({
       role="alert"
       className={cn(
         'flex flex-col items-center justify-center text-center',
-        compact ? 'px-4 py-8' : 'px-6 py-16',
+        compact ? 'px-4 py-6' : 'px-6 py-10',
         className,
       )}
     >
