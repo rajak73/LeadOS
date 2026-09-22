@@ -18,7 +18,7 @@ import { type DomainEvent, emitAll } from '../../lib/events.js';
 import { conflict, fieldError, forbidden, invalidTransition, notFound } from '../../lib/errors.js';
 import { pageMeta } from '../../lib/http.js';
 import { LEAD_SOURCE_LABEL, LEAD_STATUS_LABEL, fullName } from '../../lib/labels.js';
-import { prisma, type Tx } from '../../lib/prisma.js';
+import { lockRows, prisma, type Tx } from '../../lib/prisma.js';
 import {
   asTags,
   contactInclude,
@@ -37,11 +37,13 @@ import { assertAssignable } from '../users/index.js';
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
 
-/** Each whitespace-separated word must match at least one of the fields (case-insensitive for ASCII). */
+/** Each whitespace-separated word must match at least one of the fields (case-insensitive). */
 export function textSearch<W>(fields: string[], search: string | undefined): W[] {
   if (!search) return [];
   const words = search.split(/\s+/).filter(Boolean).slice(0, 5);
-  return words.map((w) => ({ OR: fields.map((f) => ({ [f]: { contains: w } })) }) as W);
+  return words.map(
+    (w) => ({ OR: fields.map((f) => ({ [f]: { contains: w, mode: 'insensitive' } })) }) as W,
+  );
 }
 
 export function assigneeFilter(
@@ -54,17 +56,9 @@ export function assigneeFilter(
   return { assignedToId: value };
 }
 
-/** Ids of non-deleted records carrying `tag` (tags are a JSON array, so this uses json_each). */
-export async function idsWithTag(table: 'Lead' | 'Contact', tag: string): Promise<string[]> {
-  const rows =
-    table === 'Lead'
-      ? await prisma.$queryRaw<
-          Array<{ id: string }>
-        >`SELECT l.id FROM "Lead" l, json_each(l.tags) t WHERE t.value = ${tag} AND l.deletedAt IS NULL`
-      : await prisma.$queryRaw<
-          Array<{ id: string }>
-        >`SELECT c.id FROM "Contact" c, json_each(c.tags) t WHERE t.value = ${tag} AND c.deletedAt IS NULL`;
-  return rows.map((r) => r.id);
+/** Records whose `tags` jsonb array contains `tag` (exact match; uses the GIN index). */
+export function tagFilter(tag: string): { tags: { array_contains: string[] } } {
+  return { tags: { array_contains: [tag] } };
 }
 
 export type LeadFilters = Omit<LeadListQuery, 'page' | 'limit' | 'sortBy' | 'sortOrder'>;
@@ -74,7 +68,7 @@ export async function buildLeadWhere(actor: Actor, q: LeadFilters): Promise<Pris
     ['firstName', 'lastName', 'email', 'phone', 'company'],
     q.search,
   );
-  if (q.tag) and.push({ id: { in: await idsWithTag('Lead', q.tag) } });
+  if (q.tag) and.push(tagFilter(q.tag));
   if (q.scoreMin !== undefined || q.scoreMax !== undefined) {
     and.push({ aiScore: { gte: q.scoreMin, lte: q.scoreMax } });
   }
@@ -117,8 +111,11 @@ export async function listLeads(
 
 export async function listLeadTags(): Promise<string[]> {
   const rows = await prisma.$queryRaw<Array<{ value: string }>>`
-    SELECT DISTINCT t.value AS value FROM "Lead" l, json_each(l.tags) t
-    WHERE l.deletedAt IS NULL AND t.type = 'text' ORDER BY t.value COLLATE NOCASE`;
+    SELECT value FROM (
+      SELECT DISTINCT t.value #>> '{}' AS value
+      FROM "Lead" l CROSS JOIN LATERAL jsonb_array_elements(l.tags) AS t(value)
+      WHERE l."deletedAt" IS NULL AND jsonb_typeof(l.tags) = 'array' AND jsonb_typeof(t.value) = 'string'
+    ) tags ORDER BY lower(value), value`;
   return rows.map((r) => r.value);
 }
 
@@ -249,6 +246,7 @@ const FIELD_LABEL: Record<string, string> = {
 export async function updateLead(actor: Actor, id: string, input: UpdateLeadInput): Promise<Lead> {
   const events: DomainEvent[] = [];
   await prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Lead', [id]);
     const existing = await findActiveLead(tx, id);
     const data: Prisma.LeadUncheckedUpdateInput = {};
     const changed: string[] = [];
@@ -379,11 +377,12 @@ export async function deleteLead(id: string): Promise<void> {
 
 /** Adds a tag if missing (used by workflows). Returns false when the lead already had it. */
 export async function addLeadTag(actor: Actor, id: string, tag: string): Promise<boolean> {
-  const lead = await findActiveLead(prisma, id);
-  const tags = asTags(lead.tags);
-  if (tags.includes(tag)) return false;
-  if (tags.length >= 20) throw fieldError('tags', 'A record can have at most 20 tags');
-  await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Lead', [id]);
+    const lead = await findActiveLead(tx, id);
+    const tags = asTags(lead.tags);
+    if (tags.includes(tag)) return false;
+    if (tags.length >= 20) throw fieldError('tags', 'A record can have at most 20 tags');
     await tx.lead.update({ where: { id }, data: { tags: [...tags, tag] } });
     await recordActivity(tx, {
       type: 'LEAD_UPDATED',
@@ -392,8 +391,8 @@ export async function addLeadTag(actor: Actor, id: string, tag: string): Promise
       performedById: actor.userId,
       leadId: id,
     });
+    return true;
   });
-  return true;
 }
 
 // ─── Convert ─────────────────────────────────────────────────────────────────
@@ -534,6 +533,7 @@ export async function bulkLeads(
 
   const events: DomainEvent[] = [];
   const affected = await prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Lead', ids);
     const leads = await tx.lead.findMany({ where: { id: { in: ids }, deletedAt: null } });
     let count = 0;
 

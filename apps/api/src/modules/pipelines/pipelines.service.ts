@@ -7,7 +7,7 @@ import type {
   UpdatePipelineInput,
 } from '@leados/shared';
 import { conflict, fieldError, notFound } from '../../lib/errors.js';
-import { prisma, type Tx } from '../../lib/prisma.js';
+import { lockTx, prisma, type Tx } from '../../lib/prisma.js';
 import { dealInclude, toDeal } from '../../lib/serializers.js';
 
 export const DEFAULT_STAGES: StageInput[] = [
@@ -115,6 +115,7 @@ export async function getBoard(id: string): Promise<PipelineBoard> {
 
 export async function createPipeline(input: CreatePipelineInput): Promise<Pipeline> {
   const id = await prisma.$transaction(async (tx) => {
+    await lockTx(tx, 'pipelines'); // keeps exactly one default pipeline
     const isFirst = (await tx.pipeline.count()) === 0;
     const isDefault = input.isDefault || isFirst;
     if (isDefault)
@@ -134,6 +135,7 @@ export async function updatePipeline(id: string, input: UpdatePipelineInput): Pr
   }
 
   await prisma.$transaction(async (tx) => {
+    await lockTx(tx, 'pipelines');
     if (input.isDefault)
       await tx.pipeline.updateMany({
         where: { isDefault: true, id: { not: id } },

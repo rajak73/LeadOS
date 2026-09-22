@@ -1,17 +1,40 @@
+import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
-import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterAll } from 'vitest';
+import { afterAll, inject } from 'vitest';
+import { SCHEMA_PREFIX, urlForSchema } from './db.js';
 
-// Runs in every test file before any app module is imported: point the app at a private
-// copy of the migrated template database.
-const tmp = path.join(path.dirname(fileURLToPath(import.meta.url)), '.tmp');
-const dbFile = path.join(tmp, `test-${crypto.randomUUID()}.db`);
-fs.copyFileSync(path.join(tmp, 'template.db'), dbFile);
+// Runs in every test file before any app module is imported: create a private Postgres schema
+// for this file, apply the real migrations to it and point the app at it.
+const schema = [
+  SCHEMA_PREFIX + inject('testRunId'),
+  process.env.VITEST_POOL_ID ?? '0',
+  crypto.randomBytes(4).toString('hex'),
+].join('_');
+const url = urlForSchema(schema);
+
+const cli = createRequire(import.meta.url).resolve('prisma/build/index.js');
+const schemaFile = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../prisma/schema.prisma',
+);
+execFileSync(process.execPath, [cli, 'migrate', 'deploy', `--schema=${schemaFile}`], {
+  env: {
+    ...process.env,
+    DATABASE_URL: url,
+    DATABASE_DIRECT_URL: url,
+    // Each file has its own schema, so parallel migrations can't conflict; skip Prisma's
+    // database-wide migration lock so files don't queue behind each other.
+    PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: '1',
+  },
+  stdio: 'pipe',
+});
 
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = `file:${dbFile}`;
+process.env.DATABASE_URL = url;
+process.env.DATABASE_DIRECT_URL = url;
 process.env.BCRYPT_COST = '4';
 process.env.JWT_SECRET = 'test-secret-that-is-long-enough-for-hs256-signing';
 process.env.LOG_LEVEL = 'silent';
@@ -33,7 +56,9 @@ for (const key of [
 
 afterAll(async () => {
   const { prisma } = await import('../src/lib/prisma.js');
-  await prisma.$disconnect();
-  for (const suffix of ['', '-journal', '-wal', '-shm'])
-    fs.rmSync(dbFile + suffix, { force: true });
+  try {
+    await prisma.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+  } finally {
+    await prisma.$disconnect();
+  }
 });

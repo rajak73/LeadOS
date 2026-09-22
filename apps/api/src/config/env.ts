@@ -1,24 +1,13 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import os from 'node:os';
 import { z } from 'zod';
 
 const DEV_JWT_SECRET = 'dev-only-insecure-jwt-secret-change-me-please';
+const DEV_DATABASE_URL = 'postgresql://localhost:5432/leados_v2';
 
-/** Parses "true"/"false"/"1"/"0"/"yes"/"no" properly (z.coerce.boolean() treats "false" as true). */
-const booleanFlag = (fallback: boolean) =>
-  z
-    .string()
-    .optional()
-    .transform((v, ctx) => {
-      if (v === undefined || v.trim() === '') return fallback;
-      const s = v.trim().toLowerCase();
-      if (['true', '1', 'yes', 'on'].includes(s)) return true;
-      if (['false', '0', 'no', 'off'].includes(s)) return false;
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Expected true or false' });
-      return z.NEVER;
-    });
-
-/** Like booleanFlag, but undefined when unset so the default can depend on other values. */
+/**
+ * Parses "true"/"false"/"1"/"0"/"yes"/"no" properly (z.coerce.boolean() treats "false" as true).
+ * Undefined when unset so the default can depend on other values.
+ */
 const optionalBooleanFlag = z
   .string()
   .optional()
@@ -37,7 +26,23 @@ const optionalString = () => z.preprocess(emptyToUndefined, z.string().trim().op
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
-  DATABASE_URL: z.string().min(1).default('file:./data/leados.db'),
+  DATABASE_URL: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .trim()
+      .regex(/^postgres(ql)?:\/\//, 'DATABASE_URL must be a postgresql:// connection string')
+      .default(DEV_DATABASE_URL),
+  ),
+  // Direct (non-pooled) connection for migrations, e.g. Neon's host without "-pooler".
+  DATABASE_DIRECT_URL: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .trim()
+      .regex(/^postgres(ql)?:\/\//, 'DATABASE_DIRECT_URL must be a postgresql:// connection string')
+      .optional(),
+  ),
   JWT_SECRET: z.string().default(DEV_JWT_SECRET),
   APP_ORIGIN: z.string().url().default('http://localhost:5173'),
   // AI provider (lead scoring + Instagram replies). See modules/ai/ai.provider.ts.
@@ -73,7 +78,20 @@ const schema = z.object({
   ),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
   BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
-  TRUST_PROXY: booleanFlag(false),
+  // true/false, or the number of proxy hops in front of the app (e.g. 2 when a CDN proxies to
+  // a load balancer). Used so rate limiting sees the real client IP.
+  TRUST_PROXY: z
+    .string()
+    .optional()
+    .transform((v, ctx): boolean | number => {
+      if (v === undefined || v.trim() === '') return false;
+      const s = v.trim().toLowerCase();
+      if (/^\d+$/.test(s)) return Number(s);
+      if (['true', 'yes', 'on'].includes(s)) return true;
+      if (['false', 'no', 'off'].includes(s)) return false;
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Expected true, false or a number' });
+      return z.NEVER;
+    }),
   WEB_DIST_DIR: z.preprocess(emptyToUndefined, z.string().optional()),
   SEED_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SEED_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
@@ -82,36 +100,25 @@ const schema = z.object({
 export type Env = Omit<z.infer<typeof schema>, 'INSTAGRAM_TEST_MODE'> & {
   LOG_LEVEL: string;
   DATABASE_URL: string;
+  /** Always set: falls back to DATABASE_URL. */
+  DATABASE_DIRECT_URL: string;
   /** Sandbox Instagram adapter + simulate endpoint. Default: on in development only. */
   INSTAGRAM_TEST_MODE: boolean;
 };
 
 /**
- * Prisma resolves relative SQLite paths against the directory of schema.prisma when running
- * migrations. Resolve them the same way at runtime (by finding prisma/schema.prisma above the
- * working directory) so the app, the CLI and the seed script all use the same file.
+ * Prisma (unlike psql/libpq) doesn't default the user name, so `postgresql://localhost/db`
+ * fails. Fill in $PGUSER or the OS user when the URL has none, as psql would.
  */
-export function findSchemaDir(cwd = process.cwd()): string | null {
-  let dir = cwd;
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(dir, 'prisma', 'schema.prisma'))) return path.join(dir, 'prisma');
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return null;
-}
-
-export function resolveDatabaseUrl(url: string, cwd = process.cwd()): string {
-  if (!url.startsWith('file:')) return url;
-  const [rawPath = '', query] = url.slice('file:'.length).split('?');
-  if (path.isAbsolute(rawPath)) {
-    fs.mkdirSync(path.dirname(rawPath), { recursive: true });
+export function withDefaultUser(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.username) return url;
+    u.username = encodeURIComponent(process.env.PGUSER || os.userInfo().username);
+    return u.toString();
+  } catch {
     return url;
   }
-  const absolute = path.resolve(findSchemaDir(cwd) ?? cwd, rawPath);
-  fs.mkdirSync(path.dirname(absolute), { recursive: true });
-  return `file:${absolute}${query ? `?${query}` : ''}`;
 }
 
 function loadEnv(): Env {
@@ -133,9 +140,18 @@ function loadEnv(): Env {
     );
     process.exit(1);
   }
+  if (env.NODE_ENV === 'production' && !process.env.DATABASE_URL?.trim()) {
+    console.error('DATABASE_URL must be set in production (a postgresql:// connection string).');
+    process.exit(1);
+  }
+  // prisma/schema.prisma references DATABASE_DIRECT_URL, so it must exist for the Prisma CLI.
+  const databaseUrl = withDefaultUser(env.DATABASE_URL);
+  const directUrl = withDefaultUser(env.DATABASE_DIRECT_URL ?? env.DATABASE_URL);
+  process.env.DATABASE_DIRECT_URL = directUrl;
   return {
     ...env,
-    DATABASE_URL: resolveDatabaseUrl(env.DATABASE_URL),
+    DATABASE_URL: databaseUrl,
+    DATABASE_DIRECT_URL: directUrl,
     LOG_LEVEL: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
     INSTAGRAM_TEST_MODE: env.INSTAGRAM_TEST_MODE ?? env.NODE_ENV === 'development',
     PUBLIC_URL: env.PUBLIC_URL?.replace(/\/+$/, ''),

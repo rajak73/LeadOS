@@ -1,7 +1,7 @@
 # LeadOS — single image serving the API and the built web app from one origin.
 #   docker build -f infra/docker/api.Dockerfile -t leados .
-#   docker run -p 4000:4000 -v leados-data:/data -e JWT_SECRET=$(openssl rand -base64 48) leados
-# The SQLite database lives in the /data volume; migrations run on every start.
+#   docker run -p 4000:4000 -e DATABASE_URL=postgresql://… -e JWT_SECRET=$(openssl rand -base64 48) leados
+# Needs a PostgreSQL database (DATABASE_URL); migrations run on every start.
 
 FROM node:22-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
@@ -26,7 +26,7 @@ RUN pnpm --filter @leados/api exec prisma generate --schema=../../prisma/schema.
  && pnpm --filter @leados/api build
 # Self-contained production install of the API (no dev dependencies).
 RUN pnpm --filter @leados/api deploy --prod --ignore-scripts /out \
- && cp -r prisma /out/prisma && rm -rf /out/prisma/data \
+ && cp -r prisma /out/prisma \
  && cp -r apps/web/dist /out/web \
  && cd /out && node node_modules/prisma/build/index.js generate --schema=prisma/schema.prisma \
  && rm -rf /out/src /out/tests /out/*.config.ts /out/tsconfig.json
@@ -35,12 +35,9 @@ RUN pnpm --filter @leados/api deploy --prod --ignore-scripts /out \
 FROM base AS runtime
 ENV NODE_ENV=production \
     PORT=4000 \
-    DATABASE_URL=file:/data/leados.db \
     WEB_DIST_DIR=/app/web
 WORKDIR /app
 COPY --from=build --chown=node:node /out /app
-RUN mkdir -p /data && chown node:node /data
-VOLUME ["/data"]
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

@@ -1,5 +1,6 @@
+import http from 'node:http';
 import request from 'supertest';
-import type { Express } from 'express';
+import { afterAll } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
 import { flush } from '../src/lib/queue.js';
@@ -8,8 +9,23 @@ export { flush, prisma };
 
 export const PASSWORD = 'correct-horse-battery';
 
-export function testApp(options: Parameters<typeof createApp>[0] = {}): Express {
-  return createApp({ authRateLimit: 10_000, globalRateLimit: 100_000, ...options });
+/** A listening server for supertest. */
+export type TestApp = http.Server;
+
+/**
+ * The app on one server per test file, listening on 127.0.0.1 for the whole file. (Passing the
+ * Express app to supertest instead opens and closes a server per request; with test files
+ * running in parallel processes a request can then reach another file's server that just
+ * reused the port.)
+ */
+export function testApp(options: Parameters<typeof createApp>[0] = {}): TestApp {
+  const server = http.createServer(
+    createApp({ authRateLimit: 10_000, globalRateLimit: 100_000, ...options }),
+  );
+  server.listen(0, '127.0.0.1');
+  server.unref();
+  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  return server;
 }
 
 export interface Session {
@@ -25,7 +41,7 @@ const cookieFrom = (res: request.Response) => {
   );
 };
 
-export async function setupAdmin(app: Express, email = 'admin@example.com'): Promise<Session> {
+export async function setupAdmin(app: TestApp, email = 'admin@example.com'): Promise<Session> {
   const res = await request(app)
     .post('/api/auth/setup')
     .send({
@@ -43,7 +59,7 @@ export async function setupAdmin(app: Express, email = 'admin@example.com'): Pro
   };
 }
 
-export async function login(app: Express, email: string, password = PASSWORD): Promise<Session> {
+export async function login(app: TestApp, email: string, password = PASSWORD): Promise<Session> {
   const res = await request(app).post('/api/auth/login').send({ email, password }).expect(200);
   return {
     token: res.body.data.accessToken,
@@ -53,7 +69,7 @@ export async function login(app: Express, email: string, password = PASSWORD): P
 }
 
 export async function createMember(
-  app: Express,
+  app: TestApp,
   admin: Session,
   firstName = 'Mohan',
   role: 'ADMIN' | 'MEMBER' = 'MEMBER',
@@ -70,7 +86,7 @@ export async function createMember(
 export const auth = (s: Session) => ({ authorization: `Bearer ${s.token}` });
 
 /** Small typed-ish wrapper: api(app, session).post('/leads', body). */
-export function api(app: Express, s: Session) {
+export function api(app: TestApp, s: Session) {
   const h = auth(s);
   return {
     get: (url: string) => request(app).get(`/api${url}`).set(h),

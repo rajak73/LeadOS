@@ -1,7 +1,7 @@
 import type { CreateUserInput, UpdateUserInput, User } from '@leados/shared';
 import { conflict, fieldError, notFound } from '../../lib/errors.js';
 import { hashPassword } from '../../lib/password.js';
-import { prisma, type Tx } from '../../lib/prisma.js';
+import { lockTx, prisma, type Tx } from '../../lib/prisma.js';
 import { toUser } from '../../lib/serializers.js';
 
 export async function listUsers(): Promise<User[]> {
@@ -49,12 +49,13 @@ export async function updateUser(
       demoting ? "You can't remove your own admin access." : "You can't disable your own account.",
     );
   }
-  if ((demoting || disabling) && user.role === 'ADMIN' && user.status === 'ACTIVE') {
-    const activeAdmins = await prisma.user.count({ where: { role: 'ADMIN', status: 'ACTIVE' } });
-    if (activeAdmins <= 1) throw conflict('Your team needs at least one active admin.');
-  }
-
   const updated = await prisma.$transaction(async (tx) => {
+    if ((demoting || disabling) && user.role === 'ADMIN' && user.status === 'ACTIVE') {
+      // Serialised so two admins demoting each other at once can't leave nobody in charge.
+      await lockTx(tx, 'active-admins');
+      const activeAdmins = await tx.user.count({ where: { role: 'ADMIN', status: 'ACTIVE' } });
+      if (activeAdmins <= 1) throw conflict('Your team needs at least one active admin.');
+    }
     const u = await tx.user.update({ where: { id }, data: input });
     if (disabling)
       await tx.refreshToken.updateMany({

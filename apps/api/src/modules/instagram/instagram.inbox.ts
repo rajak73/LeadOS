@@ -86,7 +86,12 @@ export async function listConversations(
     and.push({ OR: [{ needsAttention: true }, { messages: { some: { status: 'DRAFT' } } }] });
   for (const word of (q.search ?? '').split(/\s+/).filter(Boolean).slice(0, 5)) {
     const w = word.replace(/^@/, '');
-    and.push({ OR: [{ username: { contains: w } }, { name: { contains: w } }] });
+    and.push({
+      OR: [
+        { username: { contains: w, mode: 'insensitive' } },
+        { name: { contains: w, mode: 'insensitive' } },
+      ],
+    });
   }
   const where: Prisma.IgConversationWhereInput = and.length ? { AND: and } : {};
   const [rows, total] = await Promise.all([
@@ -288,7 +293,12 @@ export async function listComments(
   if (q.mediaId) and.push({ mediaId: q.mediaId });
   for (const word of (q.search ?? '').split(/\s+/).filter(Boolean).slice(0, 5)) {
     const w = word.replace(/^@/, '');
-    and.push({ OR: [{ text: { contains: w } }, { fromUsername: { contains: w } }] });
+    and.push({
+      OR: [
+        { text: { contains: w, mode: 'insensitive' } },
+        { fromUsername: { contains: w, mode: 'insensitive' } },
+      ],
+    });
   }
   const where: Prisma.IgCommentWhereInput = and.length ? { AND: and } : {};
   const [rows, total] = await Promise.all([

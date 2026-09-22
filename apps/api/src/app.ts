@@ -60,7 +60,8 @@ export function createApp(options: AppOptions = {}): Express {
   registerSubscribers();
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', env.TRUST_PROXY ? 1 : false);
+  // true = one proxy hop (Render's load balancer); a number = that many hops.
+  app.set('trust proxy', env.TRUST_PROXY === true ? 1 : env.TRUST_PROXY);
 
   app.use(
     helmet({

@@ -1,25 +1,44 @@
-import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
+import { PrismaClient } from '@prisma/client';
+import type { TestProject } from 'vitest/node';
+import { SCHEMA_PREFIX, TEST_DATABASE_URL, testDatabaseName, urlForDatabase } from './db.js';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-export const TMP_DIR = path.join(here, '.tmp');
-export const TEMPLATE_DB = path.join(TMP_DIR, 'template.db');
+declare module 'vitest' {
+  export interface ProvidedContext {
+    testRunId: string;
+  }
+}
 
-/** Applies the real migrations to a template database that each test file copies. */
-export default function setup(): () => void {
-  fs.rmSync(TMP_DIR, { recursive: true, force: true });
-  fs.mkdirSync(TMP_DIR, { recursive: true });
-  const cli = createRequire(import.meta.url).resolve('prisma/build/index.js');
-  execFileSync(
-    process.execPath,
-    [cli, 'migrate', 'deploy', `--schema=${path.resolve(here, '../../../prisma/schema.prisma')}`],
-    {
-      env: { ...process.env, DATABASE_URL: `file:${TEMPLATE_DB}` },
-      stdio: 'pipe',
-    },
-  );
-  return () => fs.rmSync(TMP_DIR, { recursive: true, force: true });
+const quoteIdent = (name: string) => `"${name.replace(/"/g, '""')}"`;
+
+/**
+ * Creates the test database if it doesn't exist yet. Each test file then migrates its own
+ * schema (tests/setup.ts); schemas of this run are dropped at the end.
+ */
+export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+  const database = testDatabaseName();
+  const admin = new PrismaClient({ datasourceUrl: urlForDatabase('postgres') });
+  try {
+    const rows = await admin.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = ${database}) AS exists`;
+    if (!rows[0]?.exists) await admin.$executeRawUnsafe(`CREATE DATABASE ${quoteIdent(database)}`);
+  } finally {
+    await admin.$disconnect();
+  }
+
+  const runId = crypto.randomBytes(3).toString('hex');
+  project.provide('testRunId', runId);
+
+  return async () => {
+    // Normally each file drops its own schema; this catches files that crashed.
+    const db = new PrismaClient({ datasourceUrl: TEST_DATABASE_URL });
+    try {
+      const leftovers = await db.$queryRaw<Array<{ name: string }>>`
+        SELECT nspname AS name FROM pg_namespace WHERE nspname LIKE ${`${SCHEMA_PREFIX}${runId}_%`}`;
+      for (const { name } of leftovers)
+        await db.$executeRawUnsafe(`DROP SCHEMA IF EXISTS ${quoteIdent(name)} CASCADE`);
+    } finally {
+      await db.$disconnect();
+    }
+  };
 }

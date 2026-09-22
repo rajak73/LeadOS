@@ -1,10 +1,9 @@
 import crypto from 'node:crypto';
 import request from 'supertest';
-import type { Express } from 'express';
 import { env } from '../src/config/env.js';
 import { idle } from '../src/lib/queue.js';
 import { SANDBOX_ACCOUNT } from '../src/modules/instagram/index.js';
-import { api, type Session } from './helpers.js';
+import { api, type Session, type TestApp } from './helpers.js';
 
 export const APP_SECRET = 'test-meta-app-secret';
 export const OUR_ID = SANDBOX_ACCOUNT.userId;
@@ -81,7 +80,7 @@ export function commentPayload(
 }
 
 /** Posts a signed webhook and waits for the queued processing (debounced replies stay pending). */
-export async function deliver(app: Express, payload: object, expectStatus = 200): Promise<void> {
+export async function deliver(app: TestApp, payload: object, expectStatus = 200): Promise<void> {
   const raw = JSON.stringify(payload);
   await request(app)
     .post('/api/webhooks/instagram')
@@ -93,7 +92,7 @@ export async function deliver(app: Express, payload: object, expectStatus = 200)
   await idle();
 }
 
-export async function connectTestAccount(app: Express, admin: Session): Promise<void> {
+export async function connectTestAccount(app: TestApp, admin: Session): Promise<void> {
   await api(app, admin)
     .post('/instagram/connect', { accessToken: 'IGAA-test-token-that-is-long-enough' })
     .expect(200);

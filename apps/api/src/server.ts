@@ -1,7 +1,7 @@
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
-import { configureDatabase, prisma } from './lib/prisma.js';
+import { connectDatabase, prisma } from './lib/prisma.js';
 import { shutdownQueue } from './lib/queue.js';
 import { getDummyHash } from './lib/password.js';
 import { describeProvider } from './modules/ai/index.js';
@@ -10,7 +10,7 @@ import { startInstagramJobs } from './modules/instagram/index.js';
 import { startTaskReminders } from './modules/tasks/index.js';
 
 async function main(): Promise<void> {
-  await configureDatabase();
+  await connectDatabase();
   await getDummyHash(); // precompute so the first unknown-email login isn't faster
   const app = createApp();
   const server = app.listen(env.PORT, () => {

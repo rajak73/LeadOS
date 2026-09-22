@@ -12,7 +12,7 @@ import type { Actor } from '../../lib/auth.js';
 import { notFound } from '../../lib/errors.js';
 import { pageMeta } from '../../lib/http.js';
 import { fullName } from '../../lib/labels.js';
-import { prisma } from '../../lib/prisma.js';
+import { lockRows, prisma } from '../../lib/prisma.js';
 import {
   asTags,
   contactInclude,
@@ -20,7 +20,7 @@ import {
   toContact,
   toDealSummary,
 } from '../../lib/serializers.js';
-import { assigneeFilter, idsWithTag, textSearch } from '../leads/index.js';
+import { assigneeFilter, tagFilter, textSearch } from '../leads/index.js';
 import { assertAssignable } from '../users/index.js';
 
 export async function listContacts(
@@ -31,7 +31,7 @@ export async function listContacts(
     ['firstName', 'lastName', 'email', 'phone', 'company', 'jobTitle'],
     q.search,
   );
-  if (q.tag) and.push({ id: { in: await idsWithTag('Contact', q.tag) } });
+  if (q.tag) and.push(tagFilter(q.tag));
   const where: Prisma.ContactWhereInput = {
     deletedAt: null,
     ...assigneeFilter(q.assignedToId, actor),
@@ -126,6 +126,7 @@ export async function updateContact(
   input: UpdateContactInput,
 ): Promise<Contact> {
   await prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Contact', [id]);
     const existing = await tx.contact.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw notFound('contact');
     const data: Prisma.ContactUncheckedUpdateInput = {};

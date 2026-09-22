@@ -14,7 +14,7 @@ import {
 import { ACCESS_TOKEN_TTL_SECONDS, signAccessToken } from '../../lib/auth.js';
 import { AppError, conflict, fieldError, notFound, unauthorized } from '../../lib/errors.js';
 import { getDummyHash, hashPassword, verifyPassword } from '../../lib/password.js';
-import { prisma } from '../../lib/prisma.js';
+import { lockTx, prisma } from '../../lib/prisma.js';
 import { toUser } from '../../lib/serializers.js';
 import { createDefaultPipeline } from '../pipelines/index.js';
 import { SETTINGS_ID } from '../settings/index.js';
@@ -68,6 +68,7 @@ export async function getAuthStatus(): Promise<AuthStatus> {
 export async function setup(input: SetupInput): Promise<IssuedSession> {
   const passwordHash = await hashPassword(input.password);
   const user = await prisma.$transaction(async (tx) => {
+    await lockTx(tx, 'setup'); // two simultaneous first-run requests must not both succeed
     if ((await tx.user.count()) > 0) throw conflict('LeadOS is already set up. Sign in instead.');
     await tx.appSettings.upsert({
       where: { id: SETTINGS_ID },

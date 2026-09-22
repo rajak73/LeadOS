@@ -3,10 +3,10 @@
 A CRM for one company and its sales team. It covers leads, contacts, a deals pipeline,
 tasks, notes, AI lead scoring and simple automation.
 
-- **Backend:** Node.js 22, Express 5 and TypeScript, with Prisma on SQLite
+- **Backend:** Node.js 22, Express 5 and TypeScript, with Prisma on PostgreSQL
 - **Frontend:** React 19 (Vite), Tailwind CSS v4, TanStack Query and Radix UI
 - **One process:** in production the API also serves the web app, so a single server and a
-  single database file is all you run
+  single Postgres database is all you run
 
 ## Features
 
@@ -28,12 +28,14 @@ tasks, notes, AI lead scoring and simple automation.
 
 ## Getting started
 
-You need Node 22 or newer and pnpm 9 (`corepack enable`).
+You need Node 22 or newer, pnpm 9 (`corepack enable`) and PostgreSQL 16 running locally
+(e.g. `brew install postgresql@16 && brew services start postgresql@16`).
 
 ```bash
 pnpm install
 cp .env.example .env            # the defaults work for local development
-pnpm db:migrate                 # creates prisma/data/leados.db
+createdb leados_v2
+pnpm db:migrate                 # creates the tables
 pnpm db:seed -- --demo          # creates an admin account plus demo data (omit --demo for an empty CRM)
 pnpm dev                        # API on :4000, web app on http://localhost:5173
 ```
@@ -58,14 +60,47 @@ where you create the admin account.
 
 ## Deploying
 
+LeadOS ships as one Docker image (API + built web app on one origin) that needs a
+PostgreSQL database. The container applies pending migrations on every start.
+
 ```bash
 docker build -f infra/docker/api.Dockerfile -t leados .
-docker run -p 4000:4000 -v leados-data:/data -e JWT_SECRET="$(openssl rand -base64 48)" leados
+docker run -p 4000:4000 -e DATABASE_URL="postgresql://…" -e JWT_SECRET="$(openssl rand -base64 48)" leados
 ```
 
-The container applies migrations on start and keeps the SQLite database in the `/data`
-volume, so back that volume up. Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse
-proxy sits in front. See [`.env.example`](.env.example) for every setting.
+Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse proxy sits in front. See
+[`.env.example`](.env.example) for every setting.
+
+### Render + Neon
+
+1. **Database (Neon):** create a project in the region closest to your Render region (e.g.
+   Render Singapore → AWS Asia Pacific (Singapore)). From **Connect**, copy the **pooled**
+   connection string (host contains `-pooler`) and the direct one (pooling off).
+2. **Web service (Render):** New → Web Service → this repository.
+   - Runtime: **Docker**, Dockerfile path `infra/docker/api.Dockerfile`, Docker context `.`
+   - Health check path: `/api/health`
+   - Leave build and start commands empty (the Dockerfile defines them).
+3. **Environment variables:**
+
+   | Key                                                  | Value                                                           |
+   | ---------------------------------------------------- | --------------------------------------------------------------- |
+   | `DATABASE_URL`                                       | Neon pooled connection string                                   |
+   | `DATABASE_DIRECT_URL`                                | Neon direct connection string (used for migrations)             |
+   | `JWT_SECRET`                                         | `openssl rand -base64 48`                                       |
+   | `ENCRYPTION_KEY`                                     | `openssl rand -base64 48` (encrypts the stored Instagram token) |
+   | `APP_ORIGIN`                                         | the service URL, e.g. `https://leados.onrender.com`             |
+   | `TRUST_PROXY`                                        | `true`                                                          |
+   | `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` | optional, one AI key                                            |
+   | `META_APP_SECRET`                                    | optional, Instagram app secret (webhook signatures)             |
+   | `META_WEBHOOK_VERIFY_TOKEN`                          | optional, any random string                                     |
+
+   Render sets `PORT` itself; the image sets `NODE_ENV=production`.
+
+4. **First login:** open the service URL. With an empty database the app shows a first-run
+   screen where you create the admin account.
+5. **Instagram (optional):** in the Meta dashboard set the webhook callback to
+   `https://<your-service>/api/webhooks/instagram` with the same verify token, then connect
+   the account in Settings → Instagram.
 
 ## Project layout
 

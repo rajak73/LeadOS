@@ -12,7 +12,7 @@ import type { Actor } from '../../lib/auth.js';
 import { type DomainEvent, emitAll } from '../../lib/events.js';
 import { fieldError, notFound } from '../../lib/errors.js';
 import { pageMeta } from '../../lib/http.js';
-import { prisma, type Tx } from '../../lib/prisma.js';
+import { lockRows, prisma, type Tx } from '../../lib/prisma.js';
 import { dealInclude, toDeal } from '../../lib/serializers.js';
 import { assigneeFilter, textSearch } from '../leads/index.js';
 import { getSettings } from '../settings/index.js';
@@ -151,6 +151,7 @@ const FIELD_LABEL: Record<string, string> = {
 export async function updateDeal(actor: Actor, id: string, input: UpdateDealInput): Promise<Deal> {
   const events: DomainEvent[] = [];
   await prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Deal', [id]);
     const existing = await tx.deal.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw notFound('deal');
     await assertLinks(tx, input);
@@ -209,6 +210,7 @@ export async function updateDeal(actor: Actor, id: string, input: UpdateDealInpu
 export async function moveDeal(actor: Actor, id: string, input: MoveDealInput): Promise<Deal> {
   const events: DomainEvent[] = [];
   await prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Deal', [id]);
     const deal = await tx.deal.findFirst({
       where: { id, deletedAt: null },
       include: { stage: true },

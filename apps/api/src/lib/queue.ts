@@ -84,6 +84,9 @@ export function idle(): Promise<void> {
 
 /** Fires all debounced jobs now and waits until the queue is fully drained (jobs may enqueue more). */
 export async function flush(): Promise<void> {
+  // Let already-queued jobs (e.g. event handlers that are about to schedule a debounced job)
+  // finish first, so one flush fires each debounced key once.
+  await idle();
   for (let i = 0; i < 50; i++) {
     for (const [key, { timer, job }] of debounced) {
       clearTimeout(timer);

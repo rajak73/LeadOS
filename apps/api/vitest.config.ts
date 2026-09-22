@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
-    // Migrates a template SQLite database once; each test file then gets its own copy.
+    // Creates the Postgres test database if needed; each test file migrates its own schema.
     globalSetup: ['./tests/global-setup.ts'],
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 20_000,

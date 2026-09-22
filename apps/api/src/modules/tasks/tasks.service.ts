@@ -13,7 +13,7 @@ import { type DomainEvent, emitAll } from '../../lib/events.js';
 import { fieldError, notFound } from '../../lib/errors.js';
 import { pageMeta } from '../../lib/http.js';
 import { TASK_TYPE_LABEL } from '../../lib/labels.js';
-import { prisma, type Tx } from '../../lib/prisma.js';
+import { lockRows, prisma, type Tx } from '../../lib/prisma.js';
 import { taskInclude, toTask } from '../../lib/serializers.js';
 import { addDays, startOfDayIn } from '../../lib/time.js';
 import { assigneeFilter, textSearch } from '../leads/index.js';
@@ -185,6 +185,7 @@ export async function createTask(
 export async function updateTask(actor: Actor, id: string, input: UpdateTaskInput): Promise<Task> {
   const events: DomainEvent[] = [];
   await prisma.$transaction(async (tx) => {
+    await lockRows(tx, 'Task', [id]);
     const existing = await tx.task.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw notFound('task');
     const data: Prisma.TaskUncheckedUpdateInput = {

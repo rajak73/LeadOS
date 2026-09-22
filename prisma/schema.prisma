@@ -1,19 +1,25 @@
-// LeadOS — single-organisation CRM on SQLite.
+// LeadOS — single-organisation CRM on PostgreSQL (Neon in production).
 //
-// SQLite notes:
-// - No native enums: enum-like columns are String and validated by the zod schemas in
-//   packages/shared (constants/enums.ts is the single source of allowed values).
-// - No scalar lists: `tags` is a Json array of strings.
-// - `contains` filters are case-insensitive for ASCII (SQLite LIKE); `mode: 'insensitive'`
-//   is not supported and must not be used.
+// Notes:
+// - Enum-like columns are String and validated by the zod schemas in packages/shared
+//   (constants/enums.ts is the single source of allowed values), so adding a value needs no
+//   migration.
+// - `tags` is a jsonb array of strings (filtered with `array_contains`, GIN-indexed).
+// - Text search uses `contains` with `mode: 'insensitive'` (ILIKE).
+// - Prisma `String` maps to Postgres `text`, so long text needs no `@db.Text`.
+// - Money is `Float` (double precision); values are display amounts, not ledger entries.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Runtime connection. On Neon this is the pooled ("-pooler") connection string.
+  url       = env("DATABASE_URL")
+  // Direct (non-pooled) connection used by `prisma migrate`. Optional for the app: the API and
+  // the scripts default it to DATABASE_URL when it isn't set.
+  directUrl = env("DATABASE_DIRECT_URL")
 }
 
 // ─── Settings ────────────────────────────────────────────────────────────────
@@ -119,6 +125,7 @@ model Lead {
   @@index([lastActivityAt])
   @@index([email])
   @@index([deletedAt])
+  @@index([tags(ops: JsonbPathOps)], type: Gin)
 }
 
 model Contact {
@@ -148,6 +155,7 @@ model Contact {
   @@index([email])
   @@index([assignedToId])
   @@index([deletedAt])
+  @@index([tags(ops: JsonbPathOps)], type: Gin)
 }
 
 model Pipeline {

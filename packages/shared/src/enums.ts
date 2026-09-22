@@ -1,5 +1,5 @@
-// Allowed values for every enum-like column. SQLite has no native enums, so these
-// lists are the single source of truth for both the API (zod validation) and the UI.
+// Allowed values for every enum-like column. The database stores them as plain text (no native
+// Postgres enums, so adding a value needs no migration); these lists are the single source of truth for both the API (zod validation) and the UI.
 
 const values = <T extends readonly string[]>(...v: T) => v;
 

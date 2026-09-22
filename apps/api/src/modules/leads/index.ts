@@ -3,7 +3,7 @@ export {
   addLeadTag,
   assigneeFilter,
   createLead,
-  idsWithTag,
+  tagFilter,
   textSearch,
   updateLead,
 } from './leads.service.js';

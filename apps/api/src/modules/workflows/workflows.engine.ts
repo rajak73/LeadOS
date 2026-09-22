@@ -12,6 +12,7 @@ import { AppError } from '../../lib/errors.js';
 import { LEAD_STATUS_LABEL } from '../../lib/labels.js';
 import { logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
+import { withLock } from '../../lib/lock.js';
 import { enqueue } from '../../lib/queue.js';
 import { safePost, type SafePostOptions } from '../../lib/safe-fetch.js';
 import { asTags } from '../../lib/serializers.js';
@@ -422,13 +423,23 @@ export async function runWorkflow(workflow: WorkflowRow, event: DomainEvent): Pr
   });
 }
 
-async function handleEvent(event: DomainEvent): Promise<void> {
+/**
+ * Dispatch is serialised in event order, and runs of one workflow execute one at a time in that
+ * same order, so e.g. round-robin assignment follows the order leads were created even though
+ * background jobs and database connections run in parallel.
+ */
+function handleEvent(event: DomainEvent): Promise<void> {
   const trigger = TRIGGER_FOR_EVENT[event.type];
-  if (!trigger) return;
-  const workflows = await prisma.workflow.findMany({
-    where: { triggerType: trigger, isActive: true, deletedAt: null },
+  if (!trigger) return Promise.resolve();
+  return withLock('workflow-dispatch', async () => {
+    const workflows = await prisma.workflow.findMany({
+      where: { triggerType: trigger, isActive: true, deletedAt: null },
+    });
+    for (const wf of workflows)
+      enqueue(`workflow:${wf.id}`, () =>
+        withLock(`workflow:${wf.id}`, () => runWorkflow(wf, event)),
+      );
   });
-  for (const wf of workflows) enqueue(`workflow:${wf.id}`, () => runWorkflow(wf, event));
 }
 
 export function registerWorkflowEngine(): void {
