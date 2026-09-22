@@ -99,15 +99,15 @@ Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse proxy sits in front.
 4. **First login:** open the service URL. With an empty database the app shows a first-run
    screen where you create the admin account.
 5. **Data from the previous LeadOS (optional):** before anyone creates an account, copy one
-   organization from the old multi-tenant database into the new, empty one. The old database
-   is only read. Users keep their email and password.
+   organization from the old database into the new, empty one. The old database is only
+   read. Users keep their email and password.
    ```bash
    DATABASE_URL="<new database, direct>" pnpm db:migrate
    DATABASE_URL="<new database, direct>" LEGACY_DATABASE_URL="<old database>" pnpm db:import-legacy -- --dry-run
    DATABASE_URL="<new database, direct>" LEGACY_DATABASE_URL="<old database>" pnpm db:import-legacy
    ```
-   Add `-- --org <slug>` when the old database has several organizations. Files, custom
-   fields, notifications and WhatsApp data are not copied; reconnect Instagram afterwards.
+   Add `-- --org <slug>` when the old database has several organizations. Notifications,
+   simulated messages and follow-up rules are not copied; reconnect Instagram afterwards.
 6. **Instagram (optional):** in the Meta dashboard set the webhook callback to
    `https://<your-service>/api/webhooks/instagram` with the same verify token, then connect
    the account in Settings → Instagram.
