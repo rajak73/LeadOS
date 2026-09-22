@@ -88,7 +88,8 @@ export function TagFilterInput({
         }}
         onBlur={flush}
         maxLength={40}
-        className="w-full sm:w-36"
+        // Shares a row with the owner picker on phones instead of taking a line of its own.
+        className="min-w-28 flex-1 sm:w-36 sm:flex-none"
       />
       {suggestions.length > 0 && (
         <datalist id={listId}>

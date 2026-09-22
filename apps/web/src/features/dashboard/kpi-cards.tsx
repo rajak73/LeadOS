@@ -42,7 +42,7 @@ function Change({ value, previous }: { value: number; previous: number }) {
 
 function Kpi({ label, value, footer }: { label: string; value: string; footer: ReactNode }) {
   return (
-    <Card className="flex min-w-52 flex-1 basis-52 flex-col gap-1 p-4">
+    <Card className="flex min-w-40 flex-1 basis-40 flex-col gap-1 p-4 @xl:basis-52">
       <h2 className="type-small font-medium text-fg-muted">{label}</h2>
       <p className="type-metric text-fg">{value}</p>
       <div className="mt-auto">{footer}</div>

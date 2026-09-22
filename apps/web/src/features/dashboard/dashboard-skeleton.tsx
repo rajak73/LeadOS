@@ -28,7 +28,7 @@ export function DashboardSkeleton() {
     <LoadingRegion label="Loading dashboard…" className="@container flex flex-col gap-4">
       <div className="flex flex-wrap gap-4">
         {Array.from({ length: 5 }, (_, i) => (
-          <Card key={i} className="min-w-52 flex-1 basis-52 space-y-3 p-4">
+          <Card key={i} className="min-w-40 flex-1 basis-40 space-y-3 p-4 @xl:basis-52">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-8 w-20" />
             <Skeleton className="h-3.5 w-32" />

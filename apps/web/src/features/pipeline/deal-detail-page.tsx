@@ -88,11 +88,7 @@ function DealDetail({ deal }: { deal: Deal }) {
             <Button icon={<Pencil aria-hidden />} onClick={() => setEditing(true)}>
               Edit
             </Button>
-            <Button
-              variant="danger"
-              icon={<Trash2 aria-hidden />}
-              onClick={() => setDeleting(true)}
-            >
+            <Button variant="ghost" icon={<Trash2 aria-hidden />} onClick={() => setDeleting(true)}>
               Delete
             </Button>
           </>
