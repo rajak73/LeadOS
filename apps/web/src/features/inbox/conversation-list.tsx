@@ -85,7 +85,7 @@ function ConversationRow({
           {needsYou && <Badge tone="warning">Needs you</Badge>}
           {unread && (
             <span className="flex items-center">
-              <span aria-hidden className="size-2 rounded-full bg-primary" />
+              <span aria-hidden className="size-2 rounded-full bg-accent" />
               <span className="sr-only">Unread</span>
             </span>
           )}

@@ -11,7 +11,7 @@ import { prisma, type Tx } from '../../lib/prisma.js';
 import { dealInclude, toDeal } from '../../lib/serializers.js';
 
 export const DEFAULT_STAGES: StageInput[] = [
-  { name: 'New', color: '#6366F1', probability: 10, isWon: false, isLost: false },
+  { name: 'New', color: '#57534E', probability: 10, isWon: false, isLost: false },
   { name: 'Contacted', color: '#0EA5E9', probability: 25, isWon: false, isLost: false },
   { name: 'Proposal', color: '#F59E0B', probability: 50, isWon: false, isLost: false },
   { name: 'Negotiation', color: '#F97316', probability: 75, isWon: false, isLost: false },

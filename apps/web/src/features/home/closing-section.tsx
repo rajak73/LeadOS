@@ -12,7 +12,7 @@ export function ClosingCta() {
         <div className="relative overflow-hidden rounded-2xl bg-primary px-6 py-14 text-center sm:px-12">
           <div
             aria-hidden
-            className="absolute -top-24 -right-24 size-72 rounded-full bg-white/10 blur-2xl"
+            className="absolute -top-24 -right-24 size-80 rounded-full bg-accent-glow/35 blur-3xl"
           />
           <h2
             id="closing-title"

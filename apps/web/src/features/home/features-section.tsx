@@ -58,7 +58,7 @@ export function FeaturesSection() {
               key={title}
               className="group rounded-xl border border-border bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
             >
-              <span className="flex size-10 items-center justify-center rounded-lg bg-primary-subtle text-primary-subtle-fg">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-accent-subtle text-accent-subtle-fg">
                 <Icon aria-hidden className="size-5" />
               </span>
               <h3 className="mt-5 type-section text-fg">{title}</h3>

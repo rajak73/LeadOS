@@ -13,7 +13,7 @@ export function ChatPreview() {
       </figcaption>
       <div
         aria-hidden
-        className="absolute -inset-6 -z-10 rounded-[2rem] bg-primary-subtle blur-2xl"
+        className="absolute -inset-6 -z-10 rounded-[2rem] bg-accent-subtle blur-2xl"
       />
       <div
         aria-hidden

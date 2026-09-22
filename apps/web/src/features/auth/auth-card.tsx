@@ -15,7 +15,7 @@ export function AuthCard({ title, description, children, footer }: AuthCardProps
         <div className="mb-6 flex items-center justify-center gap-2.5">
           <span
             aria-hidden
-            className="flex size-9 items-center justify-center rounded-lg bg-primary type-body font-bold text-primary-fg"
+            className="flex size-9 items-center justify-center rounded-lg bg-accent type-body font-bold text-accent-fg"
           >
             L
           </span>

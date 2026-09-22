@@ -10,7 +10,7 @@ export function Hero() {
     <section className="relative overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-primary-subtle/70 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-accent-subtle/90 to-transparent"
       />
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-24 lg:pb-28">
         <div>
@@ -28,7 +28,7 @@ export function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               to={cta.to}
-              className={buttonClasses({ variant: 'primary', size: 'lg', className: 'h-11 px-5' })}
+              className={buttonClasses({ variant: 'accent', size: 'lg', className: 'h-11 px-5' })}
             >
               {cta.label}
               <ArrowRight aria-hidden />

@@ -2,11 +2,12 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
+export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger' | 'link';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-primary-fg shadow-sm hover:bg-primary-hover',
+  accent: 'bg-accent text-accent-fg shadow-sm hover:bg-accent-hover',
   secondary:
     'border border-border bg-surface text-fg shadow-sm hover:bg-muted hover:border-border-strong',
   ghost: 'text-fg-muted hover:bg-muted hover:text-fg',

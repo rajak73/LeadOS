@@ -12,7 +12,7 @@ export function BrandMark({ collapsed }: { collapsed?: boolean }) {
     <div className="flex h-14 items-center gap-2.5 px-3">
       <span
         aria-hidden
-        className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary type-small font-bold text-primary-fg"
+        className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent type-small font-bold text-accent-fg"
       >
         L
       </span>
@@ -70,7 +70,7 @@ function NavEntry({
         {collapsed && count > 0 && (
           <span
             aria-hidden
-            className="absolute -top-1 -right-1.5 size-2 rounded-full bg-primary ring-2 ring-surface"
+            className="absolute -top-1 -right-1.5 size-2 rounded-full bg-accent ring-2 ring-surface"
           />
         )}
       </span>
@@ -78,7 +78,7 @@ function NavEntry({
       {!collapsed && count > 0 && (
         <span
           aria-hidden
-          className="ml-auto rounded-full bg-primary px-1.5 type-caption font-semibold text-primary-fg tabular-nums"
+          className="ml-auto rounded-full bg-accent px-1.5 type-caption font-semibold text-accent-fg tabular-nums"
         >
           {countText}
         </span>

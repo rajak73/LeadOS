@@ -92,7 +92,7 @@ export function NotificationItem({ notification: n }: { notification: Notificati
         {n.body && <span className="mt-0.5 block type-small text-fg-muted">{n.body}</span>}
         <RelativeTime date={n.createdAt} className="mt-1 block type-caption text-fg-subtle" />
       </span>
-      {unread && <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-primary" />}
+      {unread && <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-accent" />}
     </button>
   );
 }

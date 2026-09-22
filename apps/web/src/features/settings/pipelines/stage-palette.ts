@@ -3,7 +3,7 @@
  * allowed (stage colours are data stored by the API, not theme tokens).
  */
 export const STAGE_COLORS = [
-  { name: 'Indigo', hex: '#4F46E5' },
+  { name: 'Charcoal', hex: '#57534E' },
   { name: 'Blue', hex: '#2563EB' },
   { name: 'Sky', hex: '#0284C7' },
   { name: 'Teal', hex: '#0D9488' },
