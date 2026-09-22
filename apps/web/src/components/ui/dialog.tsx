@@ -44,7 +44,7 @@ export function DialogContent({
           className,
         )}
       >
-        <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-3">
+        <div className="flex items-start justify-between gap-4 px-4 pt-5 pb-3">
           <div className="min-w-0">
             <DialogPrimitive.Title className="type-section text-fg">{title}</DialogPrimitive.Title>
             {description && (
@@ -66,9 +66,9 @@ export function DialogContent({
             />
           </DialogPrimitive.Close>
         </div>
-        {children && <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">{children}</div>}
+        {children && <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5">{children}</div>}
         {footer && (
-          <div className="flex flex-col-reverse gap-2 border-t border-border px-5 py-3 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-border px-4 py-3 sm:flex-row sm:justify-end">
             {footer}
           </div>
         )}

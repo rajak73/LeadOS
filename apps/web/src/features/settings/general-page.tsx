@@ -85,7 +85,7 @@ function SettingsForm({ settings }: { settings: AppSettings }) {
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <Card>
         <CardHeader
           title="Company"
@@ -199,7 +199,7 @@ export default function GeneralPage() {
 
   if (isLoading)
     return (
-      <LoadingRegion label="Loading settings…" className="flex flex-col gap-6">
+      <LoadingRegion label="Loading settings…" className="flex flex-col gap-4">
         {[3, 2].map((n, i) => (
           <Card key={i} className="space-y-4 p-5">
             <Skeleton className="h-5 w-40" />

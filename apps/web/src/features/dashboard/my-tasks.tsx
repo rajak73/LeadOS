@@ -46,7 +46,7 @@ export function MyTasks({ className }: { className?: string }) {
         }
       />
       {loading ? (
-        <LoadingRegion label="Loading your tasks…" className="space-y-3 px-5 pb-5">
+        <LoadingRegion label="Loading your tasks…" className="space-y-3 px-4 pb-5">
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-10 w-full" />
           ))}

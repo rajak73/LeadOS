@@ -144,7 +144,7 @@ export function PipelineEditorDialog({ open, onOpenChange, pipeline }: PipelineE
         }
       >
         <FormProvider {...form}>
-          <form id={formId} onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+          <form id={formId} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
               <FormField label="Name" required error={errors.name?.message}>
                 <Input

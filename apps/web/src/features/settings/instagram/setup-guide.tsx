@@ -49,7 +49,7 @@ export function SetupGuide({ status }: { status: InstagramStatus }) {
         description="About 10 minutes, once. You need an Instagram Business or Creator account."
       />
       <CardBody>
-        <ol className="flex flex-col gap-6">
+        <ol className="flex flex-col gap-4">
           <Step n={1} title="Create a Meta app with the Instagram API">
             <p>
               In{' '}

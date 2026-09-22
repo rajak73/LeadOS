@@ -33,7 +33,7 @@ function isPriority(v: string | null): v is TaskPriority {
 
 function TasksSkeleton() {
   return (
-    <LoadingRegion label="Loading tasks…" className="flex flex-col gap-6">
+    <LoadingRegion label="Loading tasks…" className="flex flex-col gap-4">
       {[3, 2].map((rows, g) => (
         <div key={g} className="flex flex-col gap-2">
           <Skeleton className="h-6 w-32" />
@@ -133,8 +133,8 @@ export default function TasksPage() {
       <div
         className={
           openQuery.isPlaceholderData
-            ? 'flex flex-col gap-6 opacity-60 transition-opacity'
-            : 'flex flex-col gap-6'
+            ? 'flex flex-col gap-4 opacity-60 transition-opacity'
+            : 'flex flex-col gap-4'
         }
       >
         {nothingOpen ? (
@@ -206,7 +206,7 @@ export default function TasksPage() {
           </Button>
         }
       />
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <SegmentedControl<Who>
           label="Whose tasks"
           value={who}

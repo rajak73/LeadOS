@@ -189,3 +189,43 @@ describe('CommentsPage', () => {
     );
   });
 });
+
+describe('Loading older comments', () => {
+  it('shows the newest 100 first and loads the rest on request', async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: 150 }, (_, i) =>
+      comment(`user${String(i).padStart(3, '0')}`, {
+        commentedAt: new Date(Date.UTC(2026, 8, 1, 0, i)).toISOString(),
+      }),
+    );
+    const newestFirst = [...many].reverse();
+    const bigPost = { ...post('m1', 'Big post', 150, 0), commentCount: 150 };
+    mockFetch({
+      'GET /instagram/comments/posts': [bigPost],
+      'GET /instagram/comments': (url: string) => {
+        const page = Number(new URL(url, 'http://x').searchParams.get('page') ?? '1');
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: newestFirst.slice((page - 1) * 100, page * 100),
+            meta: { page, limit: 100, total: 150, totalPages: 2 },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      },
+    });
+    renderWithRouter(<CommentsPage />, {
+      path: '/inbox/comments/:mediaId?',
+      initialEntries: ['/inbox/comments/m1'],
+    });
+
+    expect(await screen.findByText('Comment user149')).toBeInTheDocument();
+    expect(screen.queryByText('Comment user000')).toBeNull();
+    // Filter counts come from the post summary, not just the loaded page.
+    expect(screen.getByRole('radio', { name: 'Needs reply (150)' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Load older comments (50 more)' }));
+    expect(await screen.findByText('Comment user000')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Load older comments/ })).toBeNull();
+  });
+});

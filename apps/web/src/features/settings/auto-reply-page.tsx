@@ -16,7 +16,7 @@ export default function AutoReplyPage() {
 
   if (isLoading)
     return (
-      <LoadingRegion label="Loading auto-reply settings…" className="flex flex-col gap-6">
+      <LoadingRegion label="Loading auto-reply settings…" className="flex flex-col gap-4">
         {[2, 4, 2].map((n, i) => (
           <Card key={i} className="space-y-4 p-5">
             <Skeleton className="h-5 w-40" />
@@ -37,7 +37,7 @@ export default function AutoReplyPage() {
     );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {settings.aiProvider === 'rules' && (
         <Callout tone="warning" title="AI replies are off">
           Add <code className="font-mono">GEMINI_API_KEY</code> or{' '}

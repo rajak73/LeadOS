@@ -99,7 +99,7 @@ function DealDetail({ deal }: { deal: Deal }) {
         }
       />
 
-      <Card className="mb-4 flex flex-wrap items-end gap-x-8 gap-y-4 px-5 py-4">
+      <Card className="mb-4 flex flex-wrap items-end gap-x-8 gap-y-4 px-4 py-4">
         <div className="flex flex-col gap-1">
           <span className="type-caption text-fg-muted">Status</span>
           <span className="flex h-9 items-center">
@@ -160,13 +160,13 @@ export default function DealDetailPage() {
 
   if (isLoading)
     return (
-      <LoadingRegion label="Loading deal…" className="flex flex-col gap-6">
+      <LoadingRegion label="Loading deal…" className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-8 w-72 max-w-full" />
         </div>
         <Skeleton className="h-20 w-full rounded-xl" />
-        <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
+        <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
           <Skeleton className="h-72 rounded-xl" />
           <Skeleton className="h-72 rounded-xl" />
         </div>

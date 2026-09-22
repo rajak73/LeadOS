@@ -142,7 +142,7 @@ export default function ProfilePage() {
   useDocumentTitle('Profile settings');
   const user = useCurrentUser();
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <ProfileCard key={user.id} />
       <PasswordCard />
     </div>

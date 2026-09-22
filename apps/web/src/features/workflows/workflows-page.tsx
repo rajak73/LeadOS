@@ -71,9 +71,9 @@ export default function WorkflowsPage() {
           }
           action={isAdmin ? <NewWorkflowLink label="Create your first workflow" /> : undefined}
         />
-        <div className="border-t border-border px-6 py-5">
+        <div className="border-t border-border px-6 py-4">
           <h2 className="type-small font-medium text-fg">Ideas to get started</h2>
-          <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 type-body text-fg-muted">
+          <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 type-body text-fg-muted">
             {EXAMPLES.map((e) => (
               <li key={e}>{e}</li>
             ))}

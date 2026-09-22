@@ -29,7 +29,7 @@ export function CardHeader({
   id,
 }: CardHeaderProps) {
   return (
-    <div className={cn('flex items-start justify-between gap-3 px-5 pt-4 pb-3', className)}>
+    <div className={cn('flex items-start justify-between gap-3 px-4 pt-4 pb-3', className)}>
       <div className="min-w-0">
         <Heading id={id} className="type-section text-fg">
           {title}
@@ -42,5 +42,5 @@ export function CardHeader({
 }
 
 export function CardBody({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('px-5 pb-5', className)} {...rest} />;
+  return <div className={cn('px-4 pb-4', className)} {...rest} />;
 }

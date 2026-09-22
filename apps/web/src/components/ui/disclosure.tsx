@@ -19,7 +19,7 @@ export function Disclosure({
       open={forceOpen || undefined}
       className="group rounded-xl border border-border bg-surface shadow-sm [&_summary::-webkit-details-marker]:hidden"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-5 py-4">
+      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-4">
         <ChevronRight
           aria-hidden
           className="size-4 shrink-0 text-fg-subtle transition-transform group-open:rotate-90"
@@ -29,7 +29,7 @@ export function Disclosure({
           {description && <span className="block type-small text-fg-muted">{description}</span>}
         </span>
       </summary>
-      <div className="flex flex-col gap-5 border-t border-border px-5 py-5">{children}</div>
+      <div className="flex flex-col gap-4 border-t border-border px-4 py-4">{children}</div>
     </details>
   );
 }

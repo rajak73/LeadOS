@@ -118,11 +118,11 @@ export function AutoReplyForm({
   );
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
-      <fieldset disabled={!canEdit} className="flex min-w-0 flex-col gap-6">
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <fieldset disabled={!canEdit} className="flex min-w-0 flex-col gap-4">
         <Card>
           <CardHeader title="Auto-reply" />
-          <CardBody className="flex flex-col gap-5">
+          <CardBody className="flex flex-col gap-4">
             {switchField(
               'dmEnabled',
               'Reply to DMs automatically',

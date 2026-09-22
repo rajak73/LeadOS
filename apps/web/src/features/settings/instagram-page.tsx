@@ -37,7 +37,7 @@ export default function InstagramSettingsPage() {
 
   const account = status.connected ? status.account : null;
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {account ? (
         <AccountCard status={status} account={account} />
       ) : status.managedByServer ? (

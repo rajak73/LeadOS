@@ -1,10 +1,10 @@
 import {
   keepPreviousData,
+  type QueryClient,
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryClient,
 } from '@tanstack/react-query';
 import type {
   AiReplyPreview,
@@ -244,17 +244,37 @@ export function useCommentPosts() {
   });
 }
 
-/** Every comment on one post (oldest first, up to 100), including thread replies. */
-export function usePostComments(mediaId: string | undefined) {
+export const COMMENTS_PAGE_SIZE = 100;
+
+/**
+ * One post's comments, including thread replies: the newest `pages × 100`, returned oldest
+ * first for display. `meta.total` is the post's full count, so the UI can offer "load older".
+ */
+export function usePostComments(mediaId: string | undefined, pages = 1) {
   return useQuery({
-    queryKey: qk.instagram.commentList({ mediaId }),
-    queryFn: ({ signal }) =>
-      api.list<IgComment>(
-        '/instagram/comments',
-        { mediaId, sortOrder: 'asc', limit: 100, page: 1 },
-        signal,
-      ),
+    queryKey: qk.instagram.commentList({ mediaId, pages }),
+    queryFn: async ({ signal }): Promise<Paged<IgComment[]>> => {
+      const results = await Promise.all(
+        Array.from({ length: pages }, (_, i) =>
+          api.list<IgComment>(
+            '/instagram/comments',
+            { mediaId, sortOrder: 'desc', limit: COMMENTS_PAGE_SIZE, page: i + 1 },
+            signal,
+          ),
+        ),
+      );
+      const byId = new Map(results.flatMap((r) => r.data).map((c) => [c.id, c]));
+      const data = [...byId.values()].sort((a, b) => a.commentedAt.localeCompare(b.commentedAt));
+      const meta = results[0]?.meta ?? {
+        page: 1,
+        limit: COMMENTS_PAGE_SIZE,
+        total: 0,
+        totalPages: 0,
+      };
+      return { data, meta: { ...meta, page: pages } };
+    },
     enabled: Boolean(mediaId),
+    placeholderData: keepPreviousData,
     refetchInterval: 15_000,
   });
 }

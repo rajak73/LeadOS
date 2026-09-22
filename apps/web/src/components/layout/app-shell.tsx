@@ -113,7 +113,7 @@ export function AppShell() {
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 focus:outline-none sm:px-6"
+          className="mx-auto w-full max-w-[1600px] flex-1 p-4 focus:outline-none"
         >
           <Suspense fallback={<PageFallback />}>
             <Outlet />

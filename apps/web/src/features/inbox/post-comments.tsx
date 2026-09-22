@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ArrowLeft, CheckCheck, ExternalLink, SearchX } from 'lucide-react';
 import type { IgCommentPost } from '@leados/shared';
 import { usePostComments } from '@/api/instagram';
-import { buttonClasses } from '@/components/ui/button';
+import { Button, buttonClasses } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { SegmentedControl } from '@/features/tasks/segmented-control';
@@ -42,11 +42,22 @@ export function PostComments({ mediaId, post }: { mediaId: string; post?: IgComm
   const [params, setParams] = useSearchParams();
   const raw = params.get('show');
   const filter: CommentFilter = isFilter(raw) ? raw : 'needs-reply';
-  const { data, isLoading, error, refetch, isRefetching } = usePostComments(mediaId);
+  const [pages, setPages] = useState(1);
+  useEffect(() => setPages(1), [mediaId]);
+  const { data, isLoading, isFetching, error, refetch, isRefetching } = usePostComments(
+    mediaId,
+    pages,
+  );
   const comments = useMemo(() => data?.data ?? [], [data]);
   const threads = useMemo(() => buildThreads(comments), [comments]);
   const shown = filterThreads(threads, filter);
-  const counts = countByFilter(comments);
+  const loaded = countByFilter(comments);
+  // The posts summary counts every comment; the loaded list may be only the newest pages.
+  const counts = post
+    ? { ...loaded, 'needs-reply': post.needsReplyCount, draft: post.draftCount }
+    : loaded;
+  const total = data?.meta?.total ?? comments.length;
+  const olderLeft = Math.max(0, total - comments.length);
   const media = comments[0]?.media;
   const caption = post?.caption ?? media?.caption ?? null;
   const permalink = post?.permalink ?? media?.permalink ?? null;
@@ -114,6 +125,17 @@ export function PostComments({ mediaId, post }: { mediaId: string; post?: IgComm
         </div>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {olderLeft > 0 && !isLoading && (
+          <div className="flex justify-center border-b border-border p-3">
+            <Button
+              size="sm"
+              loading={isFetching && pages > 1}
+              onClick={() => setPages((p) => p + 1)}
+            >
+              Load older comments ({olderLeft.toLocaleString()} more)
+            </Button>
+          </div>
+        )}
         {isLoading ? (
           <CommentsSkeleton />
         ) : error && !data ? (

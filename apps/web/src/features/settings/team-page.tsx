@@ -65,7 +65,7 @@ export default function TeamPage() {
   let body;
   if (isLoading) {
     body = (
-      <LoadingRegion label="Loading your team…" className="space-y-4 px-5 pb-5">
+      <LoadingRegion label="Loading your team…" className="space-y-4 px-4 pb-5">
         {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="flex items-center gap-3">
             <Skeleton className="size-8 rounded-full" />
@@ -95,7 +95,7 @@ export default function TeamPage() {
           {sorted.map((u) => {
             const isMe = u.id === me.id;
             return (
-              <li key={u.id} className="flex items-start gap-2 px-5 py-3">
+              <li key={u.id} className="flex items-start gap-2 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <NameCell user={u} isMe={isMe} />
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 type-small text-fg-muted">
@@ -115,11 +115,11 @@ export default function TeamPage() {
           <Table>
             <THead>
               <tr>
-                <TH className="pl-5">Name</TH>
+                <TH className="pl-4">Name</TH>
                 <TH>Role</TH>
                 <TH>Status</TH>
                 <TH>Last sign-in</TH>
-                <TH className="pr-5">
+                <TH className="pr-4">
                   <span className="sr-only">Actions</span>
                 </TH>
               </tr>
@@ -129,7 +129,7 @@ export default function TeamPage() {
                 const isMe = u.id === me.id;
                 return (
                   <TR key={u.id}>
-                    <TD className="max-w-72 pl-5">
+                    <TD className="max-w-72 pl-4">
                       <NameCell user={u} isMe={isMe} />
                     </TD>
                     <TD>{userRoleLabels[u.role]}</TD>
@@ -139,7 +139,7 @@ export default function TeamPage() {
                     <TD className="text-fg-muted">
                       <LastSignIn user={u} />
                     </TD>
-                    <TD className="pr-5 text-right">{!isMe && <UserActions user={u} />}</TD>
+                    <TD className="pr-4 text-right">{!isMe && <UserActions user={u} />}</TD>
                   </TR>
                 );
               })}
