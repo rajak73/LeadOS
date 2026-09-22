@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { simulateInstagramSchema, type SimulateInstagramInput } from '@leados/shared';
 import { useSimulateInstagram } from '@/api/instagram';
 import { Button } from '@/components/ui/button';
-import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
 import { Input, Textarea } from '@/components/ui/input';
 import { SegmentedControl } from '@/features/tasks/segmented-control';
@@ -53,56 +52,59 @@ export function SimulateCard() {
   });
 
   return (
-    <Card>
-      <CardHeader
-        title="Simulate incoming"
-        description="Pretend a customer wrote to you. Leads, AI replies and the inbox all work as they would for real."
-      />
-      <CardBody>
-        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-          <Controller
-            control={control}
-            name="kind"
-            render={({ field }) => (
-              <SegmentedControl
-                label="What to simulate"
-                value={field.value}
-                onChange={field.onChange}
-                options={KINDS}
-                className="self-start"
-              />
-            )}
-          />
-          <FormField
-            label="Instagram username"
-            description="Without the @. Use the same name again to continue a conversation."
-            error={errors.username?.message}
-            required
-          >
-            <Input autoComplete="off" spellCheck={false} {...register('username')} />
-          </FormField>
-          <FormField label="Message" error={errors.text?.message} required>
-            <Textarea
-              rows={2}
-              placeholder={
-                lastKind === 'dm'
-                  ? 'Hi! What are your prices, and are you open on Sunday?'
-                  : 'Love this! Price please?'
-              }
-              {...register('text')}
+    <section aria-labelledby="ig-simulate" className="flex flex-col gap-3">
+      <div>
+        <h3 id="ig-simulate" className="type-body font-semibold text-fg">
+          Simulate incoming
+        </h3>
+        <p className="type-small text-fg-muted">
+          Pretend a customer wrote to you. Leads, AI replies and the inbox work as they would for
+          real.
+        </p>
+      </div>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        <Controller
+          control={control}
+          name="kind"
+          render={({ field }) => (
+            <SegmentedControl
+              label="What to simulate"
+              value={field.value}
+              onChange={field.onChange}
+              options={KINDS}
+              className="self-start"
             />
-          </FormField>
-          <Button
-            type="submit"
-            variant="primary"
-            className="self-start"
-            icon={<FlaskConical aria-hidden />}
-            loading={isSubmitting}
-          >
-            Simulate
-          </Button>
-        </form>
-      </CardBody>
-    </Card>
+          )}
+        />
+        <FormField
+          label="Instagram username"
+          description="Without the @. Use the same name again to continue a conversation."
+          error={errors.username?.message}
+          required
+        >
+          <Input autoComplete="off" spellCheck={false} {...register('username')} />
+        </FormField>
+        <FormField label="Message" error={errors.text?.message} required>
+          <Textarea
+            rows={2}
+            placeholder={
+              lastKind === 'dm'
+                ? 'Hi! What are your prices, and are you open on Sunday?'
+                : 'Love this! Price please?'
+            }
+            {...register('text')}
+          />
+        </FormField>
+        <Button
+          type="submit"
+          variant="primary"
+          className="self-start"
+          icon={<FlaskConical aria-hidden />}
+          loading={isSubmitting}
+        >
+          Simulate
+        </Button>
+      </form>
+    </section>
   );
 }

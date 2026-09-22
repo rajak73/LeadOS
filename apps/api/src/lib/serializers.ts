@@ -331,6 +331,7 @@ export function toInstagramStatus(
     isPublicUrl: boolean;
     appSecretConfigured: boolean;
     testMode: boolean;
+    managedByServer: boolean;
   },
 ): InstagramStatus {
   // Deliberately never exposes accessTokenEnc.
@@ -356,6 +357,7 @@ export function toInstagramStatus(
     },
     appSecretConfigured: extra.appSecretConfigured,
     testMode: extra.testMode,
+    managedByServer: extra.managedByServer,
   };
 }
 

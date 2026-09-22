@@ -6,6 +6,8 @@ import { useInstagramStatus } from '@/api/instagram';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/api-client';
 import { AccountCard } from './instagram/account-card';
+import { AdvancedSection } from './instagram/advanced-section';
+import { Disclosure } from './instagram/disclosure';
 import { SetupGuide } from './instagram/setup-guide';
 import { SimulateCard } from './instagram/simulate-card';
 
@@ -33,20 +35,30 @@ export default function InstagramSettingsPage() {
       />
     );
 
+  const account = status.connected ? status.account : null;
   return (
     <div className="flex flex-col gap-6">
-      {status.testMode && (
-        <Callout tone="info" title="Test mode — nothing is sent to Instagram">
-          Messages and replies stay inside LeadOS, so you can try everything safely. Connect with
-          any token, then use “Simulate incoming” below.
+      {account ? (
+        <AccountCard status={status} account={account} />
+      ) : status.managedByServer ? (
+        <Callout tone="warning" title="Instagram isn’t connected yet">
+          LeadOS connects by itself using <code>INSTAGRAM_ACCESS_TOKEN</code> when the server
+          starts. If this stays here, check that token on the server and restart LeadOS.
         </Callout>
-      )}
-      {status.connected && status.account ? (
-        <AccountCard status={status} account={status.account} />
       ) : (
         <SetupGuide status={status} />
       )}
-      {status.testMode && <SimulateCard />}
+
+      {account && <AdvancedSection status={status} />}
+
+      {status.testMode && (
+        <Disclosure
+          title="Test tools"
+          description="Test mode is on: nothing is sent to Instagram. Try the inbox with fake messages."
+        >
+          <SimulateCard />
+        </Disclosure>
+      )}
     </div>
   );
 }

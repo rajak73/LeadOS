@@ -344,6 +344,8 @@ export interface InstagramStatus {
   };
   appSecretConfigured: boolean; // META_APP_SECRET set (needed to verify webhooks)
   testMode: boolean; // INSTAGRAM_TEST_MODE: sends are simulated, simulate endpoint enabled
+  /** INSTAGRAM_ACCESS_TOKEN is set on the server: the account connects itself on start-up. */
+  managedByServer: boolean;
 }
 
 export interface IgAttachment {

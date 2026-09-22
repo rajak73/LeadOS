@@ -59,6 +59,7 @@ export async function getInstagramStatus(): Promise<InstagramStatus> {
     isPublicUrl: isPublicUrl(origin),
     appSecretConfigured: Boolean(env.META_APP_SECRET),
     testMode: env.INSTAGRAM_TEST_MODE,
+    managedByServer: Boolean(env.INSTAGRAM_ACCESS_TOKEN),
   });
 }
 
@@ -209,12 +210,41 @@ export async function refreshTokenIfNeeded(now = new Date()): Promise<boolean> {
   }
 }
 
+/**
+ * Connects the account from INSTAGRAM_ACCESS_TOKEN when none is connected or the stored one has
+ * stopped working, so a fresh deployment is live without visiting Settings. A healthy account
+ * is left alone (its token may have been refreshed since the env value was set).
+ */
+export async function connectFromEnv(): Promise<'connected' | 'skipped' | 'failed'> {
+  const token = env.INSTAGRAM_ACCESS_TOKEN;
+  if (!token || env.INSTAGRAM_TEST_MODE) return 'skipped';
+  const account = await getAccount();
+  if (account?.status === 'ACTIVE') return 'skipped';
+  try {
+    const status = await connectInstagram({ accessToken: token });
+    logger.info(
+      { username: status.account?.username },
+      'Instagram connected from INSTAGRAM_ACCESS_TOKEN',
+    );
+    return 'connected';
+  } catch (err) {
+    logger.error(
+      { err },
+      'Could not connect Instagram from INSTAGRAM_ACCESS_TOKEN — check the token on the server',
+    );
+    return 'failed';
+  }
+}
+
 /** Daily token refresh (started by server.ts, never in tests). */
 export function startInstagramJobs(): () => void {
   const run = () =>
     refreshTokenIfNeeded().catch((err: unknown) =>
       logger.error({ err }, 'Instagram token refresh job failed'),
     );
+  void connectFromEnv().catch((err: unknown) =>
+    logger.error({ err }, 'Instagram auto-connect failed'),
+  );
   const first = setTimeout(run, 60_000);
   const timer = setInterval(run, DAY);
   first.unref();

@@ -217,6 +217,13 @@ A daily job refreshes the token (`GET /refresh_access_token?grant_type=ig_refres
 it expires within 10 days. A Graph API auth error (code 190) sets status `EXPIRED` with a
 friendly `statusMessage` and notifies admins once.
 
+**Connecting from the server.** If `INSTAGRAM_ACCESS_TOKEN` is set (and test mode is off), the
+server connects the account on start-up whenever none is connected or the stored one is not
+ACTIVE, then keeps refreshing it as above. `InstagramStatus.managedByServer` is true and the
+settings page shows no token or disconnect controls. `INSTAGRAM_APP_SECRET` and
+`INSTAGRAM_WEBHOOK_VERIFY_TOKEN` (names from the previous deployment) are accepted as aliases for
+`META_APP_SECRET` and `META_WEBHOOK_VERIFY_TOKEN`.
+
 **Test mode.** When `INSTAGRAM_TEST_MODE=true`, all Graph API calls go to an in-process
 sandbox adapter (sends succeed with fake ids, profile lookups return the username), a
 "Test account" can be connected with any token, and `POST /instagram/simulate` is enabled.

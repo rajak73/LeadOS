@@ -61,6 +61,11 @@ const schema = z.object({
   INSTAGRAM_TEST_MODE: optionalBooleanFlag,
   META_APP_SECRET: optionalString(),
   META_WEBHOOK_VERIFY_TOKEN: optionalString(),
+  // Names used by the previous LeadOS deployment; accepted so existing hosting settings keep working.
+  INSTAGRAM_APP_SECRET: optionalString(),
+  INSTAGRAM_WEBHOOK_VERIFY_TOKEN: optionalString(),
+  // Long-lived Instagram token. When set, the account connects itself on start-up.
+  INSTAGRAM_ACCESS_TOKEN: optionalString(),
   PUBLIC_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   ENCRYPTION_KEY: z.preprocess(
     emptyToUndefined,
@@ -134,6 +139,8 @@ function loadEnv(): Env {
     LOG_LEVEL: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
     INSTAGRAM_TEST_MODE: env.INSTAGRAM_TEST_MODE ?? env.NODE_ENV === 'development',
     PUBLIC_URL: env.PUBLIC_URL?.replace(/\/+$/, ''),
+    META_APP_SECRET: env.META_APP_SECRET ?? env.INSTAGRAM_APP_SECRET,
+    META_WEBHOOK_VERIFY_TOKEN: env.META_WEBHOOK_VERIFY_TOKEN ?? env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
   };
 }
 

@@ -4,6 +4,7 @@ import { env } from '../src/config/env.js';
 import { decryptSecret } from '../src/lib/crypto.js';
 import { GraphError, sandboxAdapter } from '../src/modules/instagram/instagram.adapter.js';
 import { refreshTokenIfNeeded, simulatedIgsid } from '../src/modules/instagram/index.js';
+import { connectFromEnv } from '../src/modules/instagram/instagram.account.js';
 import { api, createMember, flush, prisma, setupAdmin, testApp, type Session } from './helpers.js';
 import {
   OUR_ID,
@@ -512,5 +513,54 @@ describe('test mode tools and settings', () => {
     expect(await refreshTokenIfNeeded()).toBe(false);
     expect((await prisma.igAccount.findUniqueOrThrow({ where: { id: 1 } })).status).toBe('EXPIRED');
     await connectTestAccount(app, admin);
+  });
+});
+
+describe('connecting from INSTAGRAM_ACCESS_TOKEN', () => {
+  afterEach(() => {
+    env.INSTAGRAM_ACCESS_TOKEN = undefined;
+    vi.restoreAllMocks();
+  });
+
+  it('connects on start-up when no account is connected, then leaves a healthy one alone', async () => {
+    await prisma.igAccount.deleteMany({});
+    expect(await connectFromEnv()).toBe('skipped'); // no token set
+
+    env.INSTAGRAM_TEST_MODE = false;
+    env.INSTAGRAM_ACCESS_TOKEN = 'IGAA-live-token-from-env-0123456789';
+    const calls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      calls.push(url);
+      const body = url.includes('subscribed_apps')
+        ? { success: true }
+        : { user_id: '17840000000000001', username: 'sharma.interiors', name: 'Sharma Interiors' };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    expect(await connectFromEnv()).toBe('connected');
+    expect(calls.some((u) => u.startsWith('https://graph.instagram.com/'))).toBe(true);
+    const account = await prisma.igAccount.findUniqueOrThrow({ where: { id: 1 } });
+    expect(account).toMatchObject({ username: 'sharma.interiors', status: 'ACTIVE' });
+    expect(decryptSecret(account.accessTokenEnc)).toBe('IGAA-live-token-from-env-0123456789');
+
+    const status = await api(app, admin).get('/instagram/status').expect(200);
+    expect(status.body.data.managedByServer).toBe(true);
+
+    calls.length = 0;
+    expect(await connectFromEnv()).toBe('skipped'); // healthy account: no calls
+    expect(calls).toHaveLength(0);
+
+    await prisma.igAccount.update({ where: { id: 1 }, data: { status: 'EXPIRED' } });
+    expect(await connectFromEnv()).toBe('connected'); // reconnects a broken one
+  });
+
+  it('never auto-connects in test mode', async () => {
+    env.INSTAGRAM_TEST_MODE = true;
+    env.INSTAGRAM_ACCESS_TOKEN = 'IGAA-live-token-from-env-0123456789';
+    expect(await connectFromEnv()).toBe('skipped');
   });
 });
