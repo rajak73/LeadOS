@@ -2,9 +2,23 @@ import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } fr
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-/** Scrolls horizontally inside its own container on small screens — never the page. */
+/**
+ * Scrollable table box: rows scroll inside it (the header stays pinned) and wide tables scroll
+ * sideways here — never the page. Height fits the viewport below a page header and filters.
+ */
 export function TableContainer({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('w-full overflow-x-auto', className)} {...rest} />;
+  return (
+    <div
+      // Focusable so keyboard users can scroll the rows and columns (WCAG 2.1.1).
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+      tabIndex={0}
+      className={cn(
+        'max-h-[calc(100dvh-19rem)] min-h-40 w-full overflow-auto overscroll-contain focus-visible:ring-inset',
+        className,
+      )}
+      {...rest}
+    />
+  );
 }
 
 export function Table({ className, ...rest }: HTMLAttributes<HTMLTableElement>) {
@@ -12,7 +26,7 @@ export function Table({ className, ...rest }: HTMLAttributes<HTMLTableElement>) 
 }
 
 export function THead({ className, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('border-b border-border bg-muted/50', className)} {...rest} />;
+  return <thead className={cn('bg-muted', className)} {...rest} />;
 }
 
 export function TBody({ className, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -23,11 +37,26 @@ export function TR({ className, ...rest }: HTMLAttributes<HTMLTableRowElement>) 
   return (
     <tr
       className={cn(
-        'transition-colors hover:bg-muted/40 data-[selected=true]:bg-primary-subtle/50',
+        // Opaque row colours so pinned (sticky) cells can inherit them.
+        'bg-surface transition-colors hover:bg-background data-[selected=true]:bg-primary-subtle',
         className,
       )}
       {...rest}
     />
+  );
+}
+
+/**
+ * Pins a column to the left edge while the table scrolls sideways. Pass the offset class
+ * (`left-0`, `left-10`, …); add `edge` on the last pinned column to draw its divider.
+ */
+export function pinned(offset: string, { header = false, edge = false } = {}) {
+  return cn(
+    'sticky',
+    offset,
+    header ? 'z-20' : 'z-[1] bg-inherit',
+    edge && 'shadow-[inset_-1px_0_0_var(--border)]',
+    header && edge && 'shadow-[inset_-1px_-1px_0_var(--border)]',
   );
 }
 
@@ -36,7 +65,8 @@ export function TH({ className, ...rest }: ThHTMLAttributes<HTMLTableCellElement
     <th
       scope="col"
       className={cn(
-        'h-10 px-3 text-left align-middle type-caption font-medium whitespace-nowrap text-fg-muted',
+        // Pinned while the rows scroll; the inset shadow keeps the divider visible when stuck.
+        'sticky top-0 z-10 h-10 bg-muted px-3 text-left align-middle type-caption font-medium whitespace-nowrap text-fg-muted shadow-[inset_0_-1px_0_var(--border)]',
         className,
       )}
       {...rest}

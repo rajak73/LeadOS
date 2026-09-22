@@ -4,7 +4,18 @@ import { ScoreBadge } from '@/components/domain/badges';
 import { RelativeTime } from '@/components/domain/relative-time';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
-import { SortableTH, Table, TableContainer, TBody, TD, TH, THead, TR } from '@/components/ui/table';
+import { cn } from '@/lib/cn';
+import {
+  pinned,
+  SortableTH,
+  Table,
+  TableContainer,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from '@/components/ui/table';
 import { leadSourceLabels } from '@/lib/labels';
 import { personName } from '@/lib/format';
 import { LeadStatusControl } from './lead-status-control';
@@ -35,14 +46,18 @@ export function LeadsTable({ leads, selection, sortBy, sortOrder, onSort }: Lead
       <Table>
         <THead>
           <tr>
-            <TH className="w-10">
+            <TH className={cn('w-10', pinned('left-0', { header: true }))}>
               <Checkbox
                 aria-label="Select all leads on this page"
                 checked={headerState}
                 onCheckedChange={() => selection.setMany(ids, headerState !== true)}
               />
             </TH>
-            <SortableTH field="firstName" {...sort}>
+            <SortableTH
+              field="firstName"
+              {...sort}
+              className={pinned('left-10', { header: true, edge: true })}
+            >
               Name
             </SortableTH>
             <TH>Company</TH>
@@ -66,14 +81,14 @@ export function LeadsTable({ leads, selection, sortBy, sortOrder, onSort }: Lead
             const selected = selection.isSelected(lead.id);
             return (
               <TR key={lead.id} data-selected={selected}>
-                <TD>
+                <TD className={pinned('left-0')}>
                   <Checkbox
                     aria-label={`Select ${name}`}
                     checked={selected}
                     onCheckedChange={(c) => selection.toggle(lead.id, c === true)}
                   />
                 </TD>
-                <TD className="max-w-64">
+                <TD className={cn('max-w-64 min-w-48', pinned('left-10', { edge: true }))}>
                   <Link
                     to={`/leads/${lead.id}`}
                     className="block truncate font-medium text-fg hover:text-primary-text hover:underline"

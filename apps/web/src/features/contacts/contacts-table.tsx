@@ -2,7 +2,18 @@ import { Link } from 'react-router';
 import type { Contact } from '@leados/shared';
 import { RelativeTime } from '@/components/domain/relative-time';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
-import { SortableTH, Table, TableContainer, TBody, TD, TH, THead, TR } from '@/components/ui/table';
+import { cn } from '@/lib/cn';
+import {
+  pinned,
+  SortableTH,
+  Table,
+  TableContainer,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from '@/components/ui/table';
 import { OwnerCell } from '@/features/leads/owner-cell';
 import { personName } from '@/lib/format';
 
@@ -20,7 +31,11 @@ export function ContactsTable({ contacts, sortBy, sortOrder, onSort }: ContactsT
       <Table>
         <THead>
           <tr>
-            <SortableTH field="firstName" {...sort}>
+            <SortableTH
+              field="firstName"
+              {...sort}
+              className={pinned('left-0', { header: true, edge: true })}
+            >
               Name
             </SortableTH>
             <SortableTH field="company" {...sort}>
@@ -39,7 +54,7 @@ export function ContactsTable({ contacts, sortBy, sortOrder, onSort }: ContactsT
         <TBody>
           {contacts.map((c) => (
             <TR key={c.id}>
-              <TD className="max-w-64">
+              <TD className={cn('max-w-64 min-w-48', pinned('left-0', { edge: true }))}>
                 <Link
                   to={`/contacts/${c.id}`}
                   className="block truncate font-medium text-fg hover:text-primary-text hover:underline"

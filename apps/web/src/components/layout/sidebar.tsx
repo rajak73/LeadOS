@@ -130,7 +130,7 @@ export function DesktopSidebar({
   return (
     <aside
       className={cn(
-        'sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border/70 bg-background/80 backdrop-blur-md transition-[width] duration-200 md:flex',
+        'relative z-20 hidden h-full shrink-0 flex-col border-r border-border/70 bg-background/80 backdrop-blur-md transition-[width] duration-200 md:flex',
         collapsed ? 'w-16' : 'w-60',
       )}
     >

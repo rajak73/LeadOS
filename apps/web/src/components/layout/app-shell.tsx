@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Menu, Search, X } from 'lucide-react';
@@ -54,6 +54,7 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const location = useLocation();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((c) => {
@@ -73,11 +74,15 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Close the mobile drawer on navigation.
-  useEffect(() => setMobileOpen(false), [location.pathname]);
+  // Close the mobile drawer and start each page at the top on navigation.
+  useEffect(() => {
+    setMobileOpen(false);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [location.pathname]);
 
   return (
-    <div className="relative flex min-h-dvh bg-background">
+    // Fixed-height shell: the sidebar never moves; only the content column scrolls.
+    <div className="relative flex h-dvh overflow-hidden bg-background">
       {/* Soft brand glow at the top, matching the home page hero. */}
       <div
         aria-hidden
@@ -91,7 +96,7 @@ export function AppShell() {
       </a>
       <DesktopSidebar collapsed={collapsed} onToggle={toggleCollapsed} />
       <MobileNav open={mobileOpen} onOpenChange={setMobileOpen} />
-      <div className="relative flex min-w-0 flex-1 flex-col">
+      <div ref={scrollRef} className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/70 bg-background/85 px-3 backdrop-blur-md sm:px-4">
           <Button
             variant="ghost"
