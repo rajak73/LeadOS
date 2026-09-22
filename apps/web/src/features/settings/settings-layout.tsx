@@ -42,7 +42,7 @@ export default function SettingsLayout() {
             : 'Your profile, your password and how auto-reply is set up.'
         }
       />
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-6">
         <nav
           aria-label="Settings"
           className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0"

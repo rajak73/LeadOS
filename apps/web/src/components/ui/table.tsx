@@ -13,7 +13,7 @@ export function TableContainer({ className, ...rest }: HTMLAttributes<HTMLDivEle
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
       className={cn(
-        'max-h-[calc(100dvh-19rem)] min-h-40 w-full overflow-auto overscroll-contain focus-visible:ring-inset',
+        'max-h-[calc(100dvh-17.5rem)] min-h-40 w-full overflow-auto overscroll-contain focus-visible:ring-inset',
         className,
       )}
       {...rest}

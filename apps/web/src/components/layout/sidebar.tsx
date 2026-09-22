@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router';
+import { NavLink, useMatch, useResolvedPath } from 'react-router';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -9,7 +9,7 @@ import { mainNav, settingsNav, type NavItem } from './nav-items';
 export function BrandMark({ collapsed }: { collapsed?: boolean }) {
   const { data: settings } = useSettings();
   return (
-    <div className="flex h-14 items-center gap-2.5 px-3">
+    <div className={cn('flex h-14 items-center gap-2.5', collapsed ? 'justify-center' : 'px-3')}>
       <span
         aria-hidden
         className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent type-small font-bold text-accent-fg"
@@ -45,6 +45,9 @@ function NavEntry({
   count?: number;
 }) {
   const countText = count > 99 ? '99+' : String(count);
+  // Resolve "active" here and pass a plain string className: the collapsed tooltip wraps the
+  // link in a Radix Slot, which can't merge NavLink's className-function.
+  const isActive = useMatch({ path: useResolvedPath(item.to).pathname, end: item.end ?? false });
   const link = (
     <NavLink
       to={item.to}
@@ -55,15 +58,13 @@ function NavEntry({
           ? `${item.label}${count > 0 ? `, ${countText} need${count === 1 ? 's' : ''} you` : ''}`
           : undefined
       }
-      className={({ isActive }) =>
-        cn(
-          'flex h-9 items-center gap-3 rounded-md px-2.5 type-body font-medium transition-colors',
-          isActive
-            ? 'bg-surface text-fg shadow-sm ring-1 ring-border'
-            : 'text-fg-muted hover:bg-muted hover:text-fg',
-          collapsed && 'justify-center px-0',
-        )
-      }
+      className={cn(
+        'flex items-center rounded-md type-body font-medium transition-colors',
+        collapsed ? 'mx-auto size-10 justify-center' : 'h-9 gap-3 px-2.5',
+        isActive
+          ? 'bg-surface text-fg shadow-sm ring-1 ring-border'
+          : 'text-fg-muted hover:bg-muted hover:text-fg',
+      )}
     >
       <span className="relative flex">
         <item.icon aria-hidden className="size-4 shrink-0" />

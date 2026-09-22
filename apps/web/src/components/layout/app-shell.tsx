@@ -97,7 +97,7 @@ export function AppShell() {
       <DesktopSidebar collapsed={collapsed} onToggle={toggleCollapsed} />
       <MobileNav open={mobileOpen} onOpenChange={setMobileOpen} />
       <div ref={scrollRef} className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/70 bg-background/85 px-3 backdrop-blur-md sm:px-4">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/70 bg-background/85 px-3 backdrop-blur-md sm:px-4">
           <Button
             variant="ghost"
             iconOnly
@@ -126,7 +126,7 @@ export function AppShell() {
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 focus:outline-none sm:px-6 lg:px-8"
+          className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 focus:outline-none sm:px-6"
         >
           <Suspense fallback={<PageFallback />}>
             <Outlet />
