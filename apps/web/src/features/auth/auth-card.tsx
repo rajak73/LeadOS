@@ -10,8 +10,12 @@ interface AuthCardProps {
 /** Centred card used by the sign-in and first-run setup screens. */
 export function AuthCard({ title, description, children, footer }: AuthCardProps) {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-sm">
+    <main className="relative flex min-h-dvh items-center justify-center bg-background px-4 py-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-accent-subtle/80 to-transparent"
+      />
+      <div className="relative w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2.5">
           <span
             aria-hidden

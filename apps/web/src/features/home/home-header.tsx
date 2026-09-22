@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
 import { ArrowRight } from 'lucide-react';
 import { buttonClasses } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { HomeLogo } from './logo';
 import { useHomeCta } from './use-home-cta';
 
@@ -33,7 +32,6 @@ export function HomeHeader() {
           </ul>
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
           <Link to={cta.to} className={buttonClasses({ variant: 'primary', size: 'md' })}>
             {cta.label}
             <ArrowRight aria-hidden />

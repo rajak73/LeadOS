@@ -1,14 +1,10 @@
 @import 'tailwindcss';
 
-/* Dark mode is driven by the `.dark` class on <html> (set by the theme provider
-   and by the inline script in index.html before first paint). */
-@custom-variant dark (&:where(.dark, .dark *));
-
 /* ─── Raw token values ────────────────────────────────────────────────────────
    Components never reference these directly; they use the semantic Tailwind
    colours registered in @theme below (bg-surface, text-fg-muted, …).
-   Contrast notes: fg-subtle is ≥ 4.5:1 on background, surface and muted in
-   both themes. */
+   LeadOS uses a single light theme. Contrast: every text colour is ≥ 4.5:1 on
+   background, surface and muted. */
 :root {
   /* Warm neutrals + near-black actions + red brand accent (inspired by usefastlane.ai). */
   --background: #f7f5f3;
@@ -64,62 +60,7 @@
   --chart-8: #78716c;
 
   --shadow-color: 20 10% 20%;
-}
-
-.dark {
-  --background: #0e0d0d;
-  --surface: #171615;
-  --surface-raised: #1f1d1c;
-  --muted: #252322;
-  --border: #2d2a29;
-  --border-strong: #3f3b39;
-  --fg: #f5f4f2;
-  --fg-muted: #b8b5b2;
-  --fg-subtle: #96938f;
-  --overlay: rgb(0 0 0 / 0.6);
-
-  /* Actions invert in dark mode: light buttons with dark text. */
-  --primary: #f5f4f2;
-  --primary-hover: #ffffff;
-  --primary-fg: #121111;
-  --primary-subtle: #2a2827;
-  --primary-subtle-fg: #f5f4f2;
-  --primary-text: #ff7666;
-
-  --accent: #dc2b20;
-  --accent-hover: #ef3a2e;
-  --accent-fg: #ffffff;
-  --accent-subtle: #3b1714;
-  --accent-subtle-fg: #ffb3a8;
-  --accent-glow: #ff2e2e;
-
-  --success: #22a559;
-  --success-subtle: #10281a;
-  --success-fg: #6ee7a0;
-  --warning: #d68a1a;
-  --warning-subtle: #2d2210;
-  --warning-fg: #fcd34d;
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-  --danger-subtle: #321417;
-  --danger-fg: #fca5a5;
-  --info: #0ea5e9;
-  --info-subtle: #0c2434;
-  --info-fg: #7dd3fc;
-
-  --focus: #ff7a61;
-
-  --chart-1: #d6d3d1;
-  --chart-2: #ff5a4a;
-  --chart-3: #38bdf8;
-  --chart-4: #fbbf24;
-  --chart-5: #34d399;
-  --chart-6: #c4a5fd;
-  --chart-7: #f472b6;
-  --chart-8: #a8a29e;
-
-  --shadow-color: 0 0% 0%;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* ─── Theme ───────────────────────────────────────────────────────────────────

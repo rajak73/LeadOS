@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: 'Does it work on my phone?',
-    a: 'Yes. LeadOS works in any modern browser, on desktop and mobile, in light or dark mode.',
+    a: 'Yes. LeadOS works in any modern browser, on desktop and mobile.',
   },
 ];
 

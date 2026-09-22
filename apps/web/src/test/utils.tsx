@@ -2,7 +2,6 @@ import type { ReactElement, ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { ThemeProvider } from '@/providers/theme';
 import { SessionProvider } from '@/providers/session';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -14,11 +13,9 @@ export function createTestQueryClient() {
 
 export function Providers({ children, client }: { children: ReactNode; client?: QueryClient }) {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={client ?? createTestQueryClient()}>
-        <TooltipProvider>{children}</TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={client ?? createTestQueryClient()}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -23,7 +23,7 @@ tasks, notes, AI lead scoring and simple automation.
   add a tag, create a task, notify, rescore, or call a webhook.
 - **Dashboard:** KPIs, charts and team performance
 - **Team:** Admin and Member roles, with in-app notifications
-- **Interface:** light and dark themes, works on phones, keyboard accessible, and a
+- **Interface:** a clean light design, works on phones, keyboard accessible, and a
   <kbd>⌘K</kbd> command palette
 
 ## Getting started
