@@ -332,6 +332,8 @@ export function toInstagramStatus(
     appSecretConfigured: boolean;
     testMode: boolean;
     managedByServer: boolean;
+    oauthAvailable: boolean;
+    oauthRedirectUri: string;
   },
 ): InstagramStatus {
   // Deliberately never exposes accessTokenEnc.
@@ -358,6 +360,8 @@ export function toInstagramStatus(
     appSecretConfigured: extra.appSecretConfigured,
     testMode: extra.testMode,
     managedByServer: extra.managedByServer,
+    oauthAvailable: extra.oauthAvailable,
+    oauthRedirectUri: extra.oauthRedirectUri,
   };
 }
 

@@ -55,6 +55,13 @@ export function useConnectInstagram() {
   });
 }
 
+/** Asks the server for Instagram's consent-screen URL; the caller sends the browser there. */
+export function useStartInstagramOAuth() {
+  return useMutation({
+    mutationFn: () => api.post<{ url: string }>('/instagram/oauth/start'),
+  });
+}
+
 export function useDisconnectInstagram() {
   const qc = useQueryClient();
   return useMutation({

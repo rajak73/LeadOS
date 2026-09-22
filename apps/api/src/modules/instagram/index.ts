@@ -1,5 +1,6 @@
 export { instagramRouter, autoReplyRouter } from './instagram.routes.js';
 export { instagramWebhookRouter } from './instagram.webhook.js';
+export { oauthCallback, oauthCallbackPaths } from './instagram.oauth.js';
 export { startInstagramJobs, refreshTokenIfNeeded } from './instagram.account.js';
 export { AUTO_REPLY_SETTINGS_ID } from './autoreply.settings.js';
 export { SANDBOX_ACCOUNT } from './instagram.adapter.js';

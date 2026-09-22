@@ -82,17 +82,18 @@ Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse proxy sits in front.
    - Leave build and start commands empty (the Dockerfile defines them).
 3. **Environment variables:**
 
-   | Key                                                  | Value                                                           |
-   | ---------------------------------------------------- | --------------------------------------------------------------- |
-   | `DATABASE_URL`                                       | Neon pooled connection string                                   |
-   | `DATABASE_DIRECT_URL`                                | Neon direct connection string (used for migrations)             |
-   | `JWT_SECRET`                                         | `openssl rand -base64 48`                                       |
-   | `ENCRYPTION_KEY`                                     | `openssl rand -base64 48` (encrypts the stored Instagram token) |
-   | `APP_ORIGIN`                                         | the service URL, e.g. `https://leados.onrender.com`             |
-   | `TRUST_PROXY`                                        | `true`                                                          |
-   | `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` | optional, one AI key                                            |
-   | `META_APP_SECRET`                                    | optional, Instagram app secret (webhook signatures)             |
-   | `META_WEBHOOK_VERIFY_TOKEN`                          | optional, any random string                                     |
+   | Key                                                  | Value                                                                          |
+   | ---------------------------------------------------- | ------------------------------------------------------------------------------ |
+   | `DATABASE_URL`                                       | Neon pooled connection string                                                  |
+   | `DATABASE_DIRECT_URL`                                | Neon direct connection string (used for migrations)                            |
+   | `JWT_SECRET`                                         | `openssl rand -base64 48`                                                      |
+   | `ENCRYPTION_KEY`                                     | `openssl rand -base64 48` (encrypts the stored Instagram token)                |
+   | `APP_ORIGIN`                                         | the service URL, e.g. `https://leados.onrender.com`                            |
+   | `TRUST_PROXY`                                        | `true`                                                                         |
+   | `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` | optional, one AI key                                                           |
+   | `META_APP_SECRET`                                    | optional, Instagram app secret (webhook signatures)                            |
+   | `META_WEBHOOK_VERIFY_TOKEN`                          | optional, any random string                                                    |
+   | `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET`          | optional, enables "Connect with Instagram" (sign-in instead of a pasted token) |
 
    Render sets `PORT` itself; the image sets `NODE_ENV=production`.
 
@@ -110,7 +111,8 @@ Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse proxy sits in front.
    simulated messages and follow-up rules are not copied; reconnect Instagram afterwards.
 6. **Instagram (optional):** in the Meta dashboard set the webhook callback to
    `https://<your-service>/api/webhooks/instagram` with the same verify token, then connect
-   the account in Settings → Instagram.
+   the account in Settings → Instagram — with "Connect with Instagram" when `INSTAGRAM_APP_ID`
+   and `INSTAGRAM_APP_SECRET` are set, or by pasting a long-lived token.
 
 ## Project layout
 

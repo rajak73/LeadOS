@@ -2,18 +2,21 @@ import type { InstagramStatus } from '@leados/shared';
 import { CopyButton } from '@/components/domain/copy-button';
 import { Callout } from '@/components/ui/callout';
 
-function CopyField({
+export function CopyField({
   label,
   value,
   copyLabel,
+  help,
 }: {
   label: string;
   value: string;
   copyLabel: string;
+  help?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span className="type-small font-medium text-fg">{label}</span>
+      {help && <span className="type-caption text-fg-muted">{help}</span>}
       <div className="flex items-center gap-2">
         <code
           className="min-w-0 flex-1 truncate rounded-md border border-border bg-muted px-3 py-1.5 font-mono type-small text-fg select-all"

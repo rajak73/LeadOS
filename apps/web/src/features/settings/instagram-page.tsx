@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { Card } from '@/components/ui/card';
 import { Callout } from '@/components/ui/callout';
 import { ErrorState } from '@/components/ui/empty-state';
@@ -5,15 +7,34 @@ import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useInstagramStatus } from '@/api/instagram';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/lib/api-client';
+import { notify } from '@/lib/toast';
 import { AccountCard } from './instagram/account-card';
 import { AdvancedSection } from './instagram/advanced-section';
 import { Disclosure } from '@/components/ui/disclosure';
+import { OAuthConnect } from './instagram/oauth-connect';
 import { SetupGuide } from './instagram/setup-guide';
 import { SimulateCard } from './instagram/simulate-card';
+
+/** Reads the result Instagram's redirect left in the URL, then cleans it out of the address bar. */
+function useOAuthResult(): void {
+  const [params, setParams] = useSearchParams();
+  const connected = params.get('instagram') === 'connected';
+  const failed = params.get('instagramError');
+  useEffect(() => {
+    if (!connected && !failed) return;
+    if (connected) notify.success('Instagram connected');
+    else notify.error(failed!);
+    const next = new URLSearchParams(params);
+    next.delete('instagram');
+    next.delete('instagramError');
+    setParams(next, { replace: true });
+  }, [connected, failed, params, setParams]);
+}
 
 export default function InstagramSettingsPage() {
   useDocumentTitle('Instagram settings');
   const { data: status, isLoading, error, refetch, isRefetching } = useInstagramStatus();
+  useOAuthResult();
 
   if (isLoading)
     return (
@@ -45,6 +66,8 @@ export default function InstagramSettingsPage() {
           LeadOS connects by itself using <code>INSTAGRAM_ACCESS_TOKEN</code> when the server
           starts. If this stays here, check that token on the server and restart LeadOS.
         </Callout>
+      ) : status.oauthAvailable ? (
+        <OAuthConnect status={status} />
       ) : (
         <SetupGuide status={status} />
       )}

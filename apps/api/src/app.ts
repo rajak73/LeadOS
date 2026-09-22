@@ -23,6 +23,8 @@ import {
   autoReplyRouter,
   instagramRouter,
   instagramWebhookRouter,
+  oauthCallback,
+  oauthCallbackPaths,
 } from './modules/instagram/index.js';
 import { leadsRouter } from './modules/leads/index.js';
 import { notesRouter } from './modules/notes/index.js';
@@ -97,6 +99,11 @@ export function createApp(options: AppOptions = {}): Express {
   // Meta webhooks: public, raw body (signature is computed over the exact bytes), and not
   // behind the per-IP rate limit (Meta delivers bursts from a few addresses).
   app.use('/api/webhooks/instagram', instagramWebhookRouter);
+  // The previous LeadOS used this path; keeping it means a Meta app set up for that deployment
+  // keeps delivering without re-verifying the webhook.
+  app.use('/api/v1/webhooks/meta', instagramWebhookRouter);
+  // Instagram sends the browser back here after "Connect with Instagram" (no session header).
+  for (const path of oauthCallbackPaths()) app.get(path, oauthCallback);
 
   const api = Router();
   api.use(

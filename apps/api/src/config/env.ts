@@ -69,6 +69,10 @@ const schema = z.object({
   // Names used by the previous LeadOS deployment; accepted so existing hosting settings keep working.
   INSTAGRAM_APP_SECRET: optionalString(),
   INSTAGRAM_WEBHOOK_VERIFY_TOKEN: optionalString(),
+  // "Connect with Instagram" (Instagram API with Instagram login). The redirect URI defaults to
+  // PUBLIC_URL/api/instagram/oauth/callback; set it to keep a URI already registered with Meta.
+  INSTAGRAM_APP_ID: optionalString(),
+  INSTAGRAM_OAUTH_REDIRECT_URI: z.preprocess(emptyToUndefined, z.string().url().optional()),
   // Long-lived Instagram token. When set, the account connects itself on start-up.
   INSTAGRAM_ACCESS_TOKEN: optionalString(),
   PUBLIC_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),

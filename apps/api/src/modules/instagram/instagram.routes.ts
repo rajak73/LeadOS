@@ -18,6 +18,7 @@ import { ErrorCode } from '@leados/shared';
 import { body, idParam, ok, query } from '../../lib/http.js';
 import { getAutoReplySettingsDto, updateAutoReplySettings } from './autoreply.settings.js';
 import { connectInstagram, disconnectInstagram, getInstagramStatus } from './instagram.account.js';
+import { authorizeUrl, oauthAvailable } from './instagram.oauth.js';
 import {
   createLeadForConversation,
   discardCommentDraft,
@@ -44,6 +45,15 @@ instagramRouter.get('/status', async (_req, res) => ok(res, await getInstagramSt
 instagramRouter.post('/connect', requireAdmin, async (req, res) =>
   ok(res, await connectInstagram(body(connectInstagramSchema, req))),
 );
+
+instagramRouter.post('/oauth/start', requireAdmin, (req, res) => {
+  if (!oauthAvailable())
+    throw new AppError(
+      ErrorCode.VALIDATION_ERROR,
+      'Connect with Instagram needs INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET on the server.',
+    );
+  ok(res, { url: authorizeUrl(actor(req).userId ?? '') });
+});
 
 instagramRouter.post('/disconnect', requireAdmin, async (_req, res) =>
   ok(res, await disconnectInstagram()),

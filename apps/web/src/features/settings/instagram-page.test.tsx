@@ -20,6 +20,8 @@ const status: InstagramStatus = {
   appSecretConfigured: false,
   testMode: true,
   managedByServer: false,
+  oauthAvailable: false,
+  oauthRedirectUri: 'http://localhost:4000/api/instagram/oauth/callback',
 };
 
 describe('InstagramSettingsPage', () => {
@@ -43,6 +45,27 @@ describe('InstagramSettingsPage', () => {
     expect(screen.getByRole('heading', { name: 'Simulate incoming' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Access token/)).toHaveAttribute('type', 'password');
     expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
+  });
+
+  it('offers "Connect with Instagram" when the server has the app credentials', async () => {
+    mockFetch({
+      'GET /instagram/status': {
+        ...status,
+        testMode: false,
+        appSecretConfigured: true,
+        oauthAvailable: true,
+        oauthRedirectUri: 'https://crm.example.com/api/instagram/oauth/callback',
+        webhook: { ...status.webhook, isPublicUrl: true },
+      },
+    });
+    renderWithRouter(<InstagramSettingsPage />);
+
+    expect(
+      await screen.findByRole('button', { name: 'Connect with Instagram' }),
+    ).toBeInTheDocument();
+    // Pasting a token still works, but it is no longer the first thing you see.
+    expect(screen.getByText('Connect with a token instead')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Access token/)).not.toBeVisible();
   });
 
   it('hides the warnings when the URL is public and the secret is set', async () => {

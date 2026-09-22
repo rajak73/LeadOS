@@ -346,6 +346,10 @@ export interface InstagramStatus {
   testMode: boolean; // INSTAGRAM_TEST_MODE: sends are simulated, simulate endpoint enabled
   /** INSTAGRAM_ACCESS_TOKEN is set on the server: the account connects itself on start-up. */
   managedByServer: boolean;
+  /** INSTAGRAM_APP_ID + secret are set: admins can use "Connect with Instagram". */
+  oauthAvailable: boolean;
+  /** Redirect URI that must be listed in the Meta app's Instagram login settings. */
+  oauthRedirectUri: string;
 }
 
 export interface IgAttachment {

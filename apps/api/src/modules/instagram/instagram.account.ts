@@ -9,6 +9,7 @@ import { prisma } from '../../lib/prisma.js';
 import { toInstagramStatus } from '../../lib/serializers.js';
 import { notifyAdmins } from '../notifications/index.js';
 import { GraphError, TOKEN_EXPIRED_MESSAGE, getAdapter } from './instagram.adapter.js';
+import { oauthAvailable, oauthRedirectUri } from './instagram.oauth.js';
 
 export const ACCOUNT_ID = 1;
 const DAY = 24 * 60 * 60 * 1000;
@@ -60,6 +61,8 @@ export async function getInstagramStatus(): Promise<InstagramStatus> {
     appSecretConfigured: Boolean(env.META_APP_SECRET),
     testMode: env.INSTAGRAM_TEST_MODE,
     managedByServer: Boolean(env.INSTAGRAM_ACCESS_TOKEN),
+    oauthAvailable: oauthAvailable(),
+    oauthRedirectUri: oauthRedirectUri(),
   });
 }
 
