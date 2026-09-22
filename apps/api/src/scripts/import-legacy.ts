@@ -524,24 +524,47 @@ function transform(org: Row, data: Awaited<ReturnType<typeof readLegacy>>) {
     skipped.set(why, (skipped.get(why) ?? 0) + 1);
     return false;
   };
-  const seenIgsid = new Set<string>();
-  const conversations = data.conversations.filter((c) => {
+  // The old app sometimes kept several conversations for one customer; merge them into the
+  // oldest (the new app has one conversation per customer).
+  const byIgsid = new Map<string, Row>();
+  const mergedInto = new Map<string, string>();
+  const byAge = [...data.conversations].sort(
+    (a, b) => date(a.createdAt)!.getTime() - date(b.createdAt)!.getTime(),
+  );
+  for (const c of byAge) {
     const channel = key(c.channel);
-    if (!channel.includes('INSTAGRAM') && channel !== 'IG')
-      return skip(`conversations on ${String(c.channel)}`);
-    if (key(c.type).includes('COMMENT')) return skip('comment threads');
+    if (!channel.includes('INSTAGRAM') && channel !== 'IG') {
+      skip(`conversations on ${String(c.channel)}`);
+      continue;
+    }
+    if (key(c.type).includes('COMMENT')) {
+      skip('comment threads');
+      continue;
+    }
     const igsid = str(c.externalId);
-    if (!igsid) return skip('conversations without an Instagram user id');
-    if (seenIgsid.has(igsid)) return skip('duplicate conversations');
-    seenIgsid.add(igsid);
-    return true;
-  });
-  const conversationIds = new Set(conversations.map((c) => String(c.id)));
-  const messages = data.messages.filter((m) => {
-    if (m.isSimulation) return skip('simulated test messages');
-    if (!conversationIds.has(String(m.conversationId)))
-      return skip('messages of skipped conversations');
-    return true;
+    if (!igsid) {
+      skip('conversations without an Instagram user id');
+      continue;
+    }
+    const kept = byIgsid.get(igsid);
+    if (!kept) {
+      byIgsid.set(igsid, { ...c });
+      mergedInto.set(String(c.id), String(c.id));
+      continue;
+    }
+    kept.leadId ??= c.leadId;
+    kept.customerName ??= c.customerName;
+    kept.unreadCount = (Number(kept.unreadCount) || 0) + (Number(c.unreadCount) || 0);
+    mergedInto.set(String(c.id), String(kept.id));
+    skip('duplicate conversations (merged, their messages kept)');
+  }
+  const conversations = [...byIgsid.values()];
+  const messages = data.messages.flatMap((m) => {
+    const conversationId = mergedInto.get(String(m.conversationId));
+    if (m.isSimulation) skip('simulated test messages');
+    else if (!conversationId) skip('messages of skipped conversations');
+    else return [{ ...m, conversationId } as Row];
+    return [];
   });
   const isInbound = (m: Row) => key(m.direction).startsWith('IN');
   const lastOf = new Map<string, Row>();
