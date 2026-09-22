@@ -3,11 +3,13 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 // Fake AI provider: the `openai` SDK is mocked; answers depend on which prompt is sent.
 const ai = vi.hoisted(() => ({
   create: vi.fn(),
+  listModels: vi.fn(),
   clients: [] as Array<{ apiKey?: string; baseURL?: string; timeout?: number }>,
 }));
 vi.mock('openai', () => ({
   default: class {
     chat = { completions: { create: ai.create } };
+    models = { list: ai.listModels };
     constructor(opts: { apiKey?: string; baseURL?: string; timeout?: number }) {
       ai.clients.push(opts);
     }
@@ -332,6 +334,30 @@ describe('DM auto-reply', () => {
     await flush();
     expect(ai.create).toHaveBeenCalledTimes(2);
     expect(await outbound('1008')).toHaveLength(0);
+  });
+
+  it('names a retired model and what to use instead', async () => {
+    ai.create.mockRejectedValue(
+      Object.assign(new Error('The model `llama-3.3-70b-versatile` does not exist'), {
+        status: 404,
+      }),
+    );
+    ai.listModels.mockResolvedValue({
+      data: [{ id: 'llama-3.1-8b-instant' }, { id: 'openai/gpt-oss-20b' }],
+    });
+    await deliver(app, dmPayload('1012', 'hi'));
+    await flush();
+
+    expect(await outbound('1012')).toHaveLength(0);
+    const c = await conv('1012');
+    expect(c.needsAttention).toBe(true);
+    const note = await prisma.notification.findFirstOrThrow({
+      where: { type: 'AI_HANDOFF', entityId: c.id },
+    });
+    expect(note.title).toContain("The AI couldn't reply");
+    expect(note.body).toContain("doesn't know this model");
+    expect(note.body).toContain('llama-3.1-8b-instant, openai/gpt-oss-20b');
+    expect(note.body).toContain('set one as AI_MODEL');
   });
 
   it('does nothing when DM replies are off', async () => {

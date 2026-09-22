@@ -114,6 +114,26 @@ export function providerReason(err: unknown): string {
   return detail ? `didn't respond: ${detail}` : "didn't respond. Try again in a moment.";
 }
 
+const isModelError = (err: unknown) => (err as { status?: number } | null)?.status === 404;
+
+/**
+ * Providers retire models, and then every reply fails until AI_MODEL is changed. Ask which ones
+ * this key may use, so the message says what to put there instead of just what broke.
+ */
+async function availableModelsHint(client: OpenAI): Promise<string> {
+  try {
+    const list = await client.models.list({ timeout: 5_000 });
+    const ids = list.data
+      .map((m) => m.id)
+      .filter(Boolean)
+      .sort()
+      .slice(0, 8);
+    return ids.length ? ` Models you can use: ${ids.join(', ')} — set one as AI_MODEL.` : '';
+  } catch {
+    return ''; // the listing is a nicety; never turn it into a second failure
+  }
+}
+
 let cached: { key: string; client: OpenAI } | null = null;
 function clientFor(cfg: Extract<ProviderConfig, { apiKey: string }>): OpenAI {
   const key = `${cfg.provider}|${cfg.baseURL ?? ''}|${cfg.apiKey}`;
@@ -180,8 +200,9 @@ export async function chatJson<T>(
       content = completion?.choices?.[0]?.message?.content;
     } catch (err) {
       logger.warn({ err, provider: cfg.provider, model: cfg.model }, 'AI request failed');
+      const hint = isModelError(err) ? await availableModelsHint(client) : '';
       throw new AiError(
-        `${PROVIDERS[cfg.provider].label} (${cfg.model}) ${providerReason(err)}`,
+        `${PROVIDERS[cfg.provider].label} (${cfg.model}) ${providerReason(err)}${hint}`,
         'request_failed',
       );
     }
