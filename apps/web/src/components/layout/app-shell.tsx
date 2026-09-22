@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { safeStorage } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -11,7 +11,6 @@ import { NotificationsBell } from './notifications-bell';
 import { UserMenu } from './user-menu';
 
 const COLLAPSE_KEY = 'leados-sidebar-collapsed';
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   return (
@@ -106,18 +105,6 @@ export function AppShell() {
             icon={<Menu aria-hidden />}
             onClick={() => setMobileOpen(true)}
           />
-          <button
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            aria-keyshortcuts={isMac ? 'Meta+K' : 'Control+K'}
-            className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-3 type-body text-fg-subtle shadow-sm hover:border-border-strong sm:max-w-sm"
-          >
-            <Search aria-hidden className="size-4 shrink-0" />
-            <span className="truncate">Search…</span>
-            <kbd className="ml-auto hidden rounded border border-border bg-surface px-1.5 type-caption font-sans text-fg-subtle sm:inline">
-              {isMac ? '⌘K' : 'Ctrl K'}
-            </kbd>
-          </button>
           <div className="ml-auto flex items-center gap-1">
             <NotificationsBell />
             <UserMenu />

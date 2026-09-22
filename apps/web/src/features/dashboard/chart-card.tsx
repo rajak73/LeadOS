@@ -42,33 +42,37 @@ export function ChartCard({
           ) : (
             <>
               <div aria-hidden>{children}</div>
-              <table className="sr-only">
-                <caption>{table.caption}</caption>
-                <thead>
-                  <tr>
-                    {table.columns.map((c) => (
-                      <th key={c} scope="col">
-                        {c}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.rows.map((r, i) => (
-                    <tr key={i}>
-                      {r.map((cell, j) =>
-                        j === 0 ? (
-                          <th key={j} scope="row">
-                            {cell}
-                          </th>
-                        ) : (
-                          <td key={j}>{cell}</td>
-                        ),
-                      )}
+              {/* Wrap the data table: a <table> ignores the 1px height from sr-only and would
+                  stretch the page's scroll area. */}
+              <div className="sr-only">
+                <table>
+                  <caption>{table.caption}</caption>
+                  <thead>
+                    <tr>
+                      {table.columns.map((c) => (
+                        <th key={c} scope="col">
+                          {c}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {table.rows.map((r, i) => (
+                      <tr key={i}>
+                        {r.map((cell, j) =>
+                          j === 0 ? (
+                            <th key={j} scope="row">
+                              {cell}
+                            </th>
+                          ) : (
+                            <td key={j}>{cell}</td>
+                          ),
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </CardBody>
