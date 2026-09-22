@@ -20,7 +20,9 @@ export const PROVIDERS: Record<
 > = {
   gemini: {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-    defaultModel: 'gemini-2.5-flash',
+    // Google retired 2.5 for new keys; this one answers on the free tier when the bigger
+    // Flash models are busy. AI_MODEL overrides it.
+    defaultModel: 'gemini-3.5-flash-lite',
     keyVar: 'GEMINI_API_KEY',
     label: 'Gemini',
   },

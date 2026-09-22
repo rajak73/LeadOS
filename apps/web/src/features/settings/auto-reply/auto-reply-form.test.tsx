@@ -23,7 +23,7 @@ const settings: AutoReplySettings = {
   createLeads: true,
   collectContactDetails: true,
   aiProvider: 'gemini',
-  aiModel: 'gemini-2.5-flash',
+  aiModel: 'gemini-3.5-flash-lite',
 };
 
 function renderForm(s: AutoReplySettings, canEdit = true) {

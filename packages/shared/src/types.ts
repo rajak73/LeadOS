@@ -47,7 +47,7 @@ export interface AppSettings {
   timezone: string;
   aiScoringAuto: boolean;
   aiProvider: AiProvider; // 'rules' when no AI key is configured (scoring then uses built-in rules; AI replies are unavailable)
-  aiModel: string | null; // e.g. 'gemini-2.5-flash'; null for 'rules'
+  aiModel: string | null; // e.g. 'gemini-3.5-flash-lite'; null for 'rules'
 }
 
 /** GET /auth/status — tells the login screen whether first-run setup is needed. */

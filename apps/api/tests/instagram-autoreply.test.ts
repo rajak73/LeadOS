@@ -116,7 +116,7 @@ describe('DM auto-reply', () => {
 
     expect(callsOf('dm')).toHaveLength(1);
     const [body] = callsOf('dm')[0]! as [Body, { timeout: number }];
-    expect(body.model).toBe('gemini-2.5-flash');
+    expect(body.model).toBe('gemini-3.5-flash-lite');
     expect(body.messages[0]!.content).toContain('Free site visit');
     expect(body.messages[0]!.content).toContain('SOUND LIKE A PERSON');
     expect((body as { temperature?: number }).temperature).toBe(0.5);
@@ -508,7 +508,7 @@ describe('previews', () => {
       handoffReason: null,
       extracted: { name: null, email: null, phone: null },
       provider: 'gemini',
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash-lite',
     });
     commentAnswer = { skip: false, publicReply: 'Thanks!' };
     const cm = await api(app, admin)
@@ -532,7 +532,7 @@ describe('previews', () => {
     expect(failed.body.error.code).toBe('AI_UNAVAILABLE');
 
     const settings = (await api(app, admin).get('/settings').expect(200)).body.data;
-    expect(settings).toMatchObject({ aiProvider: 'gemini', aiModel: 'gemini-2.5-flash' });
+    expect(settings).toMatchObject({ aiProvider: 'gemini', aiModel: 'gemini-3.5-flash-lite' });
   });
 
   it('falls back to the rules scorer when the provider fails', async () => {
@@ -543,6 +543,6 @@ describe('previews', () => {
     expect(score.body.data.modelVersion).toBe('rules-v1');
     ai.create.mockResolvedValue(json({ score: 77, factors: [], recommendation: 'Call.' }));
     const good = await api(app, admin).post(`/leads/${lead.id}/score`).expect(200);
-    expect(good.body.data).toMatchObject({ score: 77, modelVersion: 'gemini-2.5-flash' });
+    expect(good.body.data).toMatchObject({ score: 77, modelVersion: 'gemini-3.5-flash-lite' });
   });
 });

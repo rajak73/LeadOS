@@ -23,7 +23,7 @@ describe('AI provider selection', () => {
       resolveProvider({ ...none, OPENAI_API_KEY: 'sk', GROQ_API_KEY: 'gsk', GEMINI_API_KEY: 'g' }),
     ).toEqual({
       provider: 'gemini',
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash-lite',
       apiKey: 'g',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     });
