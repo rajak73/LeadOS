@@ -14,6 +14,8 @@ export const routes: RouteObject[] = [
   {
     errorElement: <RouteError />,
     children: [
+      // Public home page. Signed-in people see it too, with an "Open dashboard" button.
+      { index: true, ...page(() => import('@/features/home/home-page')) },
       {
         element: <PublicOnly />,
         children: [
@@ -31,7 +33,10 @@ export const routes: RouteObject[] = [
               {
                 errorElement: <RouteError />,
                 children: [
-                  { index: true, ...page(() => import('@/features/dashboard/dashboard-page')) },
+                  {
+                    path: 'dashboard',
+                    ...page(() => import('@/features/dashboard/dashboard-page')),
+                  },
                   { path: 'leads', ...page(() => import('@/features/leads/leads-page')) },
                   { path: 'leads/:id', ...page(() => import('@/features/leads/lead-detail-page')) },
                   { path: 'contacts', ...page(() => import('@/features/contacts/contacts-page')) },

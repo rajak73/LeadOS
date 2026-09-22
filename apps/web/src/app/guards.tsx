@@ -14,7 +14,7 @@ export function RequireAuth() {
   if (status === 'needs-setup') return <Navigate to="/setup" replace />;
   if (status === 'unauthenticated') {
     const from = location.pathname + location.search;
-    return <Navigate to="/login" replace state={from !== '/' ? { from } : undefined} />;
+    return <Navigate to="/login" replace state={from !== '/dashboard' ? { from } : undefined} />;
   }
   return <Outlet />;
 }
@@ -27,10 +27,10 @@ export function PublicOnly() {
   if (status === 'needs-setup' && location.pathname !== '/setup')
     return <Navigate to="/setup" replace />;
   if (status !== 'needs-setup' && location.pathname === '/setup')
-    return <Navigate to={status === 'authenticated' ? '/' : '/login'} replace />;
+    return <Navigate to={status === 'authenticated' ? '/dashboard' : '/login'} replace />;
   if (status === 'authenticated') {
     const from = (location.state as { from?: string } | null)?.from;
-    return <Navigate to={from || '/'} replace />;
+    return <Navigate to={from || '/dashboard'} replace />;
   }
   return <Outlet />;
 }
@@ -45,7 +45,7 @@ export function RequireAdmin() {
         title="Only admins can open this page"
         text="Ask an admin on your team if you need something changed here."
         action={
-          <Link to="/" className={buttonClasses({ variant: 'secondary' })}>
+          <Link to="/dashboard" className={buttonClasses({ variant: 'secondary' })}>
             Back to dashboard
           </Link>
         }

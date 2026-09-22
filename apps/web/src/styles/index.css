@@ -289,3 +289,10 @@
     }
   }
 }
+
+/* Smooth in-page jumps (home page section links), unless the user prefers less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

@@ -41,7 +41,7 @@ export function RouteError() {
         >
           {chunkFailed ? 'Reload' : 'Try again'}
         </Button>
-        <Link to="/" className={buttonClasses({ variant: 'secondary' })}>
+        <Link to="/dashboard" className={buttonClasses({ variant: 'secondary' })}>
           Go to dashboard
         </Link>
       </div>

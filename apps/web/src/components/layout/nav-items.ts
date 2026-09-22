@@ -21,7 +21,7 @@ export interface NavItem {
 }
 
 export const mainNav: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/leads', label: 'Leads', icon: Users },
   { to: '/contacts', label: 'Contacts', icon: Contact },
   { to: '/inbox', label: 'Inbox', icon: MessageCircle, badge: 'inbox' },

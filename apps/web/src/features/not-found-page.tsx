@@ -14,7 +14,7 @@ export default function NotFoundPage() {
       <p className="mt-2 max-w-md type-body text-fg-muted">
         The link may be broken, or the page may have been removed.
       </p>
-      <Link to="/" className={buttonClasses({ variant: 'primary', className: 'mt-6' })}>
+      <Link to="/dashboard" className={buttonClasses({ variant: 'primary', className: 'mt-6' })}>
         Go to dashboard
       </Link>
     </div>
