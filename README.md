@@ -123,3 +123,15 @@ packages/shared  Enums, zod validation schemas and API types used by both apps
 prisma/          Database schema and migrations
 docs/API.md      API reference
 ```
+
+### Vercel (Frontend) + Render (Backend API)
+If you prefer splitting the frontend and backend instead of running the single Docker container:
+
+**1. Backend API (Render Node Service):**
+- **Root Directory:** *(leave blank)*
+- **Build Command:** `pnpm install --prod=false && pnpm build --filter=@leados/server`
+- **Start Command:** `pnpm start`
+
+**2. Frontend (Vercel):**
+- **Root Directory:** `client`
+- **Build & Install Commands:** *(leave as default)*
