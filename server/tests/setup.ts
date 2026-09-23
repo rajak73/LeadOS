@@ -18,7 +18,7 @@ const url = urlForSchema(schema);
 const cli = createRequire(import.meta.url).resolve('prisma/build/index.js');
 const schemaFile = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../prisma/schema.prisma',
+  '../../prisma/schema.prisma',
 );
 execFileSync(process.execPath, [cli, 'migrate', 'deploy', `--schema=${schemaFile}`], {
   env: {
