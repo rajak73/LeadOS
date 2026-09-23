@@ -117,8 +117,8 @@ Put it behind HTTPS and set `TRUST_PROXY=true` if a reverse proxy sits in front.
 ## Project layout
 
 ```
-apps/api         Express API: src/modules/<area>/ (routes + service), src/lib/ (shared helpers)
-apps/web         React app: src/features/<area>/ (pages), src/components/ui/ (design system)
+server           Express API: src/modules/<area>/ (routes + service), src/lib/ (shared helpers)
+client           React app: src/features/<area>/ (pages), src/components/ui/ (design system)
 packages/shared  Enums, zod validation schemas and API types used by both apps
 prisma/          Database schema and migrations
 docs/API.md      API reference

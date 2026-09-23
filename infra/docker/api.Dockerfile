@@ -15,19 +15,19 @@ FROM base AS build
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY packages ./packages
-COPY apps/api/package.json ./apps/api/package.json
-COPY apps/web/package.json ./apps/web/package.json
+COPY server/package.json ./server/package.json
+COPY client/package.json ./client/package.json
 COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN pnpm --filter @leados/api exec prisma generate --schema=../../prisma/schema.prisma \
+RUN pnpm --filter @leados/server exec prisma generate --schema=../../prisma/schema.prisma \
  && pnpm --filter @leados/shared build \
- && pnpm --filter @leados/web build \
- && pnpm --filter @leados/api build
+ && pnpm --filter @leados/client build \
+ && pnpm --filter @leados/server build
 # Self-contained production install of the API (no dev dependencies).
-RUN pnpm --filter @leados/api deploy --prod --ignore-scripts /out \
+RUN pnpm --filter @leados/server deploy --prod --ignore-scripts /out \
  && cp -r prisma /out/prisma \
- && cp -r apps/web/dist /out/web \
+ && cp -r client/dist /out/web \
  && cd /out && node node_modules/prisma/build/index.js generate --schema=prisma/schema.prisma \
  && rm -rf /out/src /out/tests /out/*.config.ts /out/tsconfig.json
 

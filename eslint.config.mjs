@@ -1,6 +1,6 @@
 // Root ESLint flat config (ESLint 9). Shared across workspaces.
 // Enforces TypeScript strictness + module-boundary rules:
-//   - apps/web may not import apps/api internals
+//   - client may not import server internals
 //   - an API module may only be reached from another module via its public index.ts
 
 import js from '@eslint/js';
@@ -8,8 +8,8 @@ import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 import { createRequire } from 'node:module';
 
-// Web-only plugins are installed in apps/web; resolve them from there.
-const webRequire = createRequire(new URL('./apps/web/package.json', import.meta.url));
+// Web-only plugins are installed in client; resolve them from there.
+const webRequire = createRequire(new URL('./client/package.json', import.meta.url));
 const reactHooks = webRequire('eslint-plugin-react-hooks');
 const jsxA11y = webRequire('eslint-plugin-jsx-a11y');
 
@@ -40,15 +40,15 @@ export default tseslint.config(
   },
   // Frontend may never reach into backend internals.
   {
-    files: ['apps/web/**/*.{ts,tsx}'],
+    files: ['client/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['**/apps/api/**', '@leados/api', '@leados/api/**'],
-              message: 'apps/web must not import apps/api internals. Talk to the API over HTTP.',
+              group: ['**/server/**', '@leados/server', '@leados/server/**'],
+              message: 'client must not import server internals. Talk to the API over HTTP.',
             },
           ],
         },
@@ -57,7 +57,7 @@ export default tseslint.config(
   },
   // Web app (Vite + React): hooks rules and accessibility checks.
   {
-    files: ['apps/web/src/**/*.{ts,tsx}'],
+    files: ['client/src/**/*.{ts,tsx}'],
     ...jsxA11y.flatConfigs.recommended,
     languageOptions: {
       ...jsxA11y.flatConfigs.recommended.languageOptions,
@@ -65,7 +65,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/web/src/**/*.{ts,tsx}'],
+    files: ['client/src/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -79,7 +79,7 @@ export default tseslint.config(
   },
   // Backend module-boundary rule: another module may only be reached via its public index.ts.
   {
-    files: ['apps/api/src/modules/**/*.ts'],
+    files: ['server/src/modules/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
